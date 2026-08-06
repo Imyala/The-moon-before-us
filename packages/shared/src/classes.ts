@@ -10,7 +10,8 @@ export interface ClassDef {
   resourceRegenPerSec: number;
   baseStats: StatBlock;
   color: string; // primary avatar color
-  weaponItemId: string;
+  weaponItemId: string; // kit A, equipped by default
+  altWeaponItemId: string; // kit B, granted in starting inventory so players can swap immediately
 }
 
 export const CLASSES: Record<PlayerClassId, ClassDef> = {
@@ -25,7 +26,8 @@ export const CLASSES: Record<PlayerClassId, ClassDef> = {
     resourceRegenPerSec: 2,
     baseStats: { power: 12, vitality: 16, haste: 0, critChance: 0.05, critDamage: 1.5 },
     color: "#c96a4e",
-    weaponItemId: "weapon_warden_blade"
+    weaponItemId: "weapon_warden_blade",
+    altWeaponItemId: "weapon_warden_greataxe"
   },
   ranger: {
     id: "ranger",
@@ -38,7 +40,8 @@ export const CLASSES: Record<PlayerClassId, ClassDef> = {
     resourceRegenPerSec: 6,
     baseStats: { power: 13, vitality: 10, haste: 0, critChance: 0.12, critDamage: 1.6 },
     color: "#5ea86b",
-    weaponItemId: "weapon_ranger_bow"
+    weaponItemId: "weapon_ranger_bow",
+    altWeaponItemId: "weapon_ranger_pistols"
   },
   mystic: {
     id: "mystic",
@@ -51,7 +54,8 @@ export const CLASSES: Record<PlayerClassId, ClassDef> = {
     resourceRegenPerSec: 5,
     baseStats: { power: 15, vitality: 9, haste: 0, critChance: 0.08, critDamage: 1.5 },
     color: "#7b6ad0",
-    weaponItemId: "weapon_mystic_focus"
+    weaponItemId: "weapon_mystic_focus",
+    altWeaponItemId: "weapon_mystic_scythe"
   }
 };
 

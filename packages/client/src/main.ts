@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import {
   CLASSES,
-  abilitiesForClass,
+  activeAbilities,
   getAbility,
   getEnemy,
   getResourceNode,
@@ -317,7 +317,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
 
   function useAbility(slot: number) {
     if (panels.isOpen() || hud.isChatFocused()) return;
-    const ability = abilitiesForClass(character.classId).find((a) => a.slot === slot);
+    const ability = activeAbilities(character).find((a) => a.slot === slot);
     if (!ability) return;
     const readyAt = cooldownReadyAt.get(ability.id) ?? 0;
     if (performance.now() < readyAt) return;
@@ -491,12 +491,13 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
     world.camera.position.copy(camPos);
     world.camera.lookAt(selfPos.x, 1.4, selfPos.z);
 
+    hud.syncAbilityBar(character);
     hud.updateVitals(character);
     hud.updateShield((selfShield / Math.max(1, character.maxHp)) * 100);
     hud.showDeath(character.hp <= 0);
 
     const cds: Record<string, number> = {};
-    for (const ab of abilitiesForClass(character.classId)) {
+    for (const ab of activeAbilities(character)) {
       const readyAt = cooldownReadyAt.get(ab.id) ?? 0;
       const remaining = readyAt - now;
       const total = ab.cooldownMs * (1 - character.stats.haste);

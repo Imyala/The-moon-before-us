@@ -1,16 +1,17 @@
 import type { ItemDef } from "./types.js";
 
 export const ITEMS: ItemDef[] = [
-  // ---- class weapons (starting gear) ----
+  // ---- class weapons (starting gear, kit A) ----
   {
     id: "weapon_warden_blade",
     name: "Wayfarer's Blade",
     kind: "weapon",
     slot: "weapon",
     classId: "warden",
+    weaponType: "warden_sword_board",
     rarity: "common",
     icon: "sword",
-    description: "A dependable steel blade.",
+    description: "A dependable sword and board. Steel Strike, Shield Bash, Shield Wall.",
     statBonus: { power: 4 }
   },
   {
@@ -19,9 +20,10 @@ export const ITEMS: ItemDef[] = [
     kind: "weapon",
     slot: "weapon",
     classId: "ranger",
+    weaponType: "ranger_bow",
     rarity: "common",
     icon: "bow",
-    description: "A well-worn hunting bow.",
+    description: "A well-worn hunting bow. Quickshot, Piercing Volley, Barrage.",
     statBonus: { power: 4 }
   },
   {
@@ -30,19 +32,59 @@ export const ITEMS: ItemDef[] = [
     kind: "weapon",
     slot: "weapon",
     classId: "mystic",
+    weaponType: "mystic_focus",
     rarity: "common",
     icon: "orb",
-    description: "A moonstone focus, humming with Aether.",
+    description: "A moonstone focus, humming with Aether. Moonbolt, Lunar Nova, Arcane Surge.",
     statBonus: { power: 4 }
   },
 
-  // ---- crafted weapons ----
+  // ---- class weapons (starting gear, kit B) ----
+  {
+    id: "weapon_warden_greataxe",
+    name: "Wayfarer's Greataxe",
+    kind: "weapon",
+    slot: "weapon",
+    classId: "warden",
+    weaponType: "warden_greataxe",
+    rarity: "common",
+    icon: "sword",
+    description: "A brutal two-handed axe. Cleave, Rending Swing, Whirlwind.",
+    statBonus: { power: 5 }
+  },
+  {
+    id: "weapon_ranger_pistols",
+    name: "Wayfarer's Pistols",
+    kind: "weapon",
+    slot: "weapon",
+    classId: "ranger",
+    weaponType: "ranger_pistols",
+    rarity: "common",
+    icon: "bow",
+    description: "A brace of close-range pistols. Twin Shot, Scatter Blast, Evasive Shot.",
+    statBonus: { power: 4, critChance: 0.02 }
+  },
+  {
+    id: "weapon_mystic_scythe",
+    name: "Wayfarer's Scythe",
+    kind: "weapon",
+    slot: "weapon",
+    classId: "mystic",
+    weaponType: "mystic_scythe",
+    rarity: "common",
+    icon: "orb",
+    description: "A melee scythe wreathed in dark Aether. Reap, Dark Harvest, Gravity Well.",
+    statBonus: { power: 5 }
+  },
+
+  // ---- crafted weapons (sword & board / bow / focus line) ----
   {
     id: "weapon_iron_sword",
     name: "Iron Sword",
     kind: "weapon",
     slot: "weapon",
     classId: "warden",
+    weaponType: "warden_sword_board",
     rarity: "uncommon",
     icon: "sword",
     description: "Forged from smelted iron ore.",
@@ -54,6 +96,7 @@ export const ITEMS: ItemDef[] = [
     kind: "weapon",
     slot: "weapon",
     classId: "ranger",
+    weaponType: "ranger_bow",
     rarity: "uncommon",
     icon: "bow",
     description: "A longbow strung with braided sinew.",
@@ -65,6 +108,7 @@ export const ITEMS: ItemDef[] = [
     kind: "weapon",
     slot: "weapon",
     classId: "mystic",
+    weaponType: "mystic_focus",
     rarity: "uncommon",
     icon: "orb",
     description: "A focus infused with captured moonlight.",
@@ -76,6 +120,7 @@ export const ITEMS: ItemDef[] = [
     kind: "weapon",
     slot: "weapon",
     classId: "warden",
+    weaponType: "warden_sword_board",
     rarity: "rare",
     icon: "sword",
     description: "Silver-edged steel, cold to the touch.",
@@ -87,6 +132,7 @@ export const ITEMS: ItemDef[] = [
     kind: "weapon",
     slot: "weapon",
     classId: "ranger",
+    weaponType: "ranger_bow",
     rarity: "rare",
     icon: "bow",
     description: "Fletched with feathers that never quite touch the ground.",
@@ -98,6 +144,7 @@ export const ITEMS: ItemDef[] = [
     kind: "weapon",
     slot: "weapon",
     classId: "mystic",
+    weaponType: "mystic_focus",
     rarity: "rare",
     icon: "orb",
     description: "A conduit that channels the deep well of the night sky.",
@@ -135,6 +182,16 @@ export const ITEMS: ItemDef[] = [
     description: "Woven from thread spun under a full moon.",
     statBonus: { vitality: 10, power: 6, haste: 0.03 }
   },
+  {
+    id: "armor_smiths_bulwark_plate",
+    name: "Smith's Bulwark Plate",
+    kind: "armor",
+    slot: "armor",
+    rarity: "rare",
+    icon: "armor",
+    description: "Hand-forged plate only a Smith knows how to temper correctly.",
+    statBonus: { vitality: 14, power: 3 }
+  },
 
   // ---- trinkets ----
   {
@@ -156,6 +213,16 @@ export const ITEMS: ItemDef[] = [
     icon: "charm",
     description: "A pendant that pulses in time with the tides.",
     statBonus: { power: 5, haste: 0.05 }
+  },
+  {
+    id: "trinket_wildheart_charm",
+    name: "Wildheart Charm",
+    kind: "trinket",
+    slot: "trinket",
+    rarity: "rare",
+    icon: "charm",
+    description: "Woven from glade-grown vines by a Naturalist's hand.",
+    statBonus: { critChance: 0.04, haste: 0.04 }
   },
 
   // ---- materials ----
@@ -196,6 +263,16 @@ export const ITEMS: ItemDef[] = [
     icon: "potion_red",
     description: "Restores a large amount of health.",
     useEffect: { heal: 90 },
+    stackable: true
+  },
+  {
+    id: "potion_elixir_full_moon",
+    name: "Elixir of the Full Moon",
+    kind: "consumable",
+    rarity: "rare",
+    icon: "potion_blue",
+    description: "An Alchemist's masterwork brew, restoring both health and resource at once.",
+    useEffect: { heal: 70, restore: 50 },
     stackable: true
   }
 ];

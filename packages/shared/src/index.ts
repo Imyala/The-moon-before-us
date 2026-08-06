@@ -2,6 +2,8 @@ export * from "./vec.js";
 export * from "./types.js";
 export * from "./classes.js";
 export * from "./abilities.js";
+export * from "./specializations.js";
+export * from "./subclasses.js";
 export * from "./items.js";
 export * from "./recipes.js";
 export * from "./enemies.js";

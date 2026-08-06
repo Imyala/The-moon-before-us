@@ -1,4 +1,4 @@
-import { ITEMS, RECIPES, type CharacterState, type EquipmentSlot, type ItemRarity } from "@moon/shared";
+import { ITEMS, RECIPES, getSubclass, type CharacterState, type EquipmentSlot, type ItemRarity } from "@moon/shared";
 import { computeEffectiveStats } from "./character.js";
 import { maxHpForCharacter, maxResourceForCharacter } from "@moon/shared";
 
@@ -47,17 +47,30 @@ export function craft(character: CharacterState, recipeId: string): CraftResult 
   const recipe = RECIPES.find((r) => r.id === recipeId);
   if (!recipe) return { ok: false, reason: "Unknown recipe." };
   if (character.level < recipe.requiredLevel) return { ok: false, reason: `Requires level ${recipe.requiredLevel}.` };
+  const subclass = character.subclassId ? getSubclass(character.subclassId) : undefined;
+  if (recipe.requiredSubclass && recipe.requiredSubclass !== character.subclassId) {
+    const req = getSubclass(recipe.requiredSubclass);
+    return { ok: false, reason: `Requires the ${req?.name ?? recipe.requiredSubclass} trade.` };
+  }
+
+  const discount = subclass?.craftMaterialDiscountPct ?? 0;
+  const neededQty = (qty: number) => Math.max(1, Math.ceil(qty * (1 - discount)));
+
   for (const input of recipe.inputs) {
-    if (countItem(character, input.itemId) < input.quantity) {
+    if (countItem(character, input.itemId) < neededQty(input.quantity)) {
       const def = ITEMS.find((i) => i.id === input.itemId);
       return { ok: false, reason: `Not enough ${def?.name ?? input.itemId}.` };
     }
   }
   for (const input of recipe.inputs) {
-    removeItemsById(character, input.itemId, input.quantity);
+    removeItemsById(character, input.itemId, neededQty(input.quantity));
   }
-  addItem(character, recipe.resultItemId, recipe.resultQuantity, "common");
-  return { ok: true, itemId: recipe.resultItemId, quantity: recipe.resultQuantity };
+
+  const resultDef = ITEMS.find((i) => i.id === recipe.resultItemId);
+  const yieldBonus = resultDef?.kind === "consumable" ? subclass?.potionYieldBonus ?? 0 : 0;
+  const finalQty = recipe.resultQuantity + yieldBonus;
+  addItem(character, recipe.resultItemId, finalQty, "common");
+  return { ok: true, itemId: recipe.resultItemId, quantity: finalQty };
 }
 
 export type EquipResult = { ok: true; slot: EquipmentSlot } | { ok: false; reason: string };

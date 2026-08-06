@@ -27,7 +27,6 @@ export function getOrCreateCharacter(token: string, name: string, classId: Playe
   const stats: StatBlock = { ...BASE_STATS, ...cls.baseStats };
   const maxHp = maxHpForCharacter(1, stats.vitality);
   const maxResource = maxResourceForCharacter(1);
-  const weapon = ITEMS.find((i) => i.id === cls.weaponItemId)!;
 
   const character: CharacterState = {
     id: randomUUID(),
@@ -42,8 +41,8 @@ export function getOrCreateCharacter(token: string, name: string, classId: Playe
     stats,
     skillPoints: 0,
     abilityRanks: {},
-    inventory: [...STARTER_ITEMS],
-    equipment: { weapon: { itemId: weapon.id, quantity: 1, rarity: "common" } },
+    inventory: [...STARTER_ITEMS, { itemId: cls.altWeaponItemId, quantity: 1, rarity: "common" }],
+    equipment: { weapon: { itemId: cls.weaponItemId, quantity: 1, rarity: "common" } },
     position: { x: 0, y: 0, z: 0 }
   };
   saveCharacter(token, character);

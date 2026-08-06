@@ -3,6 +3,9 @@ import {
   getAbility,
   getEnemy,
   getResourceNode,
+  getSpecialization,
+  getSubclass,
+  activeAbilities,
   add,
   distance,
   normalize,
@@ -67,6 +70,19 @@ export interface PlayerEntity {
   gathering: Gathering | null;
   connected: boolean;
   resourceAccum: number;
+  // specialization mechanic state
+  momentum: number; // Strider: 0-5 stacking crit
+  momentumAccum: number;
+  voidStacks: number; // Voidblade: 0-5 stacking power
+  voidStacksUntil: number;
+  nextHawkTickAt: number; // Beastcaller periodic pulse
+  packUntil: number; // Call the Pack: shortens hawk interval
+  powerBuffUntil: number; // Bloodrage
+  powerBuffPct: number;
+  lifestealUntil: number; // Bloodrage
+  lifestealPct: number;
+  damageReductionUntil: number; // Unbreakable
+  damageReductionPct: number;
 }
 
 interface EnemyEntity {
@@ -91,6 +107,8 @@ interface EnemyEntity {
   markedBonus: number;
   ccUntil: number;
   damagers: Map<string, number>; // playerId -> last damage timestamp
+  forcedTargetId: string | null; // taunt (Unbreakable)
+  forcedTargetUntil: number;
 }
 
 interface NodeEntity {
@@ -102,6 +120,16 @@ interface NodeEntity {
   gatheringBy: string | null;
 }
 
+interface HealZoneEntity {
+  id: string;
+  ownerId: string;
+  pos: Vec3;
+  radius: number;
+  endAt: number;
+  nextTickAt: number;
+  tickAmount: number;
+}
+
 export class Room {
   readonly id = randomUUID();
   readonly code: string | undefined;
@@ -109,6 +137,7 @@ export class Room {
   players = new Map<string, PlayerEntity>();
   private enemies = new Map<string, EnemyEntity>();
   private nodes = new Map<string, NodeEntity>();
+  private healZones = new Map<string, HealZoneEntity>();
   private events: GameEvent[] = [];
   private tick = 0;
   private interval: ReturnType<typeof setInterval> | null = null;
@@ -156,7 +185,9 @@ export class Room {
         markedUntil: 0,
         markedBonus: 0,
         ccUntil: 0,
-        damagers: new Map()
+        damagers: new Map(),
+        forcedTargetId: null,
+        forcedTargetUntil: 0
       });
     }
     for (const spawn of NODE_SPAWNS) {
@@ -191,7 +222,19 @@ export class Room {
       shieldUntil: 0,
       gathering: null,
       connected: true,
-      resourceAccum: 0
+      resourceAccum: 0,
+      momentum: 0,
+      momentumAccum: 0,
+      voidStacks: 0,
+      voidStacksUntil: 0,
+      nextHawkTickAt: 0,
+      packUntil: 0,
+      powerBuffUntil: 0,
+      powerBuffPct: 0,
+      lifestealUntil: 0,
+      lifestealPct: 0,
+      damageReductionUntil: 0,
+      damageReductionPct: 0
     };
     if (character.hp <= 0) {
       entity.position = { ...PLAYER_SPAWN };
@@ -285,6 +328,14 @@ export class Room {
         this.allocateSkillPoint(player, msg.abilityId);
         break;
       }
+      case "chooseSpecialization": {
+        this.chooseSpecialization(player, msg.specializationId);
+        break;
+      }
+      case "chooseSubclass": {
+        this.chooseSubclass(player, msg.subclassId);
+        break;
+      }
       case "chat": {
         const text = (msg.message ?? "").slice(0, 200);
         if (text.trim().length === 0) break;
@@ -310,6 +361,10 @@ export class Room {
       this.send(player.ws, { t: "error", message: "Invalid ability." });
       return;
     }
+    if (ability.tier === "elite" && ability.specializationId !== player.character.specializationId) {
+      this.send(player.ws, { t: "error", message: "Choose this specialization first." });
+      return;
+    }
     if (player.character.skillPoints <= 0) {
       this.send(player.ws, { t: "error", message: "No skill points available." });
       return;
@@ -325,10 +380,34 @@ export class Room {
     this.sendCharacterUpdate(player);
   }
 
+  private chooseSpecialization(player: PlayerEntity, specializationId: string) {
+    const spec = getSpecialization(specializationId);
+    if (!spec || spec.classId !== player.character.classId) {
+      this.send(player.ws, { t: "error", message: "Invalid specialization." });
+      return;
+    }
+    if (player.character.level < spec.unlockLevel) {
+      this.send(player.ws, { t: "error", message: `Requires level ${spec.unlockLevel}.` });
+      return;
+    }
+    player.character.specializationId = specializationId;
+    this.sendCharacterUpdate(player);
+  }
+
+  private chooseSubclass(player: PlayerEntity, subclassId: string) {
+    const sub = getSubclass(subclassId);
+    if (!sub) {
+      this.send(player.ws, { t: "error", message: "Invalid trade." });
+      return;
+    }
+    player.character.subclassId = subclassId;
+    this.sendCharacterUpdate(player);
+  }
+
   private tryUseAbility(player: PlayerEntity, abilityId: string, targetPos: Vec3 | undefined, targetEntityId: string | undefined, now: number) {
     if (player.character.hp <= 0) return;
-    const ability = getAbility(abilityId);
-    if (!ability || ability.classId !== player.character.classId) return;
+    const ability = activeAbilities(player.character).find((a) => a.id === abilityId);
+    if (!ability) return;
     if (player.casting || now < player.dodgeUntil) return;
     const readyAt = player.cooldowns.get(abilityId) ?? 0;
     if (now < readyAt) return;
@@ -342,6 +421,15 @@ export class Room {
     const rankMult = 1 + (rank - 1) * 0.18;
     const cdMult = Math.max(0.55, 1 - player.character.stats.haste - (rank - 1) * 0.06);
     player.cooldowns.set(abilityId, now + ability.cooldownMs * cdMult);
+
+    if (
+      player.character.specializationId === "mystic_voidblade" &&
+      ability.tier === "weapon" &&
+      (ability.effect === "damage" || ability.effect === "aoe_damage")
+    ) {
+      player.voidStacks = Math.min(5, (now < player.voidStacksUntil ? player.voidStacks : 0) + 1);
+      player.voidStacksUntil = now + 6000;
+    }
 
     const cast: Casting = { abilityId, endAt: now + ability.castTimeMs, targetPos, targetEntityId };
     if (ability.castTimeMs <= 0) {
@@ -362,15 +450,34 @@ export class Room {
     now: number
   ) {
     if (!ability) return;
-    const power = player.character.stats.power;
-    const rawAmount = (ability.basePower + power * ability.powerScale) * rankMult;
+    const spec = player.character.specializationId;
+    let effectivePower = player.character.stats.power;
+    if (spec === "mystic_voidblade" && player.voidStacksUntil > now) {
+      effectivePower *= 1 + player.voidStacks * 0.03;
+    }
+    if (player.powerBuffUntil > now) {
+      effectivePower *= 1 + player.powerBuffPct;
+    }
+    let rawAmount = (ability.basePower + effectivePower * ability.powerScale) * rankMult;
+    if (
+      spec === "warden_berserker" &&
+      ability.tier === "weapon" &&
+      player.character.hp < player.character.maxHp * 0.5
+    ) {
+      rawAmount *= 1.25;
+    }
 
     switch (ability.effect) {
       case "damage": {
         const enemy = targetEntityId ? this.enemies.get(targetEntityId) : this.nearestEnemyInRange(player, ability.range);
         if (!enemy || enemy.hp <= 0) return;
         if (distance(player.position, enemy.position) > ability.range + 1.5) return;
-        this.damageEnemy(enemy, rawAmount, player, now);
+        const dealt = this.damageEnemy(enemy, rawAmount, player, now);
+        if (ability.special === "mystic_reap" && dealt > 0) {
+          const healAmt = Math.round(dealt * 0.4);
+          player.character.hp = Math.min(player.character.maxHp, player.character.hp + healAmt);
+          this.events.push({ type: "heal", targetId: player.id, amount: healAmt, sourceId: player.id, pos: player.position });
+        }
         break;
       }
       case "aoe_damage": {
@@ -410,25 +517,66 @@ export class Room {
         break;
       }
       case "heal": {
-        player.character.hp = Math.min(player.character.maxHp, player.character.hp + rawAmount);
-        this.events.push({ type: "heal", targetId: player.id, amount: Math.round(rawAmount), sourceId: player.id, pos: player.position });
+        this.healPlayer(player, player, rawAmount, now);
         break;
       }
       case "aoe_heal": {
+        if (ability.special === "mystic_lunarsanctuary") {
+          const id = randomUUID();
+          this.healZones.set(id, {
+            id,
+            ownerId: player.id,
+            pos: { ...player.position },
+            radius: ability.radius,
+            endAt: now + (ability.ccDurationMs ?? 6000),
+            nextTickAt: now + 1000,
+            tickAmount: rawAmount
+          });
+          break;
+        }
         for (const other of this.players.values()) {
           if (other.character.hp <= 0) continue;
           if (distance(player.position, other.position) <= ability.radius) {
-            other.character.hp = Math.min(other.character.maxHp, other.character.hp + rawAmount);
-            this.events.push({ type: "heal", targetId: other.id, amount: Math.round(rawAmount), sourceId: player.id, pos: other.position });
+            this.healPlayer(player, other, rawAmount, now);
           }
         }
         break;
       }
       case "buff": {
-        player.shield = rawAmount;
-        player.shieldUntil = now + (ability.ccDurationMs ?? 5000);
+        if (ability.special === "warden_unbreakable") {
+          player.damageReductionUntil = now + (ability.ccDurationMs ?? 4000);
+          player.damageReductionPct = ability.basePower;
+          for (const enemy of this.enemies.values()) {
+            if (enemy.hp <= 0) continue;
+            if (distance(player.position, enemy.position) <= ability.radius) {
+              enemy.forcedTargetId = player.id;
+              enemy.forcedTargetUntil = now + (ability.ccDurationMs ?? 4000);
+            }
+          }
+        } else if (ability.special === "warden_bloodrage") {
+          player.powerBuffUntil = now + (ability.ccDurationMs ?? 5000);
+          player.powerBuffPct = ability.basePower;
+          player.lifestealUntil = now + (ability.ccDurationMs ?? 5000);
+          player.lifestealPct = 0.15;
+        } else if (ability.special === "ranger_callthepack") {
+          player.packUntil = now + (ability.ccDurationMs ?? 8000);
+        } else {
+          player.shield = rawAmount;
+          player.shieldUntil = now + (ability.ccDurationMs ?? 5000);
+        }
         break;
       }
+    }
+  }
+
+  private healPlayer(caster: PlayerEntity, target: PlayerEntity, rawAmount: number, now: number) {
+    const amount = Math.round(rawAmount);
+    target.character.hp = Math.min(target.character.maxHp, target.character.hp + amount);
+    this.events.push({ type: "heal", targetId: target.id, amount, sourceId: caster.id, pos: target.position });
+    if (caster.character.specializationId === "mystic_tidecaller") {
+      const shieldAmt = Math.round(amount * 0.25);
+      target.shield = Math.max(target.shield, shieldAmt);
+      target.shieldUntil = now + 4000;
     }
   }
 
@@ -446,8 +594,12 @@ export class Room {
     return best;
   }
 
-  private damageEnemy(enemy: EnemyEntity, rawAmount: number, source: PlayerEntity, now: number) {
-    const crit = Math.random() < source.character.stats.critChance;
+  private damageEnemy(enemy: EnemyEntity, rawAmount: number, source: PlayerEntity, now: number): number {
+    let critChance = source.character.stats.critChance;
+    if (source.character.specializationId === "ranger_strider") {
+      critChance += source.momentum * 0.02;
+    }
+    const crit = Math.random() < critChance;
     let amount = rawAmount * (crit ? source.character.stats.critDamage : 1);
     if (enemy.markedUntil > now) amount *= 1 + enemy.markedBonus;
     amount = Math.round(amount);
@@ -456,9 +608,17 @@ export class Room {
     enemy.state = enemy.hp > 0 ? enemy.state : "dead";
     if (!enemy.targetId) enemy.targetId = source.id;
     this.events.push({ type: "damage", targetId: enemy.id, amount, crit, sourceId: source.id, pos: enemy.position });
+    if (source.lifestealUntil > now) {
+      const healAmt = Math.round(amount * source.lifestealPct);
+      if (healAmt > 0) {
+        source.character.hp = Math.min(source.character.maxHp, source.character.hp + healAmt);
+        this.events.push({ type: "heal", targetId: source.id, amount: healAmt, sourceId: source.id, pos: source.position });
+      }
+    }
     if (enemy.hp <= 0 && enemy.deadAt === null) {
       this.killEnemy(enemy, now);
     }
+    return amount;
   }
 
   private killEnemy(enemy: EnemyEntity, now: number) {
@@ -488,6 +648,13 @@ export class Room {
     if (player.character.hp <= 0) return;
     if (now < player.dodgeUntil) return; // i-frames
     let remaining = amount;
+    if (player.character.specializationId === "warden_bulwark") {
+      const dr = Math.min(0.3, Math.floor(player.character.resource / 25) * 0.08);
+      remaining *= 1 - dr;
+    }
+    if (player.damageReductionUntil > now) {
+      remaining *= 1 - player.damageReductionPct;
+    }
     if (player.shield > 0 && now < player.shieldUntil) {
       const absorbed = Math.min(player.shield, remaining);
       player.shield -= absorbed;
@@ -524,9 +691,11 @@ export class Room {
     const def = getResourceNode(node.defId)!;
     node.depleted = true;
     node.respawnAt = now + def.respawnMs;
+    const subclass = player.character.subclassId ? getSubclass(player.character.subclassId) : undefined;
+    const gatherBonus = subclass?.gatherBonusQty ?? 0;
     for (const entry of def.loot) {
       if (Math.random() < entry.chance) {
-        const qty = randInt(entry.minQty, entry.maxQty);
+        const qty = randInt(entry.minQty, entry.maxQty) + gatherBonus;
         addItem(player.character, entry.itemId, qty, "common");
         this.events.push({ type: "loot", playerId: player.id, itemId: entry.itemId, quantity: qty, rarity: "common" });
       }
@@ -545,6 +714,7 @@ export class Room {
     for (const player of this.players.values()) this.tickPlayer(player, dt, now);
     for (const enemy of this.enemies.values()) this.tickEnemy(enemy, dt, now);
     for (const node of this.nodes.values()) this.tickNode(node, now);
+    this.tickHealZones(now);
 
     this.broadcastSnapshot(now);
     this.events = [];
@@ -605,6 +775,56 @@ export class Room {
       player.resourceAccum -= whole;
       player.character.resource = Math.min(player.character.maxResource, player.character.resource + whole);
     }
+
+    if (player.character.specializationId === "ranger_strider") {
+      const moving = player.moveIntent.x !== 0 || player.moveIntent.z !== 0;
+      if (moving && player.character.hp > 0) {
+        player.momentumAccum += dt;
+        while (player.momentumAccum >= 1) {
+          player.momentumAccum -= 1;
+          player.momentum = Math.min(5, player.momentum + 1);
+        }
+      } else {
+        player.momentum = Math.max(0, player.momentum - dt * 2);
+      }
+    }
+
+    if (player.character.specializationId === "ranger_beastcaller" && player.character.hp > 0 && now >= player.nextHawkTickAt) {
+      const interval = now < player.packUntil ? 2000 : 4000;
+      player.nextHawkTickAt = now + interval;
+      const target = this.nearestEnemyInRange(player, 12);
+      if (target && target.hp > 0) {
+        const amount = 8 + player.character.stats.power * 0.3;
+        this.damageEnemy(target, amount, player, now);
+      }
+    }
+  }
+
+  private tickHealZones(now: number) {
+    for (const [id, zone] of this.healZones) {
+      if (now >= zone.endAt) {
+        this.healZones.delete(id);
+        continue;
+      }
+      if (now < zone.nextTickAt) continue;
+      zone.nextTickAt = now + 1000;
+      const owner = this.players.get(zone.ownerId);
+      for (const player of this.players.values()) {
+        if (player.character.hp <= 0) continue;
+        if (distance(player.position, zone.pos) > zone.radius) continue;
+        const before = player.character.hp;
+        player.character.hp = Math.min(player.character.maxHp, player.character.hp + zone.tickAmount);
+        if (player.character.hp > before) {
+          this.events.push({
+            type: "heal",
+            targetId: player.id,
+            amount: Math.round(player.character.hp - before),
+            sourceId: owner?.id ?? zone.ownerId,
+            pos: player.position
+          });
+        }
+      }
+    }
   }
 
   private tickEnemy(enemy: EnemyEntity, dt: number, now: number) {
@@ -643,7 +863,13 @@ export class Room {
     }
 
     let target = enemy.targetId ? this.players.get(enemy.targetId) : undefined;
-    if (!target || target.character.hp <= 0 || distance(enemy.position, target.position) > def.aggroRadius * 1.6) {
+    if (enemy.forcedTargetUntil > now && enemy.forcedTargetId) {
+      const forced = this.players.get(enemy.forcedTargetId);
+      if (forced && forced.character.hp > 0) {
+        target = forced;
+        enemy.targetId = forced.id;
+      }
+    } else if (!target || target.character.hp <= 0 || distance(enemy.position, target.position) > def.aggroRadius * 1.6) {
       target = this.findNearestPlayer(enemy.position, def.aggroRadius);
       enemy.targetId = target?.id ?? null;
     }

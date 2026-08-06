@@ -1,8 +1,11 @@
 import {
   ITEMS,
   RECIPES,
-  abilitiesForClass,
+  SUBCLASSES,
+  activeAbilities,
   getItem,
+  getSubclass,
+  specializationsForClass,
   type CharacterState,
   type EquipmentSlot
 } from "@moon/shared";
@@ -141,17 +144,41 @@ export class Panels {
   }
 
   private renderCrafting(c: CharacterState) {
+    const subclass = c.subclassId ? getSubclass(c.subclassId) : undefined;
+    const discountPct = subclass ? Math.round(subclass.craftMaterialDiscountPct * 100) : 0;
+
+    const tradeCards = SUBCLASSES.map((sub) => {
+      const selected = c.subclassId === sub.id;
+      return `
+        <div class="recipe-card ${selected ? "" : ""}" style="${selected ? "border-color:#ffd77a" : ""}">
+          <div class="info">
+            <h4>${sub.name}${selected ? " (active)" : ""} <span style="font-weight:400;color:#9aa3c9">— ${sub.tagline}</span></h4>
+            <div class="inputs">${sub.description}</div>
+          </div>
+          <button data-trade="${sub.id}" ${selected ? "disabled" : ""}>${selected ? "Active" : "Take up"}</button>
+        </div>`;
+    }).join("");
+
     const cards = RECIPES.map((r) => {
-      const locked = c.level < r.requiredLevel;
-      const canAfford = r.inputs.every((inp) => countItem(c, inp.itemId) >= inp.quantity);
+      const levelLocked = c.level < r.requiredLevel;
+      const tradeLocked = !!r.requiredSubclass && r.requiredSubclass !== c.subclassId;
+      const locked = levelLocked || tradeLocked;
+      const discount = r.requiredSubclass === c.subclassId ? 0 : discountPct > 0 ? discountPct : 0;
+      const neededQty = (qty: number) => Math.max(1, Math.ceil(qty * (1 - (subclass?.craftMaterialDiscountPct ?? 0))));
+      const canAfford = r.inputs.every((inp) => countItem(c, inp.itemId) >= neededQty(inp.quantity));
       const inputsText = r.inputs
-        .map((inp) => `${getItem(inp.itemId)?.name ?? inp.itemId} x${inp.quantity} (have ${countItem(c, inp.itemId)})`)
+        .map((inp) => `${getItem(inp.itemId)?.name ?? inp.itemId} x${neededQty(inp.quantity)} (have ${countItem(c, inp.itemId)})`)
         .join(", ");
+      const lockReason = tradeLocked
+        ? ` (req. ${getSubclass(r.requiredSubclass!)?.name ?? r.requiredSubclass} trade)`
+        : levelLocked
+          ? ` (req. Lv${r.requiredLevel})`
+          : "";
       return `
         <div class="recipe-card ${locked ? "locked" : ""}">
           <div class="info">
-            <h4>${r.name}${locked ? ` (req. Lv${r.requiredLevel})` : ""}</h4>
-            <div class="inputs">${inputsText}</div>
+            <h4>${r.name}${lockReason}</h4>
+            <div class="inputs">${inputsText}${discount > 0 ? ` · ${discount}% cheaper as a ${subclass?.name}` : ""}</div>
           </div>
           <button data-recipe="${r.id}" ${locked || !canAfford ? "disabled" : ""}>Craft</button>
         </div>`;
@@ -161,11 +188,17 @@ export class Panels {
       <button class="close-btn">✕</button>
       <h2 class="title-font">Crafting</h2>
       <p style="color:#9aa3c9;font-size:12.5px">Gather materials from nodes in the world, then craft gear and draughts here.</p>
+      <h3 style="margin-top:16px;font-size:15px">Trade${subclass ? ` — ${subclass.name}` : ""}</h3>
+      <div class="recipe-list">${tradeCards}</div>
+      <h3 style="margin-top:20px;font-size:15px">Recipes</h3>
       <div class="recipe-list">${cards}</div>
     `;
     this.panel.querySelector(".close-btn")!.addEventListener("click", () => this.close());
     this.panel.querySelectorAll<HTMLButtonElement>("[data-recipe]").forEach((btn) => {
       btn.addEventListener("click", () => this.net.send({ t: "craft", recipeId: btn.dataset.recipe! }));
+    });
+    this.panel.querySelectorAll<HTMLButtonElement>("[data-trade]").forEach((btn) => {
+      btn.addEventListener("click", () => this.net.send({ t: "chooseSubclass", subclassId: btn.dataset.trade! }));
     });
   }
 
@@ -182,20 +215,38 @@ export class Panels {
       .map(([label, value]) => `<div class="stat-chip"><span>${label}</span><strong>${value}</strong></div>`)
       .join("");
 
-    const abilities = abilitiesForClass(c.classId);
+    const abilities = activeAbilities(c);
     const skillCards = abilities
       .map((ab) => {
         const rank = (c.abilityRanks[ab.id] ?? 0) + 1;
         const dots = Array.from({ length: ab.maxRanks }, (_, i) => `<span class="rank-dot ${i < rank ? "filled" : ""}"></span>`).join("");
         const canUpgrade = c.skillPoints > 0 && rank < ab.maxRanks;
+        const tierTag = ab.tier === "elite" ? " ⭐" : "";
         return `
         <div class="skill-card">
           <div>
-            <h4>${ab.name} <span style="font-weight:400;color:#9aa3c9">Rank ${rank}/${ab.maxRanks}</span></h4>
+            <h4>${ab.name}${tierTag} <span style="font-weight:400;color:#9aa3c9">Rank ${rank}/${ab.maxRanks}</span></h4>
             <div class="desc">${ab.description}</div>
             <div class="ranks">${dots}</div>
           </div>
           <button data-ability="${ab.id}" ${canUpgrade ? "" : "disabled"}>Upgrade</button>
+        </div>`;
+      })
+      .join("");
+
+    const specs = specializationsForClass(c.classId);
+    const specLocked = c.level < (specs[0]?.unlockLevel ?? 5);
+    const specCards = specs
+      .map((spec) => {
+        const selected = c.specializationId === spec.id;
+        return `
+        <div class="skill-card" style="${selected ? "border-color:" + spec.color : ""}">
+          <div>
+            <h4>${spec.name}${selected ? " (active)" : ""} <span style="font-weight:400;color:#9aa3c9">— ${spec.tagline}</span></h4>
+            <div class="desc">${spec.description}</div>
+            <div class="desc" style="color:${spec.color};margin-top:4px">${spec.mechanicDescription}</div>
+          </div>
+          <button data-spec="${spec.id}" ${selected ? "disabled" : ""}>${selected ? "Active" : "Choose"}</button>
         </div>`;
       })
       .join("");
@@ -207,10 +258,15 @@ export class Panels {
       <div class="stat-grid">${statChips}</div>
       <h3 style="margin-top:20px;font-size:15px">Abilities</h3>
       <div class="skill-list">${skillCards}</div>
+      <h3 style="margin-top:20px;font-size:15px">Specialization${specLocked ? ` (unlocks at Lv${specs[0]?.unlockLevel})` : ""}</h3>
+      <div class="skill-list">${specLocked ? '<p style="opacity:0.6;font-size:12px">Keep leveling to unlock a specialization.</p>' : specCards}</div>
     `;
     this.panel.querySelector(".close-btn")!.addEventListener("click", () => this.close());
     this.panel.querySelectorAll<HTMLButtonElement>("[data-ability]").forEach((btn) => {
       btn.addEventListener("click", () => this.net.send({ t: "allocateSkillPoint", abilityId: btn.dataset.ability! }));
+    });
+    this.panel.querySelectorAll<HTMLButtonElement>("[data-spec]").forEach((btn) => {
+      btn.addEventListener("click", () => this.net.send({ t: "chooseSpecialization", specializationId: btn.dataset.spec! }));
     });
   }
 }

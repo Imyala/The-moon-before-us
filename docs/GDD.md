@@ -31,21 +31,32 @@ A single moonlit glade (a circular zone, ~58-unit radius) shared by every instan
 
 ### Classes & combat
 
-Three archetypes, each with a resource, 5 abilities (bound to `1`–`5`), and real tradeoffs:
+Three archetypes, each layered the way the best MMO class systems are — base class, weapon-driven kit, and a chosen specialization — so "class" means more than a name and a weapon icon:
 
-| Class | Role | Resource | Identity |
+| Class | Role | Resource | Weapon kits |
 |---|---|---|---|
-| **Warden** | Melee bruiser | Resolve | High HP, self-sustain (Second Wind), AoE (Whirlwind), hard CC (Shield Bash) |
-| **Ranger** | Ranged skirmisher | Focus | Mobility (Evasive Shot), burst single-target, a mark that boosts party damage |
-| **Mystic** | Caster / healer hybrid | Aether | AoE burst (Lunar Nova), party heal (Healing Tide), a personal shield (Barrier) |
+| **Warden** | Melee bruiser | Resolve | Sword & Board (control: Steel Strike, Shield Bash, Shield Wall) or Greataxe (cleave/burst: Cleave, Rending Swing, Whirlwind) |
+| **Ranger** | Ranged skirmisher | Focus | Longbow (range: Quickshot, Piercing Volley, Barrage) or Dual Pistols (close-range: Twin Shot, Scatter Blast, Evasive Shot) |
+| **Mystic** | Caster / healer hybrid | Aether | Focus (ranged casting: Moonbolt, Lunar Nova, Arcane Surge) or Scythe (melee lifesteal: Reap, Dark Harvest, Gravity Well) |
 
-Combat is real-time and positional, not tab-target: abilities have range, radius, cast times, and cooldowns; a universal **Dodge** (`Space`) grants brief invulnerability frames, so surviving a boss telegraph is about reading and reacting, not gear checks alone. Enemies telegraph their attacks (a red ground ring) before they land, so the counterplay is legible even solo.
+The hotbar is 6 slots: swapping your equipped weapon swaps abilities **1–3**; two fixed utility abilities always sit in **4–5** (heal/shield/CC that don't depend on your weapon); slot **6** is an elite ability unlocked by your specialization. Every character starts with both weapon options in their bag, so trying the other kit is just an equip away, mid-session, no cost.
+
+At level 5, each class picks one of two **specializations** — a GW2-elite-spec-style choice that changes how the class *plays*, not just its numbers:
+
+| Class | Specializations |
+|---|---|
+| Warden | **Bulwark** (banked Resolve converts to damage reduction; elite: *Unbreakable* — brief 50% DR + taunt) vs. **Berserker** (bonus damage below 50% HP; elite: *Bloodrage* — power + lifesteal) |
+| Ranger | **Strider** (movement stacks crit; elite: *Windrunner's Volley* — 360° burst) vs. **Beastcaller** (a spirit hawk periodically strikes your target; elite: *Call the Pack* — hawk hits harder for a duration) |
+| Mystic | **Tidecaller** (heals also grant a shield; elite: *Lunar Sanctuary* — a ground zone that heals allies standing in it) vs. **Voidblade** (damage spells stack a power buff; elite: *Eclipse* — a heavy self-centered nuke) |
+
+Combat itself is real-time and positional, not tab-target: abilities have range, radius, cast times, and cooldowns; a universal **Dodge** (`Space`) grants brief invulnerability frames, so surviving a boss telegraph is about reading and reacting, not gear checks alone. Enemies telegraph their attacks (a red ground ring) before they land, so the counterplay is legible even solo.
 
 ### Progression
 
 - Standard XP-to-level curve; leveling raises max HP/resource and grants a **skill point**.
-- Skill points upgrade individual abilities (rank 1 → 3), each rank adding ~18% power and trimming cooldown — meaningful build choices without a sprawling talent tree to parse.
-- Gear: a weapon (class-restricted), armor, and trinket slot, each with rarity tiers (common → epic) that scale stat bonuses.
+- Skill points upgrade individual abilities (rank 1 → 3, including elites), each rank adding ~18% power and trimming cooldown — meaningful build choices without a sprawling talent tree to parse.
+- Gear: a weapon (class- and kit-restricted), armor, and trinket slot, each with rarity tiers (common → epic) that scale stat bonuses.
+- **Subclasses** are a fourth, orthogonal layer — a Log-Horizon-style non-combat trade, chosen (and freely changed) from the crafting panel, independent of combat class or specialization: **Smith** (cheaper crafting, exclusive plate armor), **Alchemist** (bonus potion yield, exclusive elixir), **Naturalist** (bonus gather yield, exclusive trinket).
 
 ### Crafting
 
@@ -69,7 +80,7 @@ Gather from nodes in the world (`E` to interact) → open the crafting panel (`R
 Roughly in the order they'd most improve the game:
 
 1. **More zones** — the world/room system already supports it; needs new spawn layouts + a travel point.
-2. **A fourth class and/or subclassing** — the ability/rank system generalizes cleanly.
+2. **A fourth combat class, and/or a second specialization tier** (à la GW2's multiple elite specs) — the weapon-kit/specialization system generalizes cleanly to more of both.
 3. **Dungeons**: an instanced room variant with a boss-gated multi-enemy encounter and its own loot table.
 4. **Player trading / a shared economy** — deliberately deferred; per-player loot avoids needing it for the vertical slice, but a real game wants it.
 5. **Mounts / faster traversal** for a bigger world.

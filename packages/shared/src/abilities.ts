@@ -1,10 +1,17 @@
-import type { AbilityDef, PlayerClassId } from "./types.js";
+import { getItem } from "./items.js";
+import type { AbilityDef, CharacterState, PlayerClassId } from "./types.js";
 
 export const ABILITIES: AbilityDef[] = [
-  // ---------- WARDEN (melee, resolve) ----------
+  // =========================================================================
+  // WARDEN — melee, Resolve
+  // =========================================================================
+
+  // -- Sword & Board kit --
   {
     id: "warden_strike",
     classId: "warden",
+    tier: "weapon",
+    weaponType: "warden_sword_board",
     slot: 1,
     name: "Steel Strike",
     description: "A quick blade strike. Builds Resolve on hit.",
@@ -22,6 +29,8 @@ export const ABILITIES: AbilityDef[] = [
   {
     id: "warden_shieldbash",
     classId: "warden",
+    tier: "weapon",
+    weaponType: "warden_sword_board",
     slot: 2,
     name: "Shield Bash",
     description: "Slam a foe, stunning it briefly.",
@@ -38,8 +47,70 @@ export const ABILITIES: AbilityDef[] = [
     maxRanks: 3
   },
   {
+    id: "warden_shieldwall",
+    classId: "warden",
+    tier: "weapon",
+    weaponType: "warden_sword_board",
+    slot: 3,
+    name: "Shield Wall",
+    description: "Brace behind your shield, absorbing incoming damage for a few seconds.",
+    resource: "resolve",
+    resourceCost: 15,
+    cooldownMs: 9000,
+    castTimeMs: 0,
+    range: 0,
+    radius: 0,
+    effect: "buff",
+    basePower: 25,
+    powerScale: 0.6,
+    ccDurationMs: 3000,
+    maxRanks: 3
+  },
+
+  // -- Greataxe kit --
+  {
+    id: "warden_cleave",
+    classId: "warden",
+    tier: "weapon",
+    weaponType: "warden_greataxe",
+    slot: 1,
+    name: "Cleave",
+    description: "A wide axe swing striking all enemies around you.",
+    resource: "resolve",
+    resourceCost: 0,
+    cooldownMs: 900,
+    castTimeMs: 0,
+    range: 0,
+    radius: 3,
+    effect: "aoe_damage",
+    basePower: 6,
+    powerScale: 0.5,
+    maxRanks: 3
+  },
+  {
+    id: "warden_rendingswing",
+    classId: "warden",
+    tier: "weapon",
+    weaponType: "warden_greataxe",
+    slot: 2,
+    name: "Rending Swing",
+    description: "A heavy overhead blow that tears deep.",
+    resource: "resolve",
+    resourceCost: 20,
+    cooldownMs: 5000,
+    castTimeMs: 0,
+    range: 3,
+    radius: 0,
+    effect: "damage",
+    basePower: 14,
+    powerScale: 1.0,
+    maxRanks: 3
+  },
+  {
     id: "warden_whirlwind",
     classId: "warden",
+    tier: "weapon",
+    weaponType: "warden_greataxe",
     slot: 3,
     name: "Whirlwind",
     description: "Spin, striking all nearby enemies.",
@@ -54,9 +125,12 @@ export const ABILITIES: AbilityDef[] = [
     powerScale: 0.8,
     maxRanks: 3
   },
+
+  // -- Utility (both kits) --
   {
     id: "warden_bulwark",
     classId: "warden",
+    tier: "utility",
     slot: 4,
     name: "Bulwark",
     description: "Brace, gaining a shield that absorbs damage for a few seconds.",
@@ -75,6 +149,7 @@ export const ABILITIES: AbilityDef[] = [
   {
     id: "warden_secondwind",
     classId: "warden",
+    tier: "utility",
     slot: 5,
     name: "Second Wind",
     description: "Tear victory from the brink, healing yourself.",
@@ -90,10 +165,60 @@ export const ABILITIES: AbilityDef[] = [
     maxRanks: 3
   },
 
-  // ---------- RANGER (ranged, focus) ----------
+  // -- Elites --
+  {
+    id: "warden_unbreakable",
+    classId: "warden",
+    tier: "elite",
+    specializationId: "warden_bulwark",
+    special: "warden_unbreakable",
+    slot: 6,
+    name: "Unbreakable",
+    description: "Halve incoming damage briefly and force nearby enemies to focus you.",
+    resource: "resolve",
+    resourceCost: 40,
+    cooldownMs: 20000,
+    castTimeMs: 0,
+    range: 0,
+    radius: 8,
+    effect: "buff",
+    basePower: 0.5,
+    powerScale: 0,
+    ccDurationMs: 4000,
+    maxRanks: 3
+  },
+  {
+    id: "warden_bloodrage",
+    classId: "warden",
+    tier: "elite",
+    specializationId: "warden_berserker",
+    special: "warden_bloodrage",
+    slot: 6,
+    name: "Bloodrage",
+    description: "Sacrifice safety for power, gaining bonus power and lifesteal.",
+    resource: "resolve",
+    resourceCost: 40,
+    cooldownMs: 20000,
+    castTimeMs: 0,
+    range: 0,
+    radius: 0,
+    effect: "buff",
+    basePower: 0.4,
+    powerScale: 0,
+    ccDurationMs: 5000,
+    maxRanks: 3
+  },
+
+  // =========================================================================
+  // RANGER — ranged, Focus
+  // =========================================================================
+
+  // -- Bow kit --
   {
     id: "ranger_quickshot",
     classId: "ranger",
+    tier: "weapon",
+    weaponType: "ranger_bow",
     slot: 1,
     name: "Quickshot",
     description: "A fast, accurate arrow.",
@@ -111,6 +236,8 @@ export const ABILITIES: AbilityDef[] = [
   {
     id: "ranger_volley",
     classId: "ranger",
+    tier: "weapon",
+    weaponType: "ranger_bow",
     slot: 2,
     name: "Piercing Volley",
     description: "Loose a volley that pierces everything in a line.",
@@ -126,9 +253,92 @@ export const ABILITIES: AbilityDef[] = [
     maxRanks: 3
   },
   {
+    id: "ranger_barrage",
+    classId: "ranger",
+    tier: "weapon",
+    weaponType: "ranger_bow",
+    slot: 3,
+    name: "Barrage",
+    description: "Rain arrows down on a target area.",
+    resource: "focus",
+    resourceCost: 30,
+    cooldownMs: 9000,
+    castTimeMs: 400,
+    range: 16,
+    radius: 4,
+    effect: "aoe_damage",
+    basePower: 8,
+    powerScale: 0.7,
+    maxRanks: 3
+  },
+
+  // -- Dual Pistols kit --
+  {
+    id: "ranger_twinshot",
+    classId: "ranger",
+    tier: "weapon",
+    weaponType: "ranger_pistols",
+    slot: 1,
+    name: "Twin Shot",
+    description: "A fast double-tap at close range.",
+    resource: "focus",
+    resourceCost: 0,
+    cooldownMs: 550,
+    castTimeMs: 0,
+    range: 10,
+    radius: 0,
+    effect: "damage",
+    basePower: 7,
+    powerScale: 0.8,
+    maxRanks: 3
+  },
+  {
+    id: "ranger_scatterblast",
+    classId: "ranger",
+    tier: "weapon",
+    weaponType: "ranger_pistols",
+    slot: 2,
+    name: "Scatter Blast",
+    description: "A close-range blast that staggers everything caught in it.",
+    resource: "focus",
+    resourceCost: 25,
+    cooldownMs: 7000,
+    castTimeMs: 0,
+    range: 6,
+    radius: 3,
+    effect: "cc",
+    basePower: 10,
+    powerScale: 0.6,
+    ccDurationMs: 900,
+    maxRanks: 3
+  },
+  {
+    id: "ranger_evasive",
+    classId: "ranger",
+    tier: "weapon",
+    weaponType: "ranger_pistols",
+    slot: 3,
+    name: "Evasive Shot",
+    description: "Leap back while firing, gaining brief evasion.",
+    resource: "focus",
+    resourceCost: 20,
+    cooldownMs: 9000,
+    castTimeMs: 0,
+    range: 16,
+    radius: 0,
+    effect: "damage",
+    basePower: 6,
+    powerScale: 0.6,
+    ccDurationMs: 1200,
+    maxRanks: 3
+  },
+
+  // -- Utility (both kits) --
+  {
     id: "ranger_trap",
     classId: "ranger",
-    slot: 3,
+    tier: "utility",
+    slot: 4,
     name: "Explosive Trap",
     description: "Plant a trap that roots and damages enemies who trigger it.",
     resource: "focus",
@@ -144,26 +354,9 @@ export const ABILITIES: AbilityDef[] = [
     maxRanks: 3
   },
   {
-    id: "ranger_evasive",
-    classId: "ranger",
-    slot: 4,
-    name: "Evasive Shot",
-    description: "Leap back while firing, gaining brief evasion.",
-    resource: "focus",
-    resourceCost: 20,
-    cooldownMs: 9000,
-    castTimeMs: 0,
-    range: 16,
-    radius: 0,
-    effect: "damage",
-    basePower: 6,
-    powerScale: 0.6,
-    ccDurationMs: 1200,
-    maxRanks: 3
-  },
-  {
     id: "ranger_mark",
     classId: "ranger",
+    tier: "utility",
     slot: 5,
     name: "Hunter's Mark",
     description: "Mark a target, increasing all damage it takes.",
@@ -180,10 +373,58 @@ export const ABILITIES: AbilityDef[] = [
     maxRanks: 3
   },
 
-  // ---------- MYSTIC (caster/healer, aether) ----------
+  // -- Elites --
+  {
+    id: "ranger_windrunners_volley",
+    classId: "ranger",
+    tier: "elite",
+    specializationId: "ranger_strider",
+    slot: 6,
+    name: "Windrunner's Volley",
+    description: "Loose a burst of arrows in every direction.",
+    resource: "focus",
+    resourceCost: 35,
+    cooldownMs: 14000,
+    castTimeMs: 0,
+    range: 0,
+    radius: 6,
+    effect: "aoe_damage",
+    basePower: 9,
+    powerScale: 0.6,
+    maxRanks: 3
+  },
+  {
+    id: "ranger_callthepack",
+    classId: "ranger",
+    tier: "elite",
+    specializationId: "ranger_beastcaller",
+    special: "ranger_callthepack",
+    slot: 6,
+    name: "Call the Pack",
+    description: "Summon spirit wolves to join your hawk in harrying your target.",
+    resource: "focus",
+    resourceCost: 35,
+    cooldownMs: 18000,
+    castTimeMs: 0,
+    range: 0,
+    radius: 0,
+    effect: "buff",
+    basePower: 0,
+    powerScale: 0,
+    ccDurationMs: 8000,
+    maxRanks: 3
+  },
+
+  // =========================================================================
+  // MYSTIC — caster/healer, Aether
+  // =========================================================================
+
+  // -- Focus kit --
   {
     id: "mystic_moonbolt",
     classId: "mystic",
+    tier: "weapon",
+    weaponType: "mystic_focus",
     slot: 1,
     name: "Moonbolt",
     description: "Hurl a bolt of lunar energy.",
@@ -201,6 +442,8 @@ export const ABILITIES: AbilityDef[] = [
   {
     id: "mystic_nova",
     classId: "mystic",
+    tier: "weapon",
+    weaponType: "mystic_focus",
     slot: 2,
     name: "Lunar Nova",
     description: "Detonate a burst of Aether around a point.",
@@ -216,9 +459,92 @@ export const ABILITIES: AbilityDef[] = [
     maxRanks: 3
   },
   {
+    id: "mystic_arcanesurge",
+    classId: "mystic",
+    tier: "weapon",
+    weaponType: "mystic_focus",
+    slot: 3,
+    name: "Arcane Surge",
+    description: "A fast bolt of raw Aether.",
+    resource: "aether",
+    resourceCost: 10,
+    cooldownMs: 700,
+    castTimeMs: 0,
+    range: 16,
+    radius: 0,
+    effect: "damage",
+    basePower: 7,
+    powerScale: 0.8,
+    maxRanks: 3
+  },
+
+  // -- Scythe kit --
+  {
+    id: "mystic_reap",
+    classId: "mystic",
+    tier: "weapon",
+    weaponType: "mystic_scythe",
+    slot: 1,
+    name: "Reap",
+    description: "A melee scythe strike that returns some of the damage dealt as health.",
+    resource: "aether",
+    resourceCost: 12,
+    cooldownMs: 1400,
+    castTimeMs: 0,
+    range: 3,
+    radius: 0,
+    effect: "damage",
+    basePower: 10,
+    powerScale: 0.9,
+    special: "mystic_reap",
+    maxRanks: 3
+  },
+  {
+    id: "mystic_darkharvest",
+    classId: "mystic",
+    tier: "weapon",
+    weaponType: "mystic_scythe",
+    slot: 2,
+    name: "Dark Harvest",
+    description: "Spin the scythe, cutting down everything nearby.",
+    resource: "aether",
+    resourceCost: 25,
+    cooldownMs: 6500,
+    castTimeMs: 300,
+    range: 0,
+    radius: 4,
+    effect: "aoe_damage",
+    basePower: 9,
+    powerScale: 0.65,
+    maxRanks: 3
+  },
+  {
+    id: "mystic_gravitywell",
+    classId: "mystic",
+    tier: "weapon",
+    weaponType: "mystic_scythe",
+    slot: 3,
+    name: "Gravity Well",
+    description: "Pull nearby enemies together and root them briefly.",
+    resource: "aether",
+    resourceCost: 32,
+    cooldownMs: 15000,
+    castTimeMs: 400,
+    range: 14,
+    radius: 5,
+    effect: "cc",
+    basePower: 5,
+    powerScale: 0.4,
+    ccDurationMs: 1800,
+    maxRanks: 3
+  },
+
+  // -- Utility (both kits) --
+  {
     id: "mystic_healingtide",
     classId: "mystic",
-    slot: 3,
+    tier: "utility",
+    slot: 4,
     name: "Healing Tide",
     description: "Wash healing energy over yourself and nearby allies.",
     resource: "aether",
@@ -235,7 +561,8 @@ export const ABILITIES: AbilityDef[] = [
   {
     id: "mystic_barrier",
     classId: "mystic",
-    slot: 4,
+    tier: "utility",
+    slot: 5,
     name: "Barrier",
     description: "Shield yourself, absorbing a burst of incoming damage.",
     resource: "aether",
@@ -250,22 +577,46 @@ export const ABILITIES: AbilityDef[] = [
     ccDurationMs: 6000,
     maxRanks: 3
   },
+
+  // -- Elites --
   {
-    id: "mystic_gravitywell",
+    id: "mystic_lunarsanctuary",
     classId: "mystic",
-    slot: 5,
-    name: "Gravity Well",
-    description: "Pull nearby enemies together and root them briefly.",
+    tier: "elite",
+    specializationId: "mystic_tidecaller",
+    special: "mystic_lunarsanctuary",
+    slot: 6,
+    name: "Lunar Sanctuary",
+    description: "Create a sanctuary of moonlight that heals allies standing within it.",
     resource: "aether",
-    resourceCost: 32,
-    cooldownMs: 15000,
-    castTimeMs: 400,
-    range: 14,
+    resourceCost: 40,
+    cooldownMs: 18000,
+    castTimeMs: 500,
+    range: 0,
     radius: 5,
-    effect: "cc",
-    basePower: 5,
-    powerScale: 0.4,
-    ccDurationMs: 1800,
+    effect: "aoe_heal",
+    basePower: 8,
+    powerScale: 0.3,
+    ccDurationMs: 6000,
+    maxRanks: 3
+  },
+  {
+    id: "mystic_eclipse",
+    classId: "mystic",
+    tier: "elite",
+    specializationId: "mystic_voidblade",
+    slot: 6,
+    name: "Eclipse",
+    description: "Detonate a devastating burst of void energy around yourself.",
+    resource: "aether",
+    resourceCost: 45,
+    cooldownMs: 18000,
+    castTimeMs: 500,
+    range: 0,
+    radius: 5,
+    effect: "aoe_damage",
+    basePower: 14,
+    powerScale: 0.9,
     maxRanks: 3
   }
 ];
@@ -276,4 +627,24 @@ export function abilitiesForClass(classId: PlayerClassId): AbilityDef[] {
 
 export function getAbility(id: string): AbilityDef | undefined {
   return ABILITIES.find((a) => a.id === id);
+}
+
+/**
+ * The ability kit currently active for a character: 3 weapon abilities matching their
+ * equipped weapon's type, 2 fixed utility abilities, and (once a specialization is chosen)
+ * 1 elite ability — mirrors the hotbar 1-6.
+ */
+export function activeAbilities(character: Pick<CharacterState, "classId" | "equipment" | "specializationId">): AbilityDef[] {
+  const weaponStack = character.equipment.weapon;
+  const weaponDef = weaponStack ? getItem(weaponStack.itemId) : undefined;
+  const weaponType = weaponDef?.weaponType;
+  const all = abilitiesForClass(character.classId);
+
+  const weaponAbilities = all.filter((a) => a.tier === "weapon" && a.weaponType === weaponType);
+  const utilityAbilities = all.filter((a) => a.tier === "utility");
+  const eliteAbilities = character.specializationId
+    ? all.filter((a) => a.tier === "elite" && a.specializationId === character.specializationId)
+    : [];
+
+  return [...weaponAbilities, ...utilityAbilities, ...eliteAbilities].sort((a, b) => a.slot - b.slot);
 }

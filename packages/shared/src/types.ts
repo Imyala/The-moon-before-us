@@ -22,6 +22,14 @@ export const BASE_STATS: StatBlock = {
 
 export type EquipmentSlot = "weapon" | "armor" | "trinket";
 
+export type WeaponType =
+  | "warden_sword_board"
+  | "warden_greataxe"
+  | "ranger_bow"
+  | "ranger_pistols"
+  | "mystic_focus"
+  | "mystic_scythe";
+
 export type ItemRarity = "common" | "uncommon" | "rare" | "epic";
 
 export const RARITY_MULTIPLIER: Record<ItemRarity, number> = {
@@ -39,6 +47,7 @@ export interface ItemDef {
   kind: ItemKind;
   slot?: EquipmentSlot; // present for weapon/armor/trinket
   classId?: PlayerClassId; // weapons are class-restricted
+  weaponType?: WeaponType; // present for weapons; determines which weapon-tier abilities are active
   rarity: ItemRarity;
   icon: string; // simple icon key used by client UI
   description: string;
@@ -59,16 +68,23 @@ export interface RecipeDef {
   resultItemId: string;
   resultQuantity: number;
   requiredLevel: number;
+  requiredSubclass?: string; // if set, only that subclass can learn/craft this recipe
   inputs: { itemId: string; quantity: number }[];
   description: string;
 }
 
 export type AbilityEffectType = "damage" | "heal" | "buff" | "debuff" | "cc" | "aoe_damage" | "aoe_heal";
 
+export type AbilityTier = "weapon" | "utility" | "elite";
+
 export interface AbilityDef {
   id: string;
   classId: PlayerClassId;
-  slot: number; // 1-5, hotbar position
+  tier: AbilityTier;
+  weaponType?: WeaponType; // present when tier === "weapon"; ability is only active with this weapon equipped
+  specializationId?: string; // present when tier === "elite"; ability is only active with this specialization chosen
+  special?: string; // id of a custom hand-written effect handler, for elites whose effect doesn't fit the generic pipeline
+  slot: number; // 1-6, hotbar position
   name: string;
   description: string;
   resource: ResourceType;
@@ -80,8 +96,30 @@ export interface AbilityDef {
   effect: AbilityEffectType;
   basePower: number; // base damage/heal before power-stat scaling
   powerScale: number; // multiplier applied to caster.power
-  ccDurationMs?: number; // for cc/debuff effects (stun/root/slow)
+  ccDurationMs?: number; // for cc/debuff effects (stun/root/slow), or buff/special duration
   maxRanks: number;
+}
+
+export interface SpecializationDef {
+  id: string;
+  classId: PlayerClassId;
+  name: string;
+  tagline: string;
+  description: string;
+  mechanicDescription: string; // describes the passive mechanic change, shown in UI
+  unlockLevel: number;
+  color: string;
+}
+
+export interface SubclassDef {
+  id: string;
+  name: string;
+  tagline: string;
+  description: string;
+  craftMaterialDiscountPct: number; // 0-1, reduces recipe input quantities
+  potionYieldBonus: number; // extra potions produced per potion-recipe craft
+  gatherBonusQty: number; // extra material per successful gather roll
+  exclusiveRecipeId: string;
 }
 
 export interface EnemyLootEntry {
@@ -137,6 +175,8 @@ export interface CharacterState extends CharacterSummary {
   stats: StatBlock;
   skillPoints: number;
   abilityRanks: Record<string, number>;
+  specializationId?: string;
+  subclassId?: string;
   inventory: ItemStack[];
   equipment: Partial<Record<EquipmentSlot, ItemStack>>;
   position: Vec3;

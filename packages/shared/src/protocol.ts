@@ -60,6 +60,16 @@ export interface AllocateSkillPointMessage {
   abilityId: string;
 }
 
+export interface ChooseSpecializationMessage {
+  t: "chooseSpecialization";
+  specializationId: string;
+}
+
+export interface ChooseSubclassMessage {
+  t: "chooseSubclass";
+  subclassId: string;
+}
+
 export interface ChatMessage {
   t: "chat";
   message: string;
@@ -80,6 +90,8 @@ export type ClientMessage =
   | UnequipMessage
   | UseItemMessage
   | AllocateSkillPointMessage
+  | ChooseSpecializationMessage
+  | ChooseSubclassMessage
   | ChatMessage
   | LeaveMessage;
 

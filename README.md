@@ -32,7 +32,7 @@ Run `npm run typecheck` to typecheck all three packages.
 |---|---|
 | Move | `WASD` |
 | Look / orbit camera | hold right-click + move mouse |
-| Abilities 1–5 | `1` `2` `3` `4` `5` |
+| Abilities 1–6 | `1` `2` `3` `4` `5` `6` |
 | Dodge (brief invulnerability) | `Space` |
 | Gather a resource node | `E` |
 | Inventory | `I` |

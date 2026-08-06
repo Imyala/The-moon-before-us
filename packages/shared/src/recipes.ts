@@ -150,6 +150,47 @@ export const RECIPES: RecipeDef[] = [
       { itemId: "mat_silver_ore", quantity: 3 }
     ],
     description: "Set starlight essence into a pendant that pulses with the tides."
+  },
+
+  // ---- subclass-exclusive recipes ----
+  {
+    id: "recipe_smiths_bulwark_plate",
+    name: "Smith's Bulwark Plate",
+    resultItemId: "armor_smiths_bulwark_plate",
+    resultQuantity: 1,
+    requiredLevel: 7,
+    requiredSubclass: "smith",
+    inputs: [
+      { itemId: "mat_silver_ore", quantity: 5 },
+      { itemId: "mat_iron_ore", quantity: 5 }
+    ],
+    description: "Only a Smith knows how to temper plate this dense without cracking it."
+  },
+  {
+    id: "recipe_elixir_full_moon",
+    name: "Elixir of the Full Moon",
+    resultItemId: "potion_elixir_full_moon",
+    resultQuantity: 2,
+    requiredLevel: 7,
+    requiredSubclass: "alchemist",
+    inputs: [
+      { itemId: "mat_moonpetal", quantity: 3 },
+      { itemId: "mat_essence", quantity: 3 }
+    ],
+    description: "An Alchemist's masterwork brew, restoring health and resource together."
+  },
+  {
+    id: "recipe_wildheart_charm",
+    name: "Wildheart Charm",
+    resultItemId: "trinket_wildheart_charm",
+    resultQuantity: 1,
+    requiredLevel: 7,
+    requiredSubclass: "naturalist",
+    inputs: [
+      { itemId: "mat_moonpetal", quantity: 4 },
+      { itemId: "mat_herb", quantity: 4 }
+    ],
+    description: "Only a Naturalist can weave glade-grown vines into something wearable."
   }
 ];
 

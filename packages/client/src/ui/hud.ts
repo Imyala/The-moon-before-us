@@ -1,21 +1,36 @@
-import { abilitiesForClass, CLASSES, type CharacterState, type PlayerClassId, xpForLevel } from "@moon/shared";
+import { activeAbilities, CLASSES, type CharacterState, type PlayerClassId, xpForLevel } from "@moon/shared";
 
 const ABILITY_GLYPHS: Record<string, string> = {
   warden_strike: "⚔️",
   warden_shieldbash: "🛡️",
+  warden_shieldwall: "🚧",
+  warden_cleave: "🪓",
+  warden_rendingswing: "💢",
   warden_whirlwind: "🌀",
   warden_bulwark: "🧱",
   warden_secondwind: "❤️",
+  warden_unbreakable: "🗿",
+  warden_bloodrage: "🩸",
   ranger_quickshot: "🏹",
   ranger_volley: "➶",
-  ranger_trap: "🪤",
+  ranger_barrage: "🌧️",
+  ranger_twinshot: "🔫",
+  ranger_scatterblast: "🎆",
   ranger_evasive: "💨",
+  ranger_trap: "🪤",
   ranger_mark: "🎯",
+  ranger_windrunners_volley: "🌬️",
+  ranger_callthepack: "🐺",
   mystic_moonbolt: "🌙",
   mystic_nova: "💥",
+  mystic_arcanesurge: "✨",
+  mystic_reap: "🌾",
+  mystic_darkharvest: "🖤",
+  mystic_gravitywell: "🌌",
   mystic_healingtide: "💧",
   mystic_barrier: "🔷",
-  mystic_gravitywell: "🌌"
+  mystic_lunarsanctuary: "🌕",
+  mystic_eclipse: "🌑"
 };
 
 export class Hud {
@@ -28,7 +43,9 @@ export class Hud {
   private xpFill: HTMLDivElement;
   private levelBadge: HTMLSpanElement;
   private nameLabel: HTMLSpanElement;
-  private abilitySlots: { root: HTMLDivElement; overlay: HTMLDivElement }[] = [];
+  private abilityBarEl: HTMLDivElement;
+  private abilitySlots = new Map<string, { root: HTMLDivElement; overlay: HTMLDivElement }>();
+  private kitSignature = "";
   private rosterEl: HTMLDivElement;
   private roomCodeEl: HTMLDivElement;
   private toastsEl: HTMLDivElement;
@@ -37,20 +54,17 @@ export class Hud {
   private deathOverlay: HTMLDivElement;
   private gatherBar: HTMLDivElement;
   private gatherFill: HTMLDivElement;
-  private classId: PlayerClassId;
 
   onChatSend: ((msg: string) => void) | null = null;
 
   constructor(root: HTMLElement, classId: PlayerClassId) {
-    this.classId = classId;
-    const abilities = abilitiesForClass(classId);
     const cls = CLASSES[classId];
 
     this.root = document.createElement("div");
     this.root.className = "hud";
     this.root.innerHTML = `
       <div class="hotkeys-hint">
-        WASD move · Hold right-click to look · 1-5 abilities · Space dodge<br/>
+        WASD move · Hold right-click to look · 1-6 abilities · Space dodge<br/>
         E gather · I inventory · R crafting · C character
       </div>
 
@@ -107,6 +121,7 @@ export class Hud {
     this.xpFill = this.root.querySelector("#xpFill")!;
     this.levelBadge = this.root.querySelector("#hudLevel")!;
     this.nameLabel = this.root.querySelector("#hudName")!;
+    this.abilityBarEl = this.root.querySelector("#abilityBar")!;
     this.rosterEl = this.root.querySelector("#rosterList")!;
     this.roomCodeEl = this.root.querySelector("#roomCodeBadge")!;
     this.toastsEl = this.root.querySelector("#toasts")!;
@@ -126,9 +141,21 @@ export class Hud {
         this.chatInput.blur();
       }
     });
+  }
 
-    const abilityBar = this.root.querySelector<HTMLDivElement>("#abilityBar")!;
-    for (const ab of abilities) {
+  isChatFocused(): boolean {
+    return document.activeElement === this.chatInput;
+  }
+
+  /** Rebuilds the ability bar only when the active kit (weapon + specialization) actually changes. */
+  syncAbilityBar(character: CharacterState) {
+    const signature = `${character.equipment.weapon?.itemId ?? ""}|${character.specializationId ?? ""}`;
+    if (signature === this.kitSignature) return;
+    this.kitSignature = signature;
+
+    this.abilityBarEl.innerHTML = "";
+    this.abilitySlots.clear();
+    for (const ab of activeAbilities(character)) {
       const slot = document.createElement("div");
       slot.className = "ability-slot";
       slot.innerHTML = `
@@ -138,13 +165,9 @@ export class Hud {
         <div class="cd-overlay" style="transform:scaleY(0)"></div>
       `;
       slot.title = `${ab.name} — ${ab.description}`;
-      abilityBar.appendChild(slot);
-      this.abilitySlots.push({ root: slot, overlay: slot.querySelector(".cd-overlay")! });
+      this.abilityBarEl.appendChild(slot);
+      this.abilitySlots.set(ab.id, { root: slot, overlay: slot.querySelector(".cd-overlay")! });
     }
-  }
-
-  isChatFocused(): boolean {
-    return document.activeElement === this.chatInput;
   }
 
   updateVitals(c: CharacterState) {
@@ -168,11 +191,9 @@ export class Hud {
   }
 
   updateCooldowns(cooldownFrac: Record<string, number>) {
-    const abilities = abilitiesForClass(this.classId);
-    abilities.forEach((ab, i) => {
-      const frac = cooldownFrac[ab.id] ?? 0;
-      this.abilitySlots[i].overlay.style.transform = `scaleY(${frac})`;
-    });
+    for (const [id, { overlay }] of this.abilitySlots) {
+      overlay.style.transform = `scaleY(${cooldownFrac[id] ?? 0})`;
+    }
   }
 
   setRoster(members: { id: string; name: string; classId: PlayerClassId; level: number }[], selfId: string) {
