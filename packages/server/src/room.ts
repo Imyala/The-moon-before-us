@@ -49,7 +49,6 @@ import {
   COMPANION_BASE_DAMAGE,
   COMPANION_FOLLOW_DISTANCE,
   COMPANION_MAX_HP,
-  COMPANION_RETALIATION_PCT,
   COMPANION_REVIVE_MS,
   COMPANION_SPEED,
   DODGE_COOLDOWN_MS,
@@ -173,9 +172,9 @@ interface NpcEntity {
 
 /**
  * A recruited companion. Keyed by a composite id (`${ownerId}:${defId}`, see Room.companions) so
- * one owner can have up to MAX_COMPANIONS active at once. Damage is a deliberate scope choice
- * (see COMPANION_RETALIATION_PCT in world.ts): rather than independent enemy-AI targeting, a
- * companion takes retaliation damage from whatever it's currently fighting.
+ * one owner can have up to MAX_COMPANIONS active at once. Companions are full aggro targets:
+ * enemy AI can pick a companion the same way it picks a player (see `findNearestTarget` and
+ * `tickEnemy`), telegraph an attack at it, and land real damage on its own HP pool.
  */
 interface CompanionEntity {
   id: string; // `${ownerId}:${defId}`
@@ -1032,26 +1031,26 @@ export class Room {
 
   /**
    * Simple, non-crit companion damage; assists are credited to the owner for XP/loot, same as
-   * the owner's own hits. The enemy swings back for a fraction of its own attack damage every
-   * time the companion lands a hit — see COMPANION_RETALIATION_PCT in world.ts for why this
-   * stands in for full independent enemy-vs-companion targeting.
+   * the owner's own hits. If the enemy has no current target, it aggroes onto the companion that
+   * just hit it — the same threat pickup a player's first hit gives in `damageEnemy` — rather
+   * than always defaulting to the owner; from there `tickEnemy`'s own aggro AI decides whether it
+   * keeps swinging at the companion or the companion's owner.
    */
   private companionAttack(companion: CompanionEntity, enemy: EnemyEntity, owner: PlayerEntity, now: number) {
     const amount = COMPANION_BASE_DAMAGE;
     enemy.hp = Math.max(0, enemy.hp - amount);
     enemy.damagers.set(owner.id, now);
     enemy.state = enemy.hp > 0 ? enemy.state : "dead";
-    if (!enemy.targetId) enemy.targetId = owner.id;
+    if (!enemy.targetId) enemy.targetId = companion.id;
     this.events.push({ type: "damage", targetId: enemy.id, amount, crit: false, sourceId: companion.id, pos: enemy.position, zoneId: enemy.zoneId });
     if (enemy.hp <= 0 && enemy.deadAt === null) {
       this.killEnemy(enemy, now);
-      return;
     }
+  }
 
-    const enemyDef = getEnemy(enemy.defId)!;
-    const retaliation = Math.round(enemyDef.attackDamage * COMPANION_RETALIATION_PCT);
-    companion.hp = Math.max(0, companion.hp - retaliation);
-    this.events.push({ type: "damage", targetId: companion.id, amount: retaliation, crit: false, sourceId: enemy.id, pos: companion.position, zoneId: companion.zoneId });
+  private hurtCompanion(companion: CompanionEntity, amount: number, now: number, sourceId: string) {
+    companion.hp = Math.max(0, companion.hp - amount);
+    this.events.push({ type: "damage", targetId: companion.id, amount, crit: false, sourceId, pos: companion.position, zoneId: companion.zoneId });
     if (companion.hp <= 0) this.killCompanion(companion, now);
   }
 
@@ -1222,9 +1221,13 @@ export class Room {
 
     if (enemy.telegraphEndAt !== null) {
       if (now >= enemy.telegraphEndAt) {
-        const target = enemy.targetId ? this.players.get(enemy.targetId) : undefined;
-        if (target && target.character.zoneId === enemy.zoneId && distance(enemy.position, target.position) <= def.attackRange + 2) {
-          this.damagePlayer(target, def.attackDamage, now);
+        const target = this.resolveEnemyTarget(enemy.targetId);
+        if (target && this.targetZoneId(target) === enemy.zoneId && distance(enemy.position, target.position) <= def.attackRange + 2) {
+          if (this.isCompanionEntity(target)) {
+            this.hurtCompanion(target, def.attackDamage, now, enemy.id);
+          } else {
+            this.damagePlayer(target, def.attackDamage, now);
+          }
         }
         enemy.telegraphEndAt = null;
         enemy.telegraphPos = null;
@@ -1234,7 +1237,7 @@ export class Room {
       return;
     }
 
-    let target = enemy.targetId ? this.players.get(enemy.targetId) : undefined;
+    let target = this.resolveEnemyTarget(enemy.targetId);
     if (enemy.forcedTargetUntil > now && enemy.forcedTargetId) {
       const forced = this.players.get(enemy.forcedTargetId);
       if (forced && forced.character.hp > 0 && forced.character.zoneId === enemy.zoneId) {
@@ -1243,11 +1246,11 @@ export class Room {
       }
     } else if (
       !target ||
-      target.character.hp <= 0 ||
-      target.character.zoneId !== enemy.zoneId ||
+      !this.targetAlive(target) ||
+      this.targetZoneId(target) !== enemy.zoneId ||
       distance(enemy.position, target.position) > def.aggroRadius * 1.6
     ) {
-      target = this.findNearestPlayer(enemy.position, def.aggroRadius, enemy.zoneId);
+      target = this.findNearestTarget(enemy.position, def.aggroRadius, enemy.zoneId);
       enemy.targetId = target?.id ?? null;
     }
 
@@ -1292,14 +1295,44 @@ export class Room {
     }
   }
 
-  private findNearestPlayer(pos: Vec3, radius: number, zoneId: string): PlayerEntity | undefined {
-    let best: PlayerEntity | undefined;
+  /** True for a companion, false for a player — the two target kinds an enemy can lock onto. */
+  private isCompanionEntity(target: PlayerEntity | CompanionEntity): target is CompanionEntity {
+    return "ownerId" in target;
+  }
+
+  private resolveEnemyTarget(id: string | null): PlayerEntity | CompanionEntity | undefined {
+    if (!id) return undefined;
+    return this.players.get(id) ?? this.companions.get(id);
+  }
+
+  private targetAlive(target: PlayerEntity | CompanionEntity): boolean {
+    return this.isCompanionEntity(target) ? target.deadAt === null : target.character.hp > 0;
+  }
+
+  private targetZoneId(target: PlayerEntity | CompanionEntity): string {
+    return this.isCompanionEntity(target) ? target.zoneId : target.character.zoneId;
+  }
+
+  /**
+   * The nearest live player OR companion within range — enemy AI treats both as full aggro
+   * targets, the same "closest valid body" pick either kind would get on its own.
+   */
+  private findNearestTarget(pos: Vec3, radius: number, zoneId: string): PlayerEntity | CompanionEntity | undefined {
+    let best: PlayerEntity | CompanionEntity | undefined;
     let bestDist = radius;
     for (const player of this.players.values()) {
       if (player.character.hp <= 0 || player.character.zoneId !== zoneId) continue;
       const d = distance(pos, player.position);
       if (d <= bestDist) {
         best = player;
+        bestDist = d;
+      }
+    }
+    for (const companion of this.companions.values()) {
+      if (companion.deadAt !== null || companion.zoneId !== zoneId) continue;
+      const d = distance(pos, companion.position);
+      if (d <= bestDist) {
+        best = companion;
         bestDist = d;
       }
     }

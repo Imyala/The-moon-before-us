@@ -14,10 +14,6 @@ export const COMPANION_ATTACK_RANGE = 3;
 export const COMPANION_ATTACK_COOLDOWN_MS = 1400;
 export const COMPANION_BASE_DAMAGE = 14;
 export const COMPANION_MAX_HP = 100;
-// A companion trades blows with whatever it's fighting rather than being independently targeted
-// by enemy AI (a deliberate scope choice — see docs/GDD.md): every time it lands a hit, the
-// enemy it just hit swings back for a fraction of its normal attack damage.
-export const COMPANION_RETALIATION_PCT = 0.45;
 export const COMPANION_REVIVE_MS = 25000;
 
 export interface EnemySpawnPoint {

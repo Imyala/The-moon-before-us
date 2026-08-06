@@ -317,7 +317,7 @@ export class Panels {
         <div class="recipe-card">
           <div class="info">
             <h4>${def.name} <span style="font-weight:400;color:#9aa3c9">— ${def.title}</span></h4>
-            <div class="inputs">Traveling with you. Fights alongside you, takes retaliation damage, and revives a while after falling.</div>
+            <div class="inputs">Traveling with you. Fights alongside you, can draw enemy attacks and take real damage, and revives a while after falling.</div>
           </div>
           <button data-dismiss="${npcId}">Dismiss</button>
         </div>`;
