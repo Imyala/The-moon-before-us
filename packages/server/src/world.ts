@@ -50,6 +50,64 @@ export const ZONE_ENEMY_SPAWNS: Record<string, EnemySpawnPoint[]> = {
     { defId: "moonlit_wolf", pos: { x: 28, y: 0, z: -18 }, patrolRadius: 6 },
     { defId: "bramble_stalker", pos: { x: -4, y: 0, z: 4 }, patrolRadius: 5 },
     { defId: "bramble_stalker", pos: { x: 18, y: 0, z: 30 }, patrolRadius: 5 }
+  ],
+  // Fjords and tidal caves: drowned husks and kelp-tangled stalkers along the shore, tide-worn
+  // stone sentinels further inland.
+  sunken_llyr: [
+    { defId: "husk", pos: { x: 10, y: 0, z: -6 }, patrolRadius: 5 },
+    { defId: "husk", pos: { x: -14, y: 0, z: 8 }, patrolRadius: 5 },
+    { defId: "husk", pos: { x: 6, y: 0, z: 22 }, patrolRadius: 5 },
+    { defId: "husk", pos: { x: -20, y: 0, z: -18 }, patrolRadius: 5 },
+    { defId: "stone_sentinel", pos: { x: 22, y: 0, z: -10 }, patrolRadius: 4 },
+    { defId: "stone_sentinel", pos: { x: -8, y: 0, z: -28 }, patrolRadius: 4 },
+    { defId: "bramble_stalker", pos: { x: 18, y: 0, z: 14 }, patrolRadius: 5 },
+    { defId: "bramble_stalker", pos: { x: -24, y: 0, z: 20 }, patrolRadius: 5 },
+    { defId: "bramble_stalker", pos: { x: 2, y: 0, z: -34 }, patrolRadius: 5 },
+    { defId: "moonlit_wolf", pos: { x: -30, y: 0, z: -4 }, patrolRadius: 6 },
+    { defId: "moonlit_wolf", pos: { x: 28, y: 0, z: 18 }, patrolRadius: 6 }
+  ],
+  // Haunted highlands under an eternal twilight: wraiths drift among the stone circles, husks
+  // restless in the barrows.
+  mourncrown: [
+    { defId: "wane_wraith", pos: { x: 0, y: 0, z: -8 }, patrolRadius: 4 },
+    { defId: "wane_wraith", pos: { x: -22, y: 0, z: -22 }, patrolRadius: 4 },
+    { defId: "husk", pos: { x: 14, y: 0, z: -6 }, patrolRadius: 5 },
+    { defId: "husk", pos: { x: -10, y: 0, z: 16 }, patrolRadius: 5 },
+    { defId: "husk", pos: { x: 22, y: 0, z: 20 }, patrolRadius: 5 },
+    { defId: "stone_sentinel", pos: { x: -30, y: 0, z: 8 }, patrolRadius: 4 },
+    { defId: "stone_sentinel", pos: { x: 8, y: 0, z: -30 }, patrolRadius: 4 },
+    { defId: "stone_sentinel", pos: { x: 30, y: 0, z: -12 }, patrolRadius: 4 },
+    { defId: "bramble_stalker", pos: { x: -16, y: 0, z: -12 }, patrolRadius: 5 },
+    { defId: "bramble_stalker", pos: { x: 4, y: 0, z: 24 }, patrolRadius: 5 }
+  ],
+  // Sky-cities and archives: Order guardian constructs far outnumber the roaming husks of
+  // failed experiments — the quietest, most closely watched of the zones.
+  spirechain: [
+    { defId: "stone_sentinel", pos: { x: 10, y: 0, z: -8 }, patrolRadius: 3 },
+    { defId: "stone_sentinel", pos: { x: -12, y: 0, z: 4 }, patrolRadius: 3 },
+    { defId: "stone_sentinel", pos: { x: 6, y: 0, z: 18 }, patrolRadius: 3 },
+    { defId: "stone_sentinel", pos: { x: -18, y: 0, z: -14 }, patrolRadius: 3 },
+    { defId: "husk", pos: { x: 18, y: 0, z: 10 }, patrolRadius: 4 },
+    { defId: "husk", pos: { x: -6, y: 0, z: -22 }, patrolRadius: 4 },
+    { defId: "husk", pos: { x: 22, y: 0, z: -6 }, patrolRadius: 4 }
+  ],
+  // Fractured badlands at the world's rim: reality tears here, and the toughest, densest mix
+  // of every species in Aethon has drifted toward it.
+  frayedge: [
+    { defId: "wane_wraith", pos: { x: 10, y: 0, z: -10 }, patrolRadius: 4 },
+    { defId: "wane_wraith", pos: { x: -30, y: 0, z: -20 }, patrolRadius: 4 },
+    { defId: "stone_sentinel", pos: { x: 26, y: 0, z: 10 }, patrolRadius: 4 },
+    { defId: "stone_sentinel", pos: { x: -10, y: 0, z: 24 }, patrolRadius: 4 },
+    { defId: "stone_sentinel", pos: { x: 0, y: 0, z: -36 }, patrolRadius: 4 },
+    { defId: "husk", pos: { x: -22, y: 0, z: 4 }, patrolRadius: 5 },
+    { defId: "husk", pos: { x: 18, y: 0, z: -24 }, patrolRadius: 5 },
+    { defId: "husk", pos: { x: -6, y: 0, z: -14 }, patrolRadius: 5 },
+    { defId: "husk", pos: { x: 34, y: 0, z: -8 }, patrolRadius: 5 },
+    { defId: "bramble_stalker", pos: { x: 8, y: 0, z: 14 }, patrolRadius: 5 },
+    { defId: "bramble_stalker", pos: { x: -34, y: 0, z: 12 }, patrolRadius: 5 },
+    { defId: "bramble_stalker", pos: { x: 14, y: 0, z: -40 }, patrolRadius: 5 },
+    { defId: "moonlit_wolf", pos: { x: -16, y: 0, z: -34 }, patrolRadius: 6 },
+    { defId: "moonlit_wolf", pos: { x: 32, y: 0, z: 24 }, patrolRadius: 6 }
   ]
 };
 
@@ -81,6 +139,50 @@ export const ZONE_NODE_SPAWNS: Record<string, NodeSpawnPoint[]> = {
     { defId: "node_crystal", pos: { x: 20, y: 0, z: 28 } },
     { defId: "node_herb_patch", pos: { x: -10, y: 0, z: 30 } },
     { defId: "node_herb_patch", pos: { x: 12, y: 0, z: -30 } }
+  ],
+  // Tide-washed crystal and shipwreck ore dominate; driftwood is the only timber the sea gives back.
+  sunken_llyr: [
+    { defId: "node_crystal", pos: { x: 14, y: 0, z: -4 } },
+    { defId: "node_crystal", pos: { x: -18, y: 0, z: 12 } },
+    { defId: "node_crystal", pos: { x: 4, y: 0, z: 28 } },
+    { defId: "node_ore_vein", pos: { x: -8, y: 0, z: -22 } },
+    { defId: "node_ore_vein", pos: { x: 24, y: 0, z: 8 } },
+    { defId: "node_ore_vein", pos: { x: -26, y: 0, z: -6 } },
+    { defId: "node_herb_patch", pos: { x: 6, y: 0, z: -32 } },
+    { defId: "node_herb_patch", pos: { x: -12, y: 0, z: 24 } },
+    { defId: "node_tree", pos: { x: 20, y: 0, z: 22 } }
+  ],
+  // Mourning-flowers and barrow ore among the stone circles; the highlands are too exposed for timber.
+  mourncrown: [
+    { defId: "node_herb_patch", pos: { x: 10, y: 0, z: 8 } },
+    { defId: "node_herb_patch", pos: { x: -18, y: 0, z: -8 } },
+    { defId: "node_herb_patch", pos: { x: 4, y: 0, z: -22 } },
+    { defId: "node_ore_vein", pos: { x: -8, y: 0, z: 22 } },
+    { defId: "node_ore_vein", pos: { x: 26, y: 0, z: -4 } },
+    { defId: "node_ore_vein", pos: { x: -28, y: 0, z: -16 } },
+    { defId: "node_crystal", pos: { x: 18, y: 0, z: 24 } },
+    { defId: "node_crystal", pos: { x: -4, y: 0, z: -32 } }
+  ],
+  // Archive materials only: research-grade crystal and the metal fittings the Order's constructs are built from.
+  spirechain: [
+    { defId: "node_crystal", pos: { x: 8, y: 0, z: -12 } },
+    { defId: "node_crystal", pos: { x: -14, y: 0, z: 6 } },
+    { defId: "node_crystal", pos: { x: 4, y: 0, z: 20 } },
+    { defId: "node_ore_vein", pos: { x: -6, y: 0, z: -20 } },
+    { defId: "node_ore_vein", pos: { x: 18, y: 0, z: 4 } }
+  ],
+  // Shard-rich rim: crystal dominates, with what ore and herb can survive the fractures.
+  frayedge: [
+    { defId: "node_crystal", pos: { x: 12, y: 0, z: -8 } },
+    { defId: "node_crystal", pos: { x: -20, y: 0, z: 10 } },
+    { defId: "node_crystal", pos: { x: 6, y: 0, z: 26 } },
+    { defId: "node_crystal", pos: { x: -8, y: 0, z: -30 } },
+    { defId: "node_crystal", pos: { x: 28, y: 0, z: 16 } },
+    { defId: "node_ore_vein", pos: { x: -30, y: 0, z: -10 } },
+    { defId: "node_ore_vein", pos: { x: 18, y: 0, z: -22 } },
+    { defId: "node_ore_vein", pos: { x: -4, y: 0, z: 34 } },
+    { defId: "node_herb_patch", pos: { x: 22, y: 0, z: 4 } },
+    { defId: "node_herb_patch", pos: { x: -14, y: 0, z: -18 } }
   ]
 };
 

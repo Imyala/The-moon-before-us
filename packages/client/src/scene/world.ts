@@ -144,19 +144,35 @@ function buildTravelMarker(tp: TravelPoint): THREE.Group {
   return group;
 }
 
+interface ThemeVisuals {
+  deadTrees: boolean;
+  treeCount: number;
+  rockCount: number;
+  moteCount: number;
+  moteColor: string;
+  moteName: string;
+  moteHeight: number;
+}
+
+const THEME_VISUALS: Record<ZoneDef["theme"], ThemeVisuals> = {
+  verdant: { deadTrees: false, treeCount: 140, rockCount: 70, moteCount: 60, moteColor: "#bff3a8", moteName: "fireflies", moteHeight: 2.4 },
+  ashen: { deadTrees: true, treeCount: 22, rockCount: 130, moteCount: 40, moteColor: "#ff9a52", moteName: "embers", moteHeight: 4.5 },
+  coastal: { deadTrees: false, treeCount: 40, rockCount: 100, moteCount: 50, moteColor: "#8fe3ff", moteName: "sea-glow", moteHeight: 3.0 },
+  highland: { deadTrees: true, treeCount: 10, rockCount: 150, moteCount: 30, moteColor: "#c9c3d6", moteName: "mist-wisps", moteHeight: 3.6 },
+  arcane: { deadTrees: true, treeCount: 5, rockCount: 60, moteCount: 70, moteColor: "#9fd0ff", moteName: "arcane-motes", moteHeight: 3.2 },
+  fractured: { deadTrees: true, treeCount: 15, rockCount: 160, moteCount: 45, moteColor: "#ff6b8f", moteName: "rift-motes", moteHeight: 4.8 }
+};
+
 function scatterScenery(target: THREE.Group, zone: ZoneDef) {
   const rand = mulberry32(hashSeed(zone.id));
-  const ashen = zone.theme === "ashen";
-  const treeCount = ashen ? 22 : 140;
-  const rockCount = ashen ? 130 : 70;
-  const moteCount = ashen ? 40 : 60;
+  const visuals = THEME_VISUALS[zone.theme];
 
-  for (let i = 0; i < treeCount; i++) {
+  for (let i = 0; i < visuals.treeCount; i++) {
     const angle = rand() * Math.PI * 2;
     const radius = 14 + rand() * (zone.radius - 6);
     const x = Math.cos(angle) * radius;
     const z = Math.sin(angle) * radius;
-    const tree = buildTree(ashen);
+    const tree = buildTree(visuals.deadTrees);
     tree.position.set(x, 0, z);
     const s = 0.8 + rand() * 0.6;
     tree.scale.setScalar(s);
@@ -164,7 +180,7 @@ function scatterScenery(target: THREE.Group, zone: ZoneDef) {
     target.add(tree);
   }
 
-  for (let i = 0; i < rockCount; i++) {
+  for (let i = 0; i < visuals.rockCount; i++) {
     const angle = rand() * Math.PI * 2;
     const radius = rand() * (zone.radius + 4);
     const rock = buildRock(rand);
@@ -173,26 +189,25 @@ function scatterScenery(target: THREE.Group, zone: ZoneDef) {
     target.add(rock);
   }
 
-  // fireflies over living ground, drifting embers over ash
-  const motePositions = new Float32Array(moteCount * 3);
-  for (let i = 0; i < moteCount; i++) {
+  const motePositions = new Float32Array(visuals.moteCount * 3);
+  for (let i = 0; i < visuals.moteCount; i++) {
     const angle = rand() * Math.PI * 2;
     const radius = rand() * zone.radius;
     motePositions[i * 3] = Math.cos(angle) * radius;
-    motePositions[i * 3 + 1] = 0.6 + rand() * (ashen ? 4.5 : 2.4);
+    motePositions[i * 3 + 1] = 0.6 + rand() * visuals.moteHeight;
     motePositions[i * 3 + 2] = Math.sin(angle) * radius;
   }
   const moteGeo = new THREE.BufferGeometry();
   moteGeo.setAttribute("position", new THREE.BufferAttribute(motePositions, 3));
   const moteMat = new THREE.PointsMaterial({
-    color: ashen ? "#ff9a52" : "#bff3a8",
-    size: ashen ? 0.28 : 0.22,
+    color: visuals.moteColor,
+    size: visuals.deadTrees ? 0.28 : 0.22,
     sizeAttenuation: true,
     transparent: true,
     opacity: 0.85
   });
   const motes = new THREE.Points(moteGeo, moteMat);
-  motes.name = ashen ? "embers" : "fireflies";
+  motes.name = visuals.moteName;
   target.add(motes);
 
   for (const tp of zone.travelPoints) target.add(buildTravelMarker(tp));

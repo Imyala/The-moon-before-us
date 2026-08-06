@@ -21,14 +21,20 @@ Everything in the current build is built around that pillar: quick jump in, quic
 
 ## Current scope: the vertical slice
 
-This build is a **foundation**, not the finished game. It implements two zones with the full gameplay loop working end-to-end — movement, combat, AI, gathering, crafting, itemization, leveling, zone travel, faction/NPC-memory dialogue, and real-time coop — so every future feature (more zones, more classes, dungeons, PvP, mounts, a real economy, the rest of the narrative) has a proven spine to build on rather than a prototype that needs rearchitecting.
+This build is a **foundation**, not the finished game. It implements six zones with the full gameplay loop working end-to-end — movement, combat, AI, gathering, crafting, itemization, leveling, zone travel, faction/NPC-memory dialogue, and real-time coop — so every future feature (more classes, dungeons, PvP, mounts, a real economy, the rest of the narrative) has a proven spine to build on rather than a prototype that needs rearchitecting.
 
 ### World
 
-Every room instance (solo or party) simulates its own live copy of the whole world, not just one zone. Two zones exist today, linked by a standing travel point — walk into it and you're through, no loading screen or confirmation, the same way a zone line works in a classic MMO:
+Every room instance (solo or party) simulates its own live copy of the whole world, not just one zone. Threadhold is the hub; five standing travel points around its edge lead out to the other five zones, each with a return point home. Walk into one and you're through — no loading screen or confirmation, the same way a zone line works in a classic MMO:
 
-- **Threadhold** (~58-unit radius) — verdant riverlands where the story begins; agricultural, tradition-bound, and quietly afraid of what falls from the sky. 12 enemy spawns across 5 enemy types (3 common "minion" types, 1 "elite," 1 zone "boss"), 13 resource nodes across 4 gathering types — ore, timber, herbs, and **Aether crystals**, which are narratively fragments of Selen herself (see "The Moon-Touched condition" below). Its southern gate, past the zone boss, leads to Ashmire.
-- **Ashmire** (~46-unit radius) — a barren, volcanic-glass wasteland beyond Threadhold, guarded by Stone Sentinels rather than a single boss. 11 enemy spawns (a step up in density/elite presence rather than a unique boss), 9 resource nodes (ore and crystal dominate; no timber — the ground is too dead for trees).
+- **Threadhold** (~58-unit radius, verdant) — where the story begins; agricultural, tradition-bound, and quietly afraid of what falls from the sky. 12 enemy spawns, 13 resource nodes across ore/timber/herbs/**Aether crystals** (narratively fragments of Selen — see "The Moon-Touched condition" below).
+- **Ashmire** (~46-unit radius, ashen) — a barren, volcanic-glass wasteland guarded by Stone Sentinels rather than a single boss. 11 enemy spawns, 9 resource nodes (no timber — the ground is too dead for trees).
+- **Sunken Llyr** (~50-unit radius, coastal) — fjords and tidal caves; drowned husks and kelp-tangled stalkers along the shore. 11 enemy spawns, 9 resource nodes (crystal and ore dominate; one driftwood node stands in for timber).
+- **Mourncrown** (~52-unit radius, highland) — haunted highlands under an eternal twilight, wraiths drifting among stone circles. 10 enemy spawns, 8 resource nodes (no timber — too exposed for trees).
+- **Spirechain** (~42-unit radius, arcane) — sky-cities and archives, abstracted to a plateau; Order guardian constructs far outnumber roaming husks. The smallest, quietest zone — 7 enemy spawns, 5 resource nodes.
+- **The Frayedge** (~60-unit radius, fractured) — badlands at the world's rim where reality tears; the densest, toughest spawn mix in the game. 14 enemy spawns, 10 resource nodes.
+
+Each zone has its own ground theme, scatter (tree/rock/mote density and color), and fog, driven by a `theme` field in the shared zone registry (`packages/shared/src/zones.ts`) that the client's scenery builder reads (`packages/client/src/scene/world.ts`'s `THEME_VISUALS` table) — adding a zone's *visual* identity is data, not new rendering code.
 
 Each player tracks their own current zone; a party can freely split across zones and reconvene later (the shared party roster and chat stay room-wide either way). Combat, gathering, enemy AI targeting, and the snapshot each client receives are all scoped to "players/enemies/nodes/NPCs in *my* zone" — the same population/visibility boundary a channel, shard, or zone copy enforces in a full-scale MMO, just applied within a single room instance here. See `packages/shared/src/zones.ts` for the zone registry and `Room.broadcastSnapshot` in `packages/server/src/room.ts` for the per-zone filtering.
 
@@ -107,7 +113,7 @@ The rule, end to end: **the player never stops moving, fighting, or exploring wh
 
 Each NPC has a **memory**: whether you've met them, and a small set of tags recording what you've done (`packages/shared/src/lore/memory.ts`). Their greeting changes accordingly — a first meeting reads differently from a returning friend, which reads differently from someone you've betrayed. NPCs whose loyalty type is "fanatic" (see the roster below) never forgive a betrayal of their faction, no matter how your standing later recovers; everyone else's greeting tracks your live faction loyalty score.
 
-Six NPCs are fully wired end-to-end today, each with a **signature choice** — a real decision with real faction-loyalty consequences — demonstrating the pattern the rest of a much larger planned roster (see below) is designed against:
+Seventeen NPCs are fully wired end-to-end today, each with a **signature choice** — a real decision with real faction-loyalty consequences — demonstrating the pattern the rest of the ~60-character planned roster (see below) is designed against:
 
 | NPC | Where | Faction | Signature choice |
 |---|---|---|---|
@@ -117,6 +123,17 @@ Six NPCs are fully wired end-to-end today, each with a **signature choice** — 
 | Vesryn the Duskborne | Threadhold | Pale Choir | With only one soul savable from an erasure, save a nameless child, save himself, or search for a third way. |
 | Forge-Mother Breca | Ashmire | Independent (mercenary) | Arm the Chainwrights, arm the Luminari, or arm the independents instead. |
 | Artificer Perrin | Ashmire | Luminari | Volunteer yourself for a memory-extraction experiment, refuse and report it, or find a willing volunteer. |
+| Ilsa Marche | Ashmire | Luminari | Stop her draining a village orchard to power the new lunar engine, help her, or find a smaller source instead. |
+| Castellan Yora | Ashmire | Chainwrights | Defy Command's order to raze a Moon-Touched refugee camp, follow it, or stall for time. |
+| Captain Sera Voss | Sunken Llyr | Luminari | Recover her drowned crew's bodies, salvage the wreck's cargo instead, or use it to trap a rival privateer. |
+| Tidecaller Oren | Sunken Llyr | Independent | Let a rising drowned Selenian city sleep, raise it for study, or loot it while the tide allows. |
+| Mira Hollowbell | Mourncrown | Pale Choir | With one soul savable from a village erasure, save a nameless child, save herself, or search for a third way. |
+| Brother Ink | Mourncrown | Pale Choir | Recover a forbidden archive proving the Binding was a massacre, destroy it, or read it together first. |
+| Thane Corvin | Mourncrown | Independent | Defend his ancestral hall to the last against a Chainwright army, evacuate the clan, or trade the hall for their safety. |
+| Magistrate Thorne | Spirechain | Chainwrights | Accept his pact to trade a faction's territory for your public denunciation, refuse it, or expose the offer. |
+| Archon-Scribe Velis | Spirechain | Independent (mercenary) | Refuse to sell a sample of your Moon-Touched blood for research, give one, or steal from his archive instead. |
+| Warden Kael | The Frayedge | Independent | Defend the Moon-Touched sanctuary from a Chainwright raid, evacuate it, or sell its location for a reward. |
+| The Cartographer | The Frayedge | Unknown | Trust them to eventually guide you to Selen itself, ask for more time, or demand to know what they really are first. |
 
 ### Fate: a trending-ending preview, not a fake finale
 
@@ -130,7 +147,7 @@ Those two axes combine into nine possible "major endings" (The Silver Chain, The
 
 ### What's designed but not yet built
 
-Being explicit about scope, because it matters: the original narrative design for this game specifies a roster of **60+ named recurring characters** across seven planned regions (Threadhold, Ashmire, Sunken Llyr, Mourncrown, Spirechain, Frayedge, and the endgame Moonthread itself), a full NPC relationship web (rivalries, alliances, death cascades), an 8-chapter story, and a much richer ending system with secret endings and NPC-survival variants. Six characters and two regions are real, working, and playable today. The rest is designed — dialogue voice, faction ties, signature choices, and relationship webs are written for the remaining ~55 — but not yet wired into the game; building it out is authoring content against the systems above, not new engineering.
+Being explicit about scope, because it matters: the original narrative design for this game specifies a roster of **60+ named recurring characters** across seven planned regions (Threadhold, Ashmire, Sunken Llyr, Mourncrown, Spirechain, Frayedge, and the endgame Moonthread itself), a full NPC relationship web (rivalries, alliances, death cascades), an 8-chapter story, and a much richer ending system with secret endings and NPC-survival variants. All six non-endgame regions are real, working zones today, and 17 characters are wired end-to-end in them. The remaining ~43 are designed in the narrative bible — dialogue voice, faction ties, signature choices, and relationship webs are written — but not yet wired into the game, including the full relationship-web mechanics (rivalry/alliance pairs, death cascades where one NPC's fate changes another's, and companions who can join the party) beyond the single-NPC memory/dialogue pattern implemented so far. The Moonthread itself remains the one region from the brief with no zone at all yet — reaching it is meant to be a late-game/endgame beat, not an early travel-point destination. Building the rest out is authoring content and relationship-graph data against the systems already in place, not new core engineering.
 
 A handful of the original brief's "immediate decisions" are also still genuinely open and worth answering before writing more of the roster: how many playable origins (all Moon-Touched the same way, vs. class-based, vs. region/race-based, vs. player-authored background); whether more than three factions should exist or players can belong to more than one at once; overall tone (hopeful-gothic vs. cosmic horror vs. high fantasy adventure); whether the moon's true nature is revealed at launch or stays ambiguous for years; how deep companion romance/loyalty arcs should go versus staying functional; and voice acting scope (full, partial, or text+whisper-audio only).
 
@@ -145,7 +162,7 @@ A handful of the original brief's "immediate decisions" are also still genuinely
 
 Roughly in the order they'd most improve the game:
 
-1. **The rest of the NPC roster** — the remaining ~55 designed characters across the five regions not yet built (Sunken Llyr, Mourncrown, Spirechain, Frayedge) plus the Moonthread endgame zone. Content authoring against the existing dialogue/memory/faction system, not new engineering.
+1. **The rest of the NPC roster** — the remaining ~43 designed characters across the six built zones, plus the Moonthread endgame zone itself (not yet built — reaching Selen is meant to be a late-game destination, not another Threadhold travel point). Also unbuilt: the relationship-web mechanics from the brief (rivalry/alliance pairs, death cascades, joinable companions) beyond the single-NPC pattern implemented so far. Content + data authoring against the existing dialogue/memory/faction system, not new core engineering.
 2. **A fourth combat class, and/or a second specialization tier** (à la GW2's multiple elite specs) — the weapon-kit/specialization system generalizes cleanly to more of both.
 3. **Dungeons**: an instanced room variant with a boss-gated multi-enemy encounter and its own loot table.
 4. **Player trading / a shared economy** — deliberately deferred; per-player loot avoids needing it for the vertical slice, but a real game wants it.
