@@ -139,7 +139,9 @@ export interface EnemyLootEntry {
 export interface EnemyDef {
   id: string;
   name: string;
-  tier: "minion" | "elite" | "boss";
+  /** "rare" is a persistent world event (see docs/GDD.md): Room spawns exactly one at a time,
+   *  roaming a whole randomly-chosen zone rather than sitting at a fixed patrol point. */
+  tier: "minion" | "elite" | "boss" | "rare";
   maxHp: number;
   power: number;
   moveSpeed: number;

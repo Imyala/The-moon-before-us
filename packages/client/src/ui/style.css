@@ -145,6 +145,8 @@ body {
 .nameplate--enemy .nameplate-fill { background: linear-gradient(90deg, #ff8a7a, #d94040); }
 .nameplate--boss .nameplate-fill { background: linear-gradient(90deg, #ffcf5c, #d98b40); }
 .nameplate--boss .nameplate-name { color: #ffcf5c; font-weight: 700; }
+.nameplate--rare .nameplate-fill { background: linear-gradient(90deg, #d6f0ff, #5ea9e0); }
+.nameplate--rare .nameplate-name { color: #a8ddff; font-weight: 700; text-shadow: 0 0 6px rgba(140,210,255,0.8), 0 1px 3px rgba(0,0,0,0.9); }
 .nameplate--npc .nameplate-name { color: #d9c98a; font-weight: 600; }
 .nameplate--npc .nameplate-title { font-size: 9px; color: #a99a6b; margin-top: -1px; white-space: nowrap; }
 
@@ -213,6 +215,7 @@ body {
 
 .chat-log { position: absolute; left: 20px; bottom: 172px; width: 320px; max-height: 140px; overflow-y: auto; font-size: 12px; display: flex; flex-direction: column; gap: 2px; }
 .chat-line { background: rgba(0,0,0,0.4); padding: 3px 8px; border-radius: 6px; align-self: flex-start; }
+.chat-line--world { background: rgba(30,60,90,0.55); color: #a8ddff; font-style: italic; }
 .chat-input-row { position: absolute; left: 20px; bottom: 138px; width: 320px; pointer-events: auto; }
 .chat-input-row input { width: 100%; padding: 7px 10px; font-size: 12px; background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; color: #fff; }
 

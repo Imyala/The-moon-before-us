@@ -196,6 +196,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
         break;
       case "chat":
         hud.addChatLine(msg.from, msg.message);
+        if (msg.from === "World") hud.pushToast(msg.message, "info");
         break;
       case "error":
         hud.pushToast(msg.message, "info");
@@ -591,7 +592,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
       animateAvatar(vis.avatar, now / 1000 + id.length, moving, now);
       const def = getEnemy(vis.defId)!;
       const hp = (vis as any).hp as number;
-      const tone = def.tier === "boss" ? "boss" : def.tier === "elite" ? "boss" : "enemy";
+      const tone = def.tier === "rare" ? "rare" : def.tier === "boss" ? "boss" : def.tier === "elite" ? "boss" : "enemy";
       nameplates.ensure(id, def.name, tone as any);
       nameplates.update(id, add(vis.renderPos, { x: 0, y: 1.4 * def.scale + 0.6, z: 0 }), hp / def.maxHp, vis.avatar.group.visible);
       if (id === selectedTargetId && vis.avatar.group.visible) {

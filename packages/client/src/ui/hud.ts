@@ -257,8 +257,8 @@ export class Hud {
 
   addChatLine(from: string, message: string) {
     const el = document.createElement("div");
-    el.className = "chat-line";
-    el.textContent = `${from}: ${message}`;
+    el.className = from === "World" ? "chat-line chat-line--world" : "chat-line";
+    el.textContent = from === "World" ? message : `${from}: ${message}`;
     this.chatLogEl.appendChild(el);
     this.chatLogEl.scrollTop = this.chatLogEl.scrollHeight;
     while (this.chatLogEl.children.length > 40) this.chatLogEl.removeChild(this.chatLogEl.firstChild!);

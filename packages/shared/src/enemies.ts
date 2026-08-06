@@ -130,6 +130,32 @@ export const ENEMIES: EnemyDef[] = [
     scale: 2.0,
     color: "#c9d6ff"
   },
+  // A persistent world event (see docs/GDD.md's "Persistent world events" section): Room spawns
+  // exactly one of these at a time, roaming widely across a randomly chosen standard zone —
+  // tougher than any elite and most bosses, worth a party crossing zones to hunt down before it
+  // moves on.
+  {
+    id: "wandering_moonstag",
+    name: "The Wandering Moonstag",
+    tier: "rare",
+    maxHp: 850,
+    power: 22,
+    moveSpeed: 3.4,
+    aggroRadius: 13,
+    attackRange: 3.2,
+    attackDamage: 24,
+    attackCooldownMs: 2100,
+    attackTelegraphMs: 650,
+    xpReward: 300,
+    loot: [
+      { itemId: "mat_starlight_essence", chance: 0.85, minQty: 2, maxQty: 4 },
+      { itemId: "mat_moonpetal", chance: 0.6, minQty: 2, maxQty: 3 },
+      { itemId: "trinket_moon_pendant", chance: 0.2, minQty: 1, maxQty: 1 },
+      { itemId: "trinket_lucky_charm", chance: 0.15, minQty: 1, maxQty: 1 }
+    ],
+    scale: 2.2,
+    color: "#bfe6ff"
+  },
   // The Hollow Vault's boss (see docs/GDD.md's "Dungeons" section): a corrupted Order construct
   // guarding what the Vault sealed away. A real lockout, not just a hard fight — respawnMs is
   // 10 minutes instead of the standard 20 seconds, so a party can't trivially re-farm it.

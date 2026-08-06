@@ -16,6 +16,15 @@ export const COMPANION_BASE_DAMAGE = 14;
 export const COMPANION_MAX_HP = 100;
 export const COMPANION_REVIVE_MS = 25000;
 
+// Persistent world events (see docs/GDD.md): one roaming rare spawn active at a time, in a
+// randomly chosen standard zone — deliberately excludes the Hollow Vault (level-gated dungeon)
+// and the Moonthread (story-gated endgame), since both are already special-purpose zones.
+export const WORLD_EVENT_ENEMY_ID = "wandering_moonstag";
+export const WORLD_EVENT_ZONE_IDS = ["threadhold", "ashmire", "sunken_llyr", "mourncrown", "spirechain", "frayedge"];
+export const WORLD_EVENT_INITIAL_DELAY_MS = 90000; // first spawn 90s after a room comes up
+export const WORLD_EVENT_DURATION_MS = 360000; // roams for 6 minutes before fading if unclaimed
+export const WORLD_EVENT_COOLDOWN_MS = 180000; // 3-minute gap after it's slain or fades
+
 export interface EnemySpawnPoint {
   defId: string;
   pos: Vec3;

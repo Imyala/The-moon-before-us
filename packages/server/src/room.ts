@@ -56,6 +56,11 @@ import {
   DODGE_SPEED,
   PLAYER_SPEED,
   TRAVEL_COOLDOWN_MS,
+  WORLD_EVENT_COOLDOWN_MS,
+  WORLD_EVENT_DURATION_MS,
+  WORLD_EVENT_ENEMY_ID,
+  WORLD_EVENT_INITIAL_DELAY_MS,
+  WORLD_EVENT_ZONE_IDS,
   ZONE_ENEMY_SPAWNS,
   ZONE_NODE_SPAWNS,
   allZoneIds
@@ -141,6 +146,9 @@ interface EnemyEntity {
   damagers: Map<string, number>; // playerId -> last damage timestamp
   forcedTargetId: string | null; // taunt (Unbreakable)
   forcedTargetUntil: number;
+  /** Marks the single active persistent-world-event spawn (see Room.tickWorldEvent) so killEnemy
+   *  can clean it up and schedule the next one instead of letting it respawn like a normal enemy. */
+  isWorldEvent?: boolean;
 }
 
 interface NodeEntity {
@@ -212,6 +220,9 @@ export class Room {
   private persist: (token: string, character: CharacterState) => void;
   private lastLoopAt = Date.now();
   private lastAutosaveAt = Date.now();
+  private worldEventEnemyId: string | null = null;
+  private worldEventExpiresAt = 0;
+  private nextWorldEventAt = Date.now() + WORLD_EVENT_INITIAL_DELAY_MS;
 
   constructor(opts: {
     code?: string;
@@ -768,6 +779,71 @@ export class Room {
       }
       this.sendCharacterUpdate(player);
     }
+    if (enemy.isWorldEvent) this.endWorldEvent(enemy, now, "slain");
+  }
+
+  // ---------------- Persistent world events ----------------
+
+  /** A single roaming rare spawn, active at a time, in a randomly chosen standard zone. */
+  private startWorldEvent(now: number) {
+    const zoneId = WORLD_EVENT_ZONE_IDS[Math.floor(Math.random() * WORLD_EVENT_ZONE_IDS.length)];
+    const zone = getZone(zoneId);
+    const def = getEnemy(WORLD_EVENT_ENEMY_ID)!;
+    const id = randomUUID();
+    this.enemies.set(id, {
+      id,
+      defId: WORLD_EVENT_ENEMY_ID,
+      zoneId,
+      spawnPos: { x: 0, y: 0, z: 0 },
+      patrolRadius: zone.radius * 0.85,
+      position: { x: 0, y: 0, z: 0 },
+      facing: 0,
+      hp: def.maxHp,
+      maxHp: def.maxHp,
+      state: "idle",
+      targetId: null,
+      attackReadyAt: 0,
+      telegraphEndAt: null,
+      telegraphPos: null,
+      deadAt: null,
+      respawnAt: null,
+      patrolTarget: null,
+      nextDecisionAt: 0,
+      markedUntil: 0,
+      markedBonus: 0,
+      ccUntil: 0,
+      damagers: new Map(),
+      forcedTargetId: null,
+      forcedTargetUntil: 0,
+      isWorldEvent: true
+    });
+    this.worldEventEnemyId = id;
+    this.worldEventExpiresAt = now + WORLD_EVENT_DURATION_MS;
+    this.broadcast({ t: "chat", from: "World", message: `${def.name} has been sighted roaming ${zone.name}. Hunt it before it moves on.` });
+  }
+
+  private endWorldEvent(enemy: EnemyEntity, now: number, reason: "slain" | "faded") {
+    this.enemies.delete(enemy.id);
+    this.worldEventEnemyId = null;
+    this.nextWorldEventAt = now + WORLD_EVENT_COOLDOWN_MS;
+    const def = getEnemy(enemy.defId)!;
+    const zone = getZone(enemy.zoneId);
+    const message =
+      reason === "slain" ? `${def.name} has been slain in ${zone.name}!` : `${def.name} has faded from ${zone.name}, unclaimed.`;
+    this.broadcast({ t: "chat", from: "World", message });
+  }
+
+  private tickWorldEvent(now: number) {
+    if (this.worldEventEnemyId) {
+      const enemy = this.enemies.get(this.worldEventEnemyId);
+      if (!enemy) {
+        this.worldEventEnemyId = null;
+      } else if (enemy.hp > 0 && now >= this.worldEventExpiresAt) {
+        this.endWorldEvent(enemy, now, "faded");
+      }
+      return;
+    }
+    if (now >= this.nextWorldEventAt) this.startWorldEvent(now);
   }
 
   private damagePlayer(player: PlayerEntity, amount: number, now: number) {
@@ -1073,6 +1149,7 @@ export class Room {
     for (const enemy of this.enemies.values()) this.tickEnemy(enemy, dt, now);
     for (const node of this.nodes.values()) this.tickNode(node, now);
     this.tickHealZones(now);
+    this.tickWorldEvent(now);
 
     for (const player of this.players.values()) this.syncCompanions(player);
     for (const companion of this.companions.values()) {

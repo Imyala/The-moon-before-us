@@ -12,7 +12,7 @@ export class NameplateManager {
 
   constructor(private container: HTMLElement, private camera: THREE.PerspectiveCamera) {}
 
-  ensure(id: string, name: string, tone: "ally" | "enemy" | "boss" | "npc", title?: string): Plate {
+  ensure(id: string, name: string, tone: "ally" | "enemy" | "boss" | "rare" | "npc", title?: string): Plate {
     let plate = this.plates.get(id);
     if (!plate) {
       const el = document.createElement("div");
