@@ -38,14 +38,17 @@ import { NameplateManager } from "./ui/nameplates.js";
 import { DialoguePanel } from "./ui/dialogue.js";
 import { TradePanel } from "./ui/trade.js";
 import { renderLanding } from "./ui/landing.js";
+import { AudioEngine } from "./audio.js";
 import { getOrCreateToken, getSavedProfile, saveProfile } from "./identity.js";
 
 const uiRoot = document.getElementById("ui-root") as HTMLDivElement;
 const canvas = document.getElementById("scene") as HTMLCanvasElement;
 const token = getOrCreateToken();
 const saved = getSavedProfile();
+const audio = new AudioEngine();
 
 const landing = renderLanding(uiRoot, { name: saved?.name ?? "", classId: (saved?.classId as PlayerClassId) ?? "warden" }, (result) => {
+  audio.unlock(); // a real click — the one moment browsers allow audio to start
   saveProfile({ name: result.name, classId: result.classId });
   landing.setBusy(true);
   landing.setStatus("");
@@ -126,6 +129,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
   let currentZoneId = initialCharacter.zoneId ?? START_ZONE_ID;
   let currentZoneRadius = getZone(currentZoneId).radius;
   world.loadZone(getZone(currentZoneId));
+  audio.setZoneAmbience(getZone(currentZoneId).theme);
   const effects = new EffectsManager(world.scene, world.camera, uiRoot);
   const nameplates = new NameplateManager(uiRoot, world.camera);
   const controller = new InputController(canvas);
@@ -137,6 +141,11 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
 
   dialogue.onChoose = (npcId, optionId) => net.send({ t: "chooseDialogueOption", npcId, optionId });
   hud.onProposeTrade = (targetPlayerId) => net.send({ t: "proposeTrade", targetPlayerId });
+  hud.onToggleMute = () => {
+    audio.toggleMuted();
+    hud.setMuted(audio.isMuted());
+  };
+  hud.setMuted(audio.isMuted());
 
   hud.setRoomCode(roomCode === "solo" ? null : roomCode);
   hud.setZoneName(getZone(currentZoneId).isDungeon ? `${getZone(currentZoneId).name} ⚔️` : getZone(currentZoneId).name);
@@ -207,6 +216,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
         break;
       case "npcDialogue":
         dialogue.show(msg.npcId, msg.speaker, msg.line, msg.choices);
+        audio.playDialogue();
         break;
       case "characterUpdate":
         character = msg.character;
@@ -218,7 +228,10 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
         break;
       case "chat":
         hud.addChatLine(msg.from, msg.message);
-        if (msg.from === "World") hud.pushToast(msg.message, "info");
+        if (msg.from === "World") {
+          hud.pushToast(msg.message, "info");
+          audio.playWorldEvent();
+        }
         break;
       case "error":
         hud.pushToast(msg.message, "info");
@@ -246,26 +259,37 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
       const targetAvatar = players.get(ev.targetId)?.avatar ?? enemies.get(ev.targetId)?.avatar;
       if (targetAvatar) targetAvatar.flashUntil = performance.now() + 140;
       if (ev.targetId === selfId) shakeCamera();
+      if (ev.sourceId === selfId || ev.targetId === selfId) audio.playDamage(ev.crit);
     } else if (ev.type === "heal") {
       effects.spawnDamageNumber(ev.pos, ev.amount, "heal");
+      if (ev.sourceId === selfId || ev.targetId === selfId) audio.playHeal();
     } else if (ev.type === "levelUp") {
-      if (ev.playerId === selfId) hud.pushToast(`Level up! You are now level ${ev.level}.`, "levelup");
+      if (ev.playerId === selfId) {
+        hud.pushToast(`Level up! You are now level ${ev.level}.`, "levelup");
+        audio.playLevelUp();
+      }
     } else if (ev.type === "loot") {
       if (ev.playerId === selfId) {
         const def = getEnemy(ev.itemId); // not an enemy but harmless lookup miss
         hud.pushToast(`+${ev.quantity} ${itemName(ev.itemId)}`, "loot");
+        audio.playLoot();
       }
     } else if (ev.type === "craft") {
-      if (ev.playerId === selfId) hud.pushToast(`Crafted ${itemName(ev.itemId)} x${ev.quantity}`, "loot");
+      if (ev.playerId === selfId) {
+        hud.pushToast(`Crafted ${itemName(ev.itemId)} x${ev.quantity}`, "loot");
+        audio.playCraft();
+      }
     } else if (ev.type === "skillPoint") {
       // handled visually via panel refresh
     } else if (ev.type === "abilityCast") {
       const avatar = players.get(ev.casterId)?.avatar ?? (ev.casterId === selfId ? selfAvatar : undefined);
       if (avatar) avatar.attackPulse = 1;
+      if (ev.casterId === selfId) audio.playCast();
     } else if (ev.type === "death") {
       if (!ev.isPlayer) {
         effects.clearTelegraph(ev.entityId);
       }
+      audio.playDeath(ev.entityId === selfId);
     } else if (ev.type === "zoneChange") {
       if (ev.playerId === selfId) enterZone(ev.toZoneId);
     }
@@ -276,6 +300,8 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
     const zone = getZone(zoneId);
     currentZoneRadius = zone.radius;
     world.loadZone(zone);
+    audio.setZoneAmbience(zone.theme);
+    audio.playTravel();
     selfPos = { ...character.position };
     lastServerSelfPos = { ...selfPos };
     hud.setZoneName(zone.isDungeon ? `${zone.name} ⚔️` : zone.name);
@@ -309,7 +335,10 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
         character.maxResource = p.maxResource;
         selfState = p.state;
         selfShield = p.shield;
-        if (p.mounted !== selfMounted) hud.pushToast(p.mounted ? "Mounted up." : "Dismounted.", "info");
+        if (p.mounted !== selfMounted) {
+          hud.pushToast(p.mounted ? "Mounted up." : "Dismounted.", "info");
+          audio.playMount(p.mounted);
+        }
         selfMounted = p.mounted;
         continue;
       }
@@ -515,6 +544,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
       dir = { x: Math.sin(selfFacing), y: 0, z: Math.cos(selfFacing) };
     }
     net.send({ t: "dodge", dir });
+    audio.playDodge();
   }
 
   function tryInteract() {
@@ -533,6 +563,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
       const def = getResourceNode(vis.defId)!;
       gathering = { nodeId: nearestNodeId, startedAt: performance.now(), durationMs: def.gatherTimeMs };
       net.send({ t: "interactNode", nodeId: nearestNodeId });
+      audio.playGatherTick();
     }
   }
 

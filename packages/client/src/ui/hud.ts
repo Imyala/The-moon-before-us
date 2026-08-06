@@ -66,9 +66,11 @@ export class Hud {
   private deathOverlay: HTMLDivElement;
   private gatherBar: HTMLDivElement;
   private gatherFill: HTMLDivElement;
+  private muteBtn: HTMLButtonElement;
 
   onChatSend: ((msg: string) => void) | null = null;
   onProposeTrade: ((targetPlayerId: string) => void) | null = null;
+  onToggleMute: (() => void) | null = null;
 
   constructor(root: HTMLElement, classId: PlayerClassId) {
     const cls = CLASSES[classId];
@@ -80,6 +82,8 @@ export class Hud {
         WASD move · Hold right-click to look · 1-6 abilities · Space dodge<br/>
         E gather · I inventory · R crafting · C character · M mount
       </div>
+
+      <button class="mute-btn interactive" id="muteBtn" title="Mute/unmute audio">🔊</button>
 
       <div class="zone-badge" id="zoneBadge"></div>
       <div class="companion-badge" id="companionBadge" style="display:none"></div>
@@ -148,6 +152,8 @@ export class Hud {
     this.deathOverlay = this.root.querySelector("#deathOverlay")!;
     this.gatherBar = this.root.querySelector("#gatherBar")!;
     this.gatherFill = this.root.querySelector("#gatherFill")!;
+    this.muteBtn = this.root.querySelector("#muteBtn")!;
+    this.muteBtn.addEventListener("click", () => this.onToggleMute?.());
 
     this.chatInput.classList.add("interactive");
     this.chatInput.addEventListener("keydown", (e) => {
@@ -163,6 +169,11 @@ export class Hud {
 
   isChatFocused(): boolean {
     return document.activeElement === this.chatInput;
+  }
+
+  setMuted(muted: boolean) {
+    this.muteBtn.textContent = muted ? "🔇" : "🔊";
+    this.muteBtn.classList.toggle("muted", muted);
   }
 
   /** Rebuilds the ability bar only when the active kit (weapon + specialization) actually changes. */
