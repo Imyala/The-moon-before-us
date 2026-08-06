@@ -24,6 +24,9 @@
 9. Companion arc system (Bond/Disgust/Trust/Resonance)
 10. Origin, class, and Moon-Touched path integration
 11. Full ending matrix (9 major + 14 secret endings)
+12. Playable Conversation System — technical specification
+13. Living World / seasonal live-service design
+14. Economy & crafting system design
 
 ---
 
@@ -643,6 +646,191 @@ Resolution priority: dark overrides checked first (Forgotten, Moon-Tyrant, Clean
 ### 11.4 Companion Fate-by-Ending Cross-Reference
 
 The source brainstorm includes a full 12-companion × 9-major-ending default-fate table (e.g. Veyra: fugitive/censored in Silver Chain, co-author in Shared Sky, records the exodus in The Becoming; Solace: underground in Silver Chain/Gilded Cage, healer-general in Shared Sky, refuses/martyr in The Becoming) — see the archived conversation this document was extracted from for the full table if needed; it's straightforward to regenerate from each companion's known values (a Chainwright-controlling ending is uncomfortable for Solace/Cael/Echo regardless of Bond, etc.).
+
+---
+
+## 12. Playable Conversation System — Technical Specification
+
+*This turns §4.2's "no-cutscene conversations" concept into an actual engineering spec — client/server split, data structures, condition grammar, UI, audio pipeline, networking, and a worked example. It's a design doc for the system, not a description of what `packages/shared/src/lore/npc.ts` already does — check that file before assuming any piece here is unbuilt.*
+
+### 12.1 Core tenets
+
+No forced camera locks (conversations never take camera control unless the player opts into a focus mode); no world-pausing dialogue wheels (time keeps flowing — enemies can still attack, other players run past, contextual prompts expire); play-while-you-listen (all story-critical VO is subtitled and consumable during combat/traversal/crafting); opt-in depth (deep lore is inspectable, critical-path dialogue is short and interruptible); NPCs remember (every meaningful exchange writes to the memory graph); contextual not modal (dialogue surfaces in-world, not as a separate quest-UI mode); multiplayer-safe (conversations are local to the player/party — others don't see your prompts or hear your private whispers).
+
+### 12.2 Seven conversation modes
+
+| Mode | Trigger | Duration | UI | Interruptible | Memory effect |
+|---|---|---|---|---|---|
+| **Ambient dialogue** | Proximity/line-of-sight/zone state | 3–10s | Speech bubble above NPC head | Yes — walk away | None (world-state signal only) |
+| **Walk-and-talk** | Scripted quest/event beat | 30s–5min | Bottom subtitle bar + companion portrait | Yes — NPC shouts next line and catches up; pauses in combat | Branching per response |
+| **Speech bubbles** | Proximity + memory check | 5–15s or until clicked | Bubble + optional "listen" prompt | Yes | Codex/memory tag on listen |
+| **Inspectable lore objects** | Interact with object (often via Lunar Resonance) | 5–30s | Inspect panel + audio log | Yes, progress saved | Codex unlock; may trigger Echo Sight |
+| **Echoes/Lunar Whispers** | Resonance ability, locations, items | 5–20s | Screen-edge shimmer + directional whisper subtitle | Yes | Can shift Moon-Touched path |
+| **Combat banter** | Combat state, HP thresholds, player actions | 1–5s | Subtitle + combat audio | Combat continues | Per-encounter; bosses can reference player history |
+| **Choice prompts** | Critical moments, confrontations | 5–15s if dangerous, unlimited if safe | Bottom choice bar / radial | Safe ones ignorable; dangerous ones default on timeout | Always writes memory tags |
+
+### 12.3 Architecture: client/server split
+
+The server is the sole source of truth for **which tags the player has**; the client evaluates **which dialogue lines to show** based on those tags; the server validates that any chosen option is legal and persists the result. Topology: Player Client (Conversation UI Manager → Subtitle Renderer, Audio Dialogue Manager, Choice Prompt Manager, Lunar Resonance Visualizer, Memory Event Emitter) talks to the Map Host/Session Server (NPC State Replicator, Dialogue Condition Validator, Memory Event Handler) which persists to the Character Service (Player Memory Graph, NPC Relationship Table, Dialogue History Log).
+
+### 12.4 Data structures
+
+A **dialogue line** carries speaker, text, VO path, duration, mode, a `conditions` block (required/excluded tags, min bond, max disgust, faction-score checks), memory tags it adds, and a priority. A **dialogue node** groups lines plus a `choices` array, where each choice has its own tone tag, required tags, memory tags added, bond/faction deltas, and a `next_node_id`. A **conversation bundle** groups all greeting/topic/farewell nodes for one NPC plus a fallback node. A **choice prompt** (for combat/contextual moments) adds a `mode` (timed/untimed), `duration_seconds`, and a `default_choice` selected on timeout. Example choice prompt (Pip's Prologue rescue moment):
+
+```json
+{
+  "prompt_id": "pip_fate_choice",
+  "mode": "timed", "duration_seconds": 15, "default_choice": "ignore",
+  "choices": [
+    { "choice_id": "rescue", "memory_tags_added": ["Pip_Rescued"],
+      "npc_deltas": { "pip": 50, "elder_maeve": 25 },
+      "faction_deltas": { "independent": 15, "pale_choir": 10 } },
+    { "choice_id": "ignore", "memory_tags_added": ["Pip_Ignored"],
+      "npc_deltas": { "elder_maeve": -15 }, "faction_deltas": { "luminari": 5 } },
+    { "choice_id": "give_to_chainwrights", "requires_tags": ["Chainwright_Aligned"],
+      "memory_tags_added": ["Pip_Given_To_Chainwrights"],
+      "npc_deltas": { "houndmaster_vex": 20, "elder_maeve": -25, "pip": -30 },
+      "faction_deltas": { "chainwright": 20, "independent": -25 } }
+  ]
+}
+```
+
+### 12.5 Condition grammar
+
+Dialogue conditions use a small tag-expression grammar the client evaluates against the player's cached memory graph: `expression := term (('AND'|'OR') term)*`, `term := HAS(tag) | variable operator value | '(' expression ')'`, where `variable` is `BOND(npc_id)`, `DISGUST(npc_id)`, `FACTION(faction_id)`, `ORIGIN`, `CLASS`, or `PATH`. Example: `HAS('Village_Saved') AND BOND('elder_maeve') >= 40 AND FACTION('chainwright') < 30`. Writers author against a tag picker (`[HAS: Village_Saved]`, `[BOND: elder_maeve >= 40]`), not raw expressions; the tool compiles it. Evaluation order: client requests cached tags → evaluates the expression locally → server validates any state-changing choice → client advances to the resulting node.
+
+### 12.6 UI
+
+Subtitle bar (bottom center, speaker portrait + name + text, fades after `duration + read_time`, stacks scroll upward, toggleable names/portraits/font/opacity); speech bubbles (world-space above NPC heads, 2-line max, clickable, fade after 10s, distance-culled 15–25m); choice bar (2–6 options as buttons or radial slices, circular countdown for timed prompts, number-key/controller input); inspect panel (draggable, non-camera-locking, audio scrubber, "mark" button, closable without losing progress); Lunar Resonance whisper overlay (screen-edge shimmer, directional 3D audio, wave-distorted subtitle, disableable for accessibility); companion HUD bond/disgust drift indicators.
+
+### 12.7 Audio/VO pipeline
+
+Full VO for the 60 core NPCs' critical lines, walk-and-talk scenes, and combat banter; partial/text-only for ambient dialogue and generic NPCs; audio-log VO for inspectable lore; filtered/whispered VO for Selen's voice. Middleware (Wwise/FMOD) handles dynamic ducking under combat music, 3D positioning from the NPC's mouth, occlusion (muffled through walls unless using Resonance), a dedicated whisper DSP chain (reverb/pitch-shift/granular synth), and timestamped subtitle events per VO file. Streaming: hot-load current zone/instance VO, LRU-cache recent lines, preload critical-path VO before chapter entry, subtitles always available immediately even if audio is still streaming in.
+
+### 12.8 Memory event integration
+
+Every interaction can emit a memory event (`{event_id, player_id, timestamp, type, source, tags_added, tags_removed, npc_deltas, faction_deltas, tone, line_id}`), batched for performance: critical tags (e.g. an NPC turning hostile) sync immediately; non-critical relationship deltas batch every 5s; a full sync runs on logout/instance exit. The server validates any choice that touches inventory/equipment, faction scores, companion roster, NPC life/death, or world state, and corrects the client on desync.
+
+### 12.9 Multiplayer/networking rules
+
+| Conversation type | Visibility |
+|---|---|
+| Ambient dialogue | Public — all players in range hear the same lines |
+| Speech bubbles | Public unless tied to private memory |
+| Walk-and-talk | Player/party only |
+| Inspectable lore, Echoes/whispers, choice prompts | Player-only |
+| Combat banter | All players in that combat |
+
+In a phased/layered world, NPC greetings must check the player's current `LayerID` so two players on different story layers hear different ambient lines; party members can sync layers to hear the same content. Only NPC position/animation/generic barks replicate to other players — player-specific VO and choice state stay local.
+
+### 12.10 Performance budgets
+
+≤5 active ambient dialogue sources per player, ≤3 concurrent walk-and-talk companions, ≤1 pending choice prompt, ≤5 subtitle backlog, ≤3 simultaneous VO streams, ≤2 simultaneous whisper overlays. Culling: ambient bubbles only within 20m; walk-and-talk pauses past 50m; distant NPCs use cached lightweight greetings instead of full condition evaluation; non-critical ambient dialogue suppressed in combat. Optimization: precompile condition expressions to bytecode, cache evaluation results per tag-change event, lazy-load dialogue bundles per zone, pool subtitle UI elements.
+
+### 12.11 Worked example: Maeve's supper invitation
+
+Player approaches Elder Maeve within 5m → client checks her bundle → matches greeting `maeve_greeting_orchard_saved_pip_adopted` because tags satisfy `HAS('Village_Saved') AND HAS('Pip_Adopted') AND DISGUST('elder_maeve') < 50` → speech bubble reads *"There you are, sky-child. Pip's been asking after you."* → player clicks in → subtitle bar opens with three choices, one of which ("Supper doesn't pay for the orchard I saved") only appears because the player has the `Payment_Demanded` tag and Bond > 30 → player picks "I'd like that." → client emits a memory event (`Maeve_Supper_Accepted`, `elder_maeve` bond +10) → server validates and persists → client advances to `maeve_supper_scene`. The player can walk away mid-conversation at any point; it pauses and resumes on return.
+
+### 12.12 Cross-system integration
+
+Quests are rarely handed out via modal dialogue — NPCs mention needs, players act, and a quest marker only appears if the player explicitly clicks "mark." Reputation deltas flow primarily from conversation choices, and NPCs reference current reputation in their greetings. Faction-specific lines gate on faction score, and publicly switching factions triggers a confrontation node on the next relevant encounter. Dialogue bundles are keyed by `LayerID` for phasing. Combat banter fires off combat events; choice prompts can appear mid-combat (e.g. "Spare him?" while aiming); walk-and-talk pauses for combat and resumes after.
+
+### 12.13 Accessibility & testing
+
+Accessibility: full subtitles with off-screen speaker indicators, adjustable subtitle background opacity/size, always-shown speaker names, a scrollable conversation history log, an auto-advance-off option for readers, reduced-motion toggle for whisper shimmer/bubble bounce, screen-reader-narrated choice prompts, consistent color-coding for virtuous/pragmatic/ruthless tones, and an optional pause-safe mode that pauses the world during critical choices. Testing: automated unreachable-node coverage reports, a playtest mode that simulates arbitrary tag states, multiplayer-layer-separation verification, per-language subtitle-sync validation, fuzz-testing illegal choice submissions against the server, memory-tag persistence across logout/zone-transfer, and a 100-NPC-ambient-bubble stress test.
+
+---
+
+## 13. Living World / Seasonal Live-Service Design
+
+*How the game stays alive between expansions — seasons don't just add a map, they react to which ending the playerbase collectively chose, refresh old zones, move NPCs around, and advance Aethon's calendar. As with everything else in this archive, this is unbuilt design material — the current vertical slice ships one scripted finale, not a live-service season cadence.*
+
+### 13.1 Philosophy
+
+The world remembers (active ending, faction power, and major NPC states persist and evolve); old zones stay relevant (every season refreshes 2–3 old zones); no content is wasted (seasonal maps are repurposed/expanded, not abandoned); player agency compounds (seasonal arcs reference personal choices even inside a shared macro-state); factions are never finished (a Chapter 8 victory is a starting condition for the next season, not an endpoint); Selen keeps changing (the moon evolves visually and mechanically across seasons).
+
+### 13.2 Season structure (10–12 weeks each)
+
+Each season ships a seasonal story (3–5 chapters), one new zone or a heavily refreshed old one, a seasonal meta event with a boss and reward track, a new dungeon/strike tied to the story, 1–2 world-boss rotations (often in old zones), a scripted or community-driven faction-power shift, one small new mechanic, an account-wide reward track, and a 2–3 week festival. Cadence: week 0 launch + chapter 1 + new zone; week 2 chapter 2 + dungeon; week 4 chapter 3 + world boss + festival start; week 6 chapters 4–5 + meta climax + faction shift; week 8 festival close + teaser; weeks 10–12 catch-up + replay bonuses + next-season tease.
+
+### 13.3 How endings shape seasons
+
+The world's macro-state is set by the **most common active ending** across the playerbase at season launch (weighted by completion), while individual players still see personal callbacks (companions who are alive appear in seasonal content; NPCs the player killed don't; betrayed factions stay hostile; secret-ending flags unlock unique side quests). Each of the 9 major endings implies a distinct seasonal flavor — e.g. **The Silver Chain** → resistance/underground-Moon-Touched themes; **The Gilded Cage** → corruption-of-progress/worker-revolt themes; **The Long Fall** → survivor-guilt/void-cult themes; **The Becoming** → "those left behind" themes. (Full 9-row table of macro-state + seasonal theme per ending is in the source brainstorm.)
+
+### 13.4 Saga 1: "The Chains That Remain" — worked example arc
+
+A fully worked 4-season arc showing the pattern, meant as a template rather than a locked roadmap:
+
+- **Season 1 — The Shardsingers:** a cult learns to sing to Moonshards, trying to compose a lullaby that heals Selen. New zone (The Resonant Reaches), refreshed Threadhold/Ashmire, new dungeon (The Humming Cavern, layout shifts with pitch), world boss (The Shardsinger Chorus, a "sung" attack-pattern fight), new mechanic (shard-tuning gear attunement). Major choice: let them finish the lullaby (Pale Choir-pleasing, memory-softening world events) vs. stop them (order restored, Shardsingers go underground) vs. broker a controlled performance (hardest, unlocks neutral concert content).
+- **Season 2 — Ashford Reborn:** the Luminari accidentally awaken an Age of Cinders superweapon, the Cinder King, beneath Ashmire. New zone (Cinder Hollows), new mechanic (temporary siege-machine piloting/bonding), major choice of destroy / negotiate service / let it rule Ashmire as a machine-king.
+- **Season 3 — The Hollow Court:** a diplomatic summit murder-mystery across the Spirechain; new "evidence dossier" mechanic; who gets accused (Chainwright/Luminari/Pale Choir/scapegoat/self-plot) reshapes regional power for the season.
+- **Season 4 — What the Sky Remembers:** the player's Chapter 8 ending choice starts actively reacting; new zone (The Frayedge Rift) bleeds together consequences from multiple endings; sets up Expansion 1's tease that something is rising from Selen's far side or the void where it used to be.
+
+### 13.5 Saga 2 sketch: "The Far Side"
+
+A four-season follow-on premise: the Voidborn, entities that feed on forgotten things, arrive from beyond Selen. S5 *The Eaters of Names* (Voidborn erase names from the Book of Dusk, accelerating Hollowing — name-recovery expeditions); S6 *The Driftborn* (moon-fragment refugees arrive in Long Fall/Drift/Becoming worlds — welcome/quarantine/exploit choice); S7 *The Dream War* (Lullaby/Bridge-world conflict between wake and dream factions); S8 *The Tyrant's Shadow* (a player-shaped lunar-tyrant world boss manifests if enough players hold the Moon-Tyrant ending, otherwise a new would-be-tyrant faction rises).
+
+### 13.6 Regional refresh pattern
+
+Every season, 2–3 old zones get new content layered onto their existing state rather than being replaced — e.g. Threadhold moves from Prologue recovery → Shardsinger harmonics (S1) → Ashmire-refugee housing tension (S2) → summit-assassination intrigue (S3) → an ending-flavored memorial/celebration (S4) → Book-of-Dusk tomb-raiding (S5) → alien-refugee xenophobia events (S6) → sleepwalking dream-age events (S7) → occupation-or-liberation resistance content (S8). The same 8-season throughline is sketched for Ashmire in the source material.
+
+### 13.7 Faction power seasons
+
+Each season has a scripted regional power shift (e.g. S1 Shardsingers gain neutral-zone foothold at all three factions' expense; S3 Spirechain shakeup based on the murder-trial verdict) plus optional **community-driven global goals** with tiered thresholds: Bronze (25% participation, small local reward), Silver (50%, zone-wide buff + new event variant), Gold (75%, major world-state shift + unique cosmetic + landmark change), Platinum (90%+, secret quest unlock + legendary recipe + named NPC memorial). Example: "The Great Bell Ringing" — at Gold, the Voidborn are repelled from Mourncrown and Brother Ink adds a new name to the Book of Dusk; at Platinum, a secret instance lets players meet the spirit of the first bell-ringer.
+
+### 13.8 Seasonal story delivery, replay, and reward tracks
+
+Seasonal chapters use the same playable-conversation system as the main game, release every 2 weeks (30–60 min each), stay replayable indefinitely at reduced post-season rewards, and get periodic full-reward "Living World Return" windows. Choice persistence varies by type: personal companion fate is character-only; faction power shifts, new NPCs, new public events/bosses, and destroyed/built landmarks are world-state-persistent for everyone. Each season has a free + premium reward track (currency → dye → weapon skin → armor piece → cosmetic companion → title → mount/glider skin → selectable-stat epic → legendary component → final seasonal set, on the free side; exclusive skins/emotes/housing/legendary weapon skin on premium), plus season-specific bound currencies (Lunar Resonance, Remembrance Tokens, Void Shards, Dream Silk) each tied to a themed vendor.
+
+### 13.9 Festivals, NPC movement, world bosses, housing, guilds, economy, PvP, catch-up
+
+Annual festivals refresh old zones on a fixed calendar (Threadlight Fair, Dusk Vigil/Halloween, Embernights/winter, Tidecalling/spring, The Naming) and carry small moral choices of their own. NPCs physically relocate season to season (Veyra and Houndmaster Vex both have full 8-season location/role tables in the source material, e.g. Vex moves from Threadhold enforcer → Shardsinger-hunter → Cinder-tech claimant → trial figure → occupation leader-or-fugitive → name-thief → refugee-quarantine officer → dream-criminal-hunter → tyrant's enforcer-or-reformed). World bosses rotate and gain dialogue referencing player history (the Briarwraith Matriarch asks after a child the player bound her to; the Cinder King calls a machine-destroying player a butcher). Housing gets seasonal decor unlocks and occasional companion/NPC visitors. Guild missions and guild-hall theming shift with season and faction alignment. New materials each season create predictable economic booms for specific crafting professions, cheapen after the season ends, and seasonal PvP maps/WvW objectives echo the season's mechanics. Catch-up tooling: past seasons go free after 2 seasons at reduced reward, power-catch-up gear boosters for returning players, friends can join a current-season instance regardless of catch-up state, and an account-wide choice-summary UI.
+
+### 13.10 Technical shape
+
+World season state (`current_season`, `active_macro_ending`, per-faction power, `seasonal_flags[]`, community-event progress) is separate from per-player season state (`completed_chapters[]`, `seasonal_choices[]`, reward-track progress, premium-track flag). Deployment layers: client patch (art/audio/UI/dialogue bundles), server update (quests/events/bosses/rewards/economy), hotfix (balance/bugs/event tuning), and config flags for toggling world-state changes without a full patch. Old zones carry multiple seasonal layer variants; players see the variant matching the current global season plus their personal choices, with party-sync for shared group-content layers. A live-ops team needs a Live Game Director, Season Producer, Narrative Lead (continuity across seasons/choices), Economy Designer, Community Manager, Analytics (participation/ending-distribution/retention), and a live QA team.
+
+---
+
+## 14. Economy & Crafting System Design
+
+*Built for horizontal progression, GW2-style: the chase is build expression, legendary flexibility, cosmetic prestige, and faction power — never an item-level treadmill, and never pay-to-win.*
+
+### 14.1 Philosophy
+
+The economy exists to serve horizontal progression (a reachable stat cap; the chase is stat combos, legendary flexibility, skins, convenience), build diversity (crafting produces sigils/runes/infusions/food across different stat foci), long-term retention (legendaries take months of cross-content effort), social interaction (trading post, material flipping, regional trade routes, guild crafting), content funding, and immersion (materials tied to regions, lunar phenomena, and factions). It explicitly does **not** exist to sell power, force daily chores to stay afloat, punish casual players with scarcity, or enable RMT/botting.
+
+### 14.2 Currencies
+
+**Aethercoin** is the primary trade currency (gold-equivalent) — earned through normal play (events, dungeons, raids, world bosses, selling, dailies), never sold for real money, and drained by waypoints, repairs, TP tax, material conversion, and vendor basics. A dozen **account-bound currencies** each map to specific content and specific spend: Karma (public/dynamic events → renown vendors), Lunar Resonance (lunar phenomena/Whisper Zones → lunar skills and Selenian lore items), Laurels (dailies/weeklies → mats/convenience), Dungeon/Strike Tokens, Raid Essence (→ legendary components/prestige cosmetics), WvW Marks, PvP League Points, map-specific currencies, Remembrance Tokens (Pale Choir), Innovation Cores (Luminari), Order Seals (Chainwright). **Moonstones** are the premium currency — cosmetics, convenience, account upgrades, build/equipment template slots only, never power — and are two-way convertible with Aethercoin through a player-driven Currency Exchange (10% tax), which is the mechanism by which free players can earn "premium" goods and paying players can buy gold, without ever buying power directly.
+
+### 14.3 Gathering
+
+Four gathering tools (Lunar Pick for ore, Sickle of Remembrance for plants, Thread-hooked Rod for wood, Resonance Sifter for lunar sediment) with cheap unlimited basic versions and optional convenience-only paid upgrades. Each of the 7 regions has a distinct ore/plant/wood/special-material profile (full table in source), so gathering naturally creates trade routes. Nodes are per-player-instanced (no ninja-gathering), quality scales with region tier and lunar events (Lunar Tides boost specific nodes; The Long Night — a weekly/monthly event — makes all lunar nodes glow and yield rare materials), and a horizontal gathering-mastery track unlocks speed/rare-drop/detection upgrades rather than power. Salvage kits (tiered) convert unwanted gear back into materials; legendary salvage needs special kits and returns unique components.
+
+### 14.4 Crafting disciplines
+
+Ten disciplines — Weaponsmith, Artificer, Huntsman, Armorsmith, Leatherworker, Tailor, Jeweler, Chef, Scribe, Aetherwright (golems/war machines/siege/prosthetics) — each learnable by any character, with recipes sourced from vendors, station-discovery, dungeon/raid/world-boss/faction-vendor drops, seasonal events, and hidden exploration scrolls. Six crafting tiers from Novice (hours) to Grandmaster (months–years) gate progressively rarer output, culminating in Ascended gear and legendary precursors.
+
+### 14.5 Horizontal itemization
+
+Gear power is defined by **stat combinations** (Berserker's Thread = Power/Precision/Ferocity; Viper's Eclipse = condition-focused; Minstrel's Moon = support/healing; etc. — six named combos in the source, easily extended), not item level. Exotic gear (easy to craft, covers every stat combo) is the practical stat cap; Ascended is a 5–10% refinement with infusion slots; Legendary matches Ascended stats exactly but adds free stat/prefix swapping and unique visual/audio identity — so new players reach competitive gear fast, and veterans chase Legendary purely for flexibility and prestige, never raw power. Eight rarity tiers (Common → Unique) carry explicit binding rules (unrestricted / account-bound / soulbound / bind-on-equip / bind-on-pickup) balancing tradeable economy against protecting long-term chase goals. Runes (armor set bonuses), Sigils (weapon procs), and Infusions (small stat/resistance/cosmetic boosts) are the actual endgame build-customization layer.
+
+### 14.6 Trading post & anti-RMT
+
+A single global, anonymous trading post (5% listing fee, 10% transaction tax) is the *only* player-to-player item exchange — there is deliberately **no direct player trading**; gifting only happens via taxed/logged mail attachments or permission-gated, logged guild storage. This, plus price-history transparency, rarity listing caps, price-fixing pattern detection, new-account trade holds (7 days on high-value items), behavioral bot detection, and a defined exploit-response playbook (freeze → investigate → rollback → hotfix → transparent comms), is the anti-RMT backbone.
+
+### 14.7 Legendary chase
+
+Every legendary requires a Gift of Aethon (regional materials from every launch zone), a Gift of Selen (lunar-phenomena/raid/world-boss materials), a Gift of the Factions (Chainwright/Luminari/Choir content), a precursor (drop, forge-craft, or collection achievement), and time-gated weekly materials from top-end content — an intentionally months-long, cross-every-game-mode chase. A fully worked example ("The Last Lullaby," a Resonant/Mourner legendary staff) walks all 8 crafting stages including a Sunken Llyr pearl-collection step, a 30-song ruin-lore collection, 10 Siren Mother kills, the "Lira of the Drowned Line" precursor, and a final naming rite performed by Mira Hollowbell or Cael. Legendary benefits are free stat/appearance swapping, account-wide unlock, and unique VFX/audio — never a stat advantage over Ascended. Parallel horizontal-chase collections cover weapon skins, lore, meeting all 60 NPCs, festival achievements, mounts/gliders, and dyes.
+
+### 14.8 Sinks, regional/faction economy, consumables
+
+Aethercoin sinks: waypoint travel, gear repair (death penalty), TP tax, currency-exchange tax, crafting-refinement fees, bank/storage upgrades, dye unlocks, transmutation charges, housing rent. Material and bound-currency sinks funnel into crafting, legendaries, guild upgrades, and community-event donations. Each region exports/imports distinct materials (table in source), and regional faction dominance shifts local prices — e.g. Luminari-controlled Ashmire cheapens energy materials but spikes food-import costs due to diverted labor — with each faction also running its own unique vendor goods (ward-keeper skins/binding sigils for Chainwrights, shard-tech skins/overcharge sigils for Luminari, mourner skins/remembrance runes for the Pale Choir). Chef/alchemy consumables (foods, potions, party-wide feasts) stay cheap enough for regular use and convenience-only for boosters — never power-for-cash.
+
+### 14.9 Monetization boundary
+
+Cash shop sells cosmetics (skins, mounts, gliders, dyes, finishers, emotes), convenience (bank/inventory/character slots, build templates), and cosmetic-only gathering tools/boosters — explicitly never direct power gear, Ascended/Legendary items, crafting materials (except indirectly via the player-driven Currency Exchange), or story skips. The fairness claim: free players can reach everything through play plus the Exchange; paying players save time on convenience and cosmetics; nothing purchasable changes combat outcomes.
 
 ---
 
