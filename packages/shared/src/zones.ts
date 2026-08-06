@@ -9,9 +9,15 @@ export interface TravelPoint {
   toZoneId: string;
   toPos: Vec3;
   label: string;
+  /**
+   * The endgame Moonthread is a late-game destination, not another travel-point-away zone: this
+   * gates a travel point behind an NPC memory tag (e.g. having resolved The Cartographer's
+   * "trust_them" choice) rather than making it always-open. See Room.tryTravel.
+   */
+  requiresTag?: { npcId: string; tag: string; deniedMessage: string };
 }
 
-export type ZoneTheme = "verdant" | "ashen" | "coastal" | "highland" | "arcane" | "fractured";
+export type ZoneTheme = "verdant" | "ashen" | "coastal" | "highland" | "arcane" | "fractured" | "lunar";
 
 export interface ZoneDef {
   id: string;
@@ -186,6 +192,45 @@ export const ZONES: Record<string, ZoneDef> = {
         toZoneId: "threadhold",
         toPos: { x: -35, y: 0, z: 35 },
         label: "Threadhold"
+      },
+      // Standing right where The Cartographer waits — the road to Selen only opens once you've
+      // trusted them to lead you there (see npc.ts's cartographer_trust_choice).
+      {
+        id: "frayedge_to_moonthread",
+        pos: { x: -4, y: 0, z: 44 },
+        radius: 3,
+        toZoneId: "moonthread",
+        toPos: { x: 0, y: 0, z: 22 },
+        label: "The Moonthread",
+        requiresTag: {
+          npcId: "the_cartographer",
+          tag: "cartographer_trusted",
+          deniedMessage: "The Cartographer hasn't shown you the way yet. Talk to them first."
+        }
+      }
+    ]
+  },
+  // The endgame zone: the literal tether between Aethon and Selen, reachable only once The
+  // Cartographer has agreed to guide you there. Small, quiet, and built for one last set of
+  // conversations rather than another spawn-dense combat zone.
+  moonthread: {
+    id: "moonthread",
+    name: "The Moonthread",
+    radius: 32,
+    spawnPoint: { x: 0, y: 0, z: 22 },
+    theme: "lunar",
+    groundColor: "#20233a",
+    groundHighlight: "#4a4f82",
+    fogColor: "#0a0a16",
+    backgroundColor: "#05050c",
+    travelPoints: [
+      {
+        id: "moonthread_to_frayedge",
+        pos: { x: 0, y: 0, z: 26 },
+        radius: 3,
+        toZoneId: "frayedge",
+        toPos: { x: -4, y: 0, z: 40 },
+        label: "The Frayedge"
       }
     ]
   }

@@ -4,6 +4,9 @@ import type { NpcMemoryState } from "./lore/memory.js";
 
 export type PlayerClassId = "warden" | "ranger" | "mystic";
 
+/** How many companions a character can have active at once (see CharacterState.companionIds). */
+export const MAX_COMPANIONS = 2;
+
 export type ResourceType = "resolve" | "focus" | "aether";
 
 export interface StatBlock {
@@ -187,8 +190,14 @@ export interface CharacterState extends CharacterSummary {
   npcMemory: NpcMemoryState;
   /** Aether-crystal exposure; see lore/moonTouched.ts for the stage thresholds it drives. */
   lunarResonance: number;
-  /** The NPC id currently traveling with and fighting for this character, if any. One at a time. */
-  companionId?: string;
+  /** NPC ids currently traveling with and fighting for this character, up to MAX_COMPANIONS. */
+  companionIds: string[];
+  /**
+   * Set once, permanently, by resolving the Moonthread Warden's signature choice (see
+   * `DialogueOption.locksEndingThread` and lore/endings.ts) — the scripted finale. Until then the
+   * Character panel shows `trendingEnding` as a live preview instead of a locked-in result.
+   */
+  endingId?: string;
 }
 
 export function xpForLevel(level: number): number {

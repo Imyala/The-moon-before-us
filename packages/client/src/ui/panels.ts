@@ -1,11 +1,14 @@
 import {
   FACTIONS,
   ITEMS,
+  MAJOR_ENDINGS,
+  MAX_COMPANIONS,
   RECIPES,
   SUBCLASSES,
   activeAbilities,
   dominantFaction,
   getItem,
+  getNpc,
   getSubclass,
   loyaltyState,
   moonTouchedStageFor,
@@ -31,7 +34,7 @@ const ICONS: Record<string, string> = {
   potion_blue: "🧉"
 };
 
-export type PanelKind = "inventory" | "crafting" | "character" | null;
+export type PanelKind = "inventory" | "crafting" | "character" | "companions" | null;
 
 export class Panels {
   private overlay: HTMLDivElement;
@@ -60,6 +63,7 @@ export class Panels {
       <button data-panel="inventory">🎒 Inventory (I)</button>
       <button data-panel="crafting">🛠️ Crafting (R)</button>
       <button data-panel="character">📜 Character (C)</button>
+      <button data-panel="companions">🐾 Companions (P)</button>
     `;
     toggles.querySelectorAll<HTMLButtonElement>("button").forEach((btn) => {
       btn.addEventListener("click", () => this.toggle(btn.dataset.panel as PanelKind));
@@ -95,6 +99,7 @@ export class Panels {
     if (this.open === "inventory") this.renderInventory(c);
     else if (this.open === "crafting") this.renderCrafting(c);
     else if (this.open === "character") this.renderCharacter(c);
+    else if (this.open === "companions") this.renderCompanions(c);
   }
 
   private renderInventory(c: CharacterState) {
@@ -258,7 +263,8 @@ export class Panels {
       .join("");
 
     const stage = moonTouchedStageFor(c.lunarResonance);
-    const ending = trendingEnding(c.factionLoyalty, stage.stage);
+    const lockedEnding = c.endingId ? MAJOR_ENDINGS.find((e) => e.id === c.endingId) : undefined;
+    const ending = lockedEnding ?? trendingEnding(c.factionLoyalty, stage.stage);
     const dominant = dominantFaction(c.factionLoyalty);
     const loyaltyRows = (["chainwrights", "luminari", "paleChoir", "independent"] as LoyaltyKey[])
       .map((key) => {
@@ -286,7 +292,11 @@ export class Panels {
       <h3 style="margin-top:20px;font-size:15px">Fate</h3>
       <p style="color:#9aa3c9;font-size:12.5px">Moon-Touched stage: <strong style="color:#cfe0ff">${stage.stage}</strong> — ${stage.description}</p>
       <div class="loyalty-list">${loyaltyRows}</div>
-      <p style="color:#9aa3c9;font-size:12.5px;margin-top:10px">Trending toward <strong style="color:#ffe9a8">${ending.name}</strong> (leaning ${dominant === "independent" ? "Independent" : FACTIONS[dominant].name}). ${ending.tone}</p>
+      <p style="color:#9aa3c9;font-size:12.5px;margin-top:10px">${
+        lockedEnding
+          ? `Your ending: <strong style="color:#ffe9a8">${ending.name}</strong>. ${ending.tone}`
+          : `Trending toward <strong style="color:#ffe9a8">${ending.name}</strong> (leaning ${dominant === "independent" ? "Independent" : FACTIONS[dominant].name}). ${ending.tone}`
+      }</p>
     `;
     this.panel.querySelector(".close-btn")!.addEventListener("click", () => this.close());
     this.panel.querySelectorAll<HTMLButtonElement>("[data-ability]").forEach((btn) => {
@@ -294,6 +304,37 @@ export class Panels {
     });
     this.panel.querySelectorAll<HTMLButtonElement>("[data-spec]").forEach((btn) => {
       btn.addEventListener("click", () => this.net.send({ t: "chooseSpecialization", specializationId: btn.dataset.spec! }));
+    });
+  }
+
+  private renderCompanions(c: CharacterState) {
+    const cards = c.companionIds
+      .map((npcId) => {
+        const def = getNpc(npcId);
+        if (!def) return "";
+        return `
+        <div class="recipe-card">
+          <div class="info">
+            <h4>${def.name} <span style="font-weight:400;color:#9aa3c9">— ${def.title}</span></h4>
+            <div class="inputs">Traveling with you. Fights alongside you, takes retaliation damage, and revives a while after falling.</div>
+          </div>
+          <button data-dismiss="${npcId}">Dismiss</button>
+        </div>`;
+      })
+      .join("");
+
+    const emptySlots = MAX_COMPANIONS - c.companionIds.length;
+
+    this.panel.innerHTML = `
+      <button class="close-btn">✕</button>
+      <h2 class="title-font">Companions</h2>
+      <p style="color:#9aa3c9;font-size:12.5px">Up to ${MAX_COMPANIONS} at once. Recruit more from their signature choice in dialogue; dismiss one here to free a slot for a swap.</p>
+      <div class="recipe-list">${cards || '<p style="opacity:0.6">No companions yet. Recruit one through a signature choice in dialogue.</p>'}</div>
+      ${emptySlots > 0 && c.companionIds.length > 0 ? `<p style="color:#9aa3c9;font-size:12.5px;margin-top:10px">${emptySlots} open slot${emptySlots > 1 ? "s" : ""} remaining.</p>` : ""}
+    `;
+    this.panel.querySelector(".close-btn")!.addEventListener("click", () => this.close());
+    this.panel.querySelectorAll<HTMLButtonElement>("[data-dismiss]").forEach((btn) => {
+      btn.addEventListener("click", () => this.net.send({ t: "dismissCompanion", npcId: btn.dataset.dismiss! }));
     });
   }
 }

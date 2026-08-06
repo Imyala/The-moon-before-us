@@ -49,7 +49,8 @@ export function getOrCreateCharacter(token: string, name: string, classId: Playe
     zoneId: START_ZONE_ID,
     factionLoyalty: { ...DEFAULT_LOYALTY },
     npcMemory: {},
-    lunarResonance: 0
+    lunarResonance: 0,
+    companionIds: []
   };
   saveCharacter(token, character);
   return character;

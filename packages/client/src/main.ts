@@ -110,11 +110,14 @@ interface NpcVisual {
 interface CompanionVisual {
   avatar: Avatar;
   name: string;
+  ownerId: string;
   renderPos: Vec3;
   renderFacing: number;
   targetFacing: number;
   targetPos: Vec3;
   state: string;
+  hp: number;
+  maxHp: number;
 }
 
 function runGame(net: NetClient, selfId: string, roomCode: string, initialCharacter: CharacterState) {
@@ -142,6 +145,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
   controller.onToggleInventory = () => panels.toggle("inventory");
   controller.onToggleCrafting = () => panels.toggle("crafting");
   controller.onToggleCharacter = () => panels.toggle("character");
+  controller.onToggleCompanions = () => panels.toggle("companions");
 
   let character: CharacterState = initialCharacter;
   let selfPos: Vec3 = { ...initialCharacter.position };
@@ -378,22 +382,23 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
       if (!vis) {
         const avatar = buildNpcAvatar("#d9a05b");
         world.scene.add(avatar.group);
-        vis = { avatar, name: c.name, renderPos: { ...c.position }, renderFacing: c.facing, targetFacing: c.facing, targetPos: c.position, state: c.state };
+        vis = { avatar, name: c.name, ownerId: c.ownerId, renderPos: { ...c.position }, renderFacing: c.facing, targetFacing: c.facing, targetPos: c.position, state: c.state, hp: c.hp, maxHp: c.maxHp };
         companions.set(c.id, vis);
-        if (c.id === selfId) hud.setCompanionName(c.name);
       }
       vis.targetPos = c.position;
       vis.targetFacing = c.facing;
       vis.state = c.state;
+      vis.hp = c.hp;
+      vis.maxHp = c.maxHp;
     }
     for (const id of [...companions.keys()]) {
       if (!seenCompanions.has(id)) {
         world.scene.remove(companions.get(id)!.avatar.group);
         companions.delete(id);
         nameplates.remove(`companion:${id}`);
-        if (id === selfId) hud.setCompanionName(null);
       }
     }
+    hud.setCompanionNames([...companions.values()].filter((c) => c.ownerId === selfId).map((c) => c.name));
 
     updateNearestNode();
     updateNearestNpc();
@@ -615,9 +620,10 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
       const moving = vis.state === "run" || vis.state === "chase";
       animateAvatar(vis.avatar, now / 1000 + id.length, moving, now);
       if (vis.state === "attack") vis.avatar.attackPulse = Math.max(vis.avatar.attackPulse, 0.5);
+      vis.avatar.group.visible = vis.state !== "dead";
       const plateId = `companion:${id}`;
       nameplates.ensure(plateId, vis.name, "ally");
-      nameplates.update(plateId, add(vis.renderPos, { x: 0, y: 2.05, z: 0 }), 1, true);
+      nameplates.update(plateId, add(vis.renderPos, { x: 0, y: 2.05, z: 0 }), vis.maxHp > 0 ? vis.hp / vis.maxHp : 1, vis.state !== "dead");
     }
 
     // camera

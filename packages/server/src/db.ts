@@ -32,6 +32,8 @@ db.exec(`
     npcMemoryJson TEXT,
     lunarResonance REAL,
     companionId TEXT,
+    companionIdsJson TEXT,
+    endingId TEXT,
     updatedAt INTEGER NOT NULL
   );
 `);
@@ -40,7 +42,9 @@ for (const migration of [
   "ALTER TABLE characters ADD COLUMN factionLoyaltyJson TEXT",
   "ALTER TABLE characters ADD COLUMN npcMemoryJson TEXT",
   "ALTER TABLE characters ADD COLUMN lunarResonance REAL",
-  "ALTER TABLE characters ADD COLUMN companionId TEXT"
+  "ALTER TABLE characters ADD COLUMN companionId TEXT", // superseded by companionIdsJson (multi-companion); kept for old rows
+  "ALTER TABLE characters ADD COLUMN companionIdsJson TEXT",
+  "ALTER TABLE characters ADD COLUMN endingId TEXT"
 ]) {
   try {
     db.exec(migration);
@@ -51,15 +55,16 @@ for (const migration of [
 
 const getStmt = db.prepare("SELECT * FROM characters WHERE token = ?");
 const upsertStmt = db.prepare(`
-  INSERT INTO characters (token, id, name, classId, level, xp, hp, maxHp, resource, maxResource, statsJson, skillPoints, abilityRanksJson, inventoryJson, equipmentJson, positionJson, zoneId, factionLoyaltyJson, npcMemoryJson, lunarResonance, companionId, updatedAt)
-  VALUES (@token, @id, @name, @classId, @level, @xp, @hp, @maxHp, @resource, @maxResource, @statsJson, @skillPoints, @abilityRanksJson, @inventoryJson, @equipmentJson, @positionJson, @zoneId, @factionLoyaltyJson, @npcMemoryJson, @lunarResonance, @companionId, @updatedAt)
+  INSERT INTO characters (token, id, name, classId, level, xp, hp, maxHp, resource, maxResource, statsJson, skillPoints, abilityRanksJson, inventoryJson, equipmentJson, positionJson, zoneId, factionLoyaltyJson, npcMemoryJson, lunarResonance, companionIdsJson, endingId, updatedAt)
+  VALUES (@token, @id, @name, @classId, @level, @xp, @hp, @maxHp, @resource, @maxResource, @statsJson, @skillPoints, @abilityRanksJson, @inventoryJson, @equipmentJson, @positionJson, @zoneId, @factionLoyaltyJson, @npcMemoryJson, @lunarResonance, @companionIdsJson, @endingId, @updatedAt)
   ON CONFLICT(token) DO UPDATE SET
     name=excluded.name, classId=excluded.classId, level=excluded.level, xp=excluded.xp,
     hp=excluded.hp, maxHp=excluded.maxHp, resource=excluded.resource, maxResource=excluded.maxResource,
     statsJson=excluded.statsJson, skillPoints=excluded.skillPoints, abilityRanksJson=excluded.abilityRanksJson,
     inventoryJson=excluded.inventoryJson, equipmentJson=excluded.equipmentJson, positionJson=excluded.positionJson,
     zoneId=excluded.zoneId, factionLoyaltyJson=excluded.factionLoyaltyJson, npcMemoryJson=excluded.npcMemoryJson,
-    lunarResonance=excluded.lunarResonance, companionId=excluded.companionId, updatedAt=excluded.updatedAt;
+    lunarResonance=excluded.lunarResonance, companionIdsJson=excluded.companionIdsJson, endingId=excluded.endingId,
+    updatedAt=excluded.updatedAt;
 `);
 
 interface Row {
@@ -84,6 +89,8 @@ interface Row {
   npcMemoryJson: string | null;
   lunarResonance: number | null;
   companionId: string | null;
+  companionIdsJson: string | null;
+  endingId: string | null;
   updatedAt: number;
 }
 
@@ -110,7 +117,10 @@ export function loadCharacter(token: string): CharacterState | null {
     factionLoyalty: row.factionLoyaltyJson ? JSON.parse(row.factionLoyaltyJson) : { ...DEFAULT_LOYALTY },
     npcMemory: row.npcMemoryJson ? JSON.parse(row.npcMemoryJson) : {},
     lunarResonance: row.lunarResonance ?? 0,
-    companionId: row.companionId ?? undefined
+    // companionIdsJson supersedes the old single-companion column; fall back to it for characters
+    // saved before multi-companion support existed.
+    companionIds: row.companionIdsJson ? JSON.parse(row.companionIdsJson) : row.companionId ? [row.companionId] : [],
+    endingId: row.endingId ?? undefined
   };
 }
 
@@ -136,7 +146,8 @@ export function saveCharacter(token: string, c: CharacterState): void {
     factionLoyaltyJson: JSON.stringify(c.factionLoyalty ?? DEFAULT_LOYALTY),
     npcMemoryJson: JSON.stringify(c.npcMemory ?? {}),
     lunarResonance: c.lunarResonance ?? 0,
-    companionId: c.companionId ?? null,
+    companionIdsJson: JSON.stringify(c.companionIds ?? []),
+    endingId: c.endingId ?? null,
     updatedAt: Date.now()
   });
 }

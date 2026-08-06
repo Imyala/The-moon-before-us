@@ -14,6 +14,11 @@ export const COMPANION_ATTACK_RANGE = 3;
 export const COMPANION_ATTACK_COOLDOWN_MS = 1400;
 export const COMPANION_BASE_DAMAGE = 14;
 export const COMPANION_MAX_HP = 100;
+// A companion trades blows with whatever it's fighting rather than being independently targeted
+// by enemy AI (a deliberate scope choice — see docs/GDD.md): every time it lands a hit, the
+// enemy it just hit swings back for a fraction of its normal attack damage.
+export const COMPANION_RETALIATION_PCT = 0.45;
+export const COMPANION_REVIVE_MS = 25000;
 
 export interface EnemySpawnPoint {
   defId: string;
@@ -116,6 +121,14 @@ export const ZONE_ENEMY_SPAWNS: Record<string, EnemySpawnPoint[]> = {
     { defId: "bramble_stalker", pos: { x: 14, y: 0, z: -40 }, patrolRadius: 5 },
     { defId: "moonlit_wolf", pos: { x: -16, y: 0, z: -34 }, patrolRadius: 6 },
     { defId: "moonlit_wolf", pos: { x: 32, y: 0, z: 24 }, patrolRadius: 6 }
+  ],
+  // The Moonthread itself: small, dense, and deliberately sparse compared to the six built
+  // zones — this is a late-game destination built for a handful of hard fights and the finale
+  // conversations, not another wide spawn field.
+  moonthread: [
+    { defId: "selenian_remnant", pos: { x: 14, y: 0, z: -6 }, patrolRadius: 5 },
+    { defId: "selenian_remnant", pos: { x: -16, y: 0, z: -10 }, patrolRadius: 5 },
+    { defId: "wane_wraith", pos: { x: 0, y: 0, z: -22 }, patrolRadius: 5 }
   ]
 };
 
@@ -191,6 +204,11 @@ export const ZONE_NODE_SPAWNS: Record<string, NodeSpawnPoint[]> = {
     { defId: "node_ore_vein", pos: { x: -4, y: 0, z: 34 } },
     { defId: "node_herb_patch", pos: { x: 22, y: 0, z: 4 } },
     { defId: "node_herb_patch", pos: { x: -14, y: 0, z: -18 } }
+  ],
+  // Fragments of Selen herself, closer to the source than anywhere else in Aethon.
+  moonthread: [
+    { defId: "node_crystal", pos: { x: 10, y: 0, z: 4 } },
+    { defId: "node_crystal", pos: { x: -12, y: 0, z: 14 } }
   ]
 };
 

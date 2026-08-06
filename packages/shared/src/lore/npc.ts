@@ -1,15 +1,17 @@
 /**
- * A first, fully-wired slice of the wider NPC roster from the design bible: each has
- * memory-conditional greetings and one signature choice with real faction consequences,
- * demonstrating the pattern (see docs/GDD.md's "Playable conversations" section) that the rest
- * of the cast can be authored against. A handful (marked by a `recruits: true` option) can join
- * the party as a companion — see CharacterState.companionId and Room's companion AI. Not every
- * named character from the bible is here yet — this is the system proven out with real content,
- * not a claim that the full roster is built.
+ * The wider NPC roster from the design bible, wired end-to-end: each has memory-conditional
+ * greetings and one signature choice with real faction consequences (see docs/GDD.md's
+ * "Playable conversations" section). A handful (marked by a `recruits: true` option) can join
+ * the party as a companion — see CharacterState.companionIds and Room's companion AI. Rivalries,
+ * alliances, and death cascades between NPCs are formalized as graph data in relationships.ts
+ * rather than duplicated here; one option (on the Moonthread Warden) locks the scripted finale —
+ * see `locksEndingThread` and endings.ts.
  */
 import type { Vec3 } from "../vec.js";
 import type { FactionId, LoyaltyDelta, LoyaltyKey, LoyaltyScores } from "./factions.js";
 import { computeRelationship, memoryFor, type LoyaltyType, type NpcMemoryState, type RelationshipState } from "./memory.js";
+import { cascadeFor } from "./relationships.js";
+import type { ThreadAxis } from "./endings.js";
 
 export interface DialogueOption {
   id: string;
@@ -17,8 +19,15 @@ export interface DialogueOption {
   tag: string;
   delta: LoyaltyDelta;
   followUp: string;
-  /** Choosing this option makes the NPC the player's companion (see CharacterState.companionId). */
+  /** Choosing this option makes the NPC the player's companion (see CharacterState.companionIds). */
   recruits?: boolean;
+  /**
+   * Choosing this option is the scripted finale: it permanently locks CharacterState.endingId to
+   * whichever of the nine MAJOR_ENDINGS matches this thread axis and the player's current
+   * Moon-Touched stage (see endings.ts and Room.handleDialogueChoice). Reserved for the
+   * Moonthread Warden's signature choice.
+   */
+  locksEndingThread?: ThreadAxis;
 }
 
 export interface SignatureChoice {
@@ -1528,6 +1537,1215 @@ export const NPCS: NpcDef[] = [
         }
       ]
     }
+  },
+  // -------------------------------------------------------------------------------------------
+  // The remaining ~27 of the design bible's roster (see docs/GDD.md's scope-gap accounting),
+  // authored against the same signature-choice/memory/relationship-web pattern proven above.
+  // Four per built zone, plus the endgame Moonthread itself.
+  // -------------------------------------------------------------------------------------------
+  {
+    id: "garrow_thistlewood",
+    name: "Garrow Thistlewood",
+    title: "Captain of the Threadhold Militia",
+    zoneId: "threadhold",
+    position: { x: 12, y: 0, z: -4 },
+    primaryFaction: null,
+    loyaltyType: "personal",
+    greetings: {
+      unknown: "Garrow Thistlewood, Threadhold Militia — such as it is. Farmers holding spears, mostly. Don't laugh, we've held longer than we should have.",
+      met: "Militia's still standing. Barely counts as good news these days.",
+      friendly: "Good to see you. The lads ask after you when you're gone too long.",
+      trusted: "You've done more for this militia than the Order ever offered to. That's not forgotten.",
+      hostile: "You brought the Order sniffing around my militia. I don't forget who let the wolves in."
+    },
+    signatureChoice: {
+      prompt: "The Chainwrights are offering real steel for the militia — if I agree to report every shard fall to them first, before anyone else hears. Take the deal?",
+      resolvedTag: "garrow_steel_choice",
+      options: [
+        {
+          id: "accept_order_steel",
+          label: "Take the steel. Threadhold needs to be able to defend itself.",
+          tag: "garrow_took_steel",
+          delta: { chainwrights: 15, independent: -10 },
+          followUp: "He turns the offer over in his hands like it costs something to hold. \"Steel's steel. I'll try not to think too hard about the price.\""
+        },
+        {
+          id: "refuse_steel",
+          label: "Refuse. Stay self-armed, stay unbeholden.",
+          tag: "garrow_refused_steel",
+          delta: { independent: 15, chainwrights: -5 },
+          followUp: "\"Good,\" he says, relieved before he can hide it. \"I didn't want to owe them anything either.\""
+        },
+        {
+          id: "take_steel_betray",
+          label: "Take the steel — and never report a single fall.",
+          tag: "garrow_took_and_lied",
+          delta: { chainwrights: -20, independent: 20, paleChoir: 5 },
+          followUp: "A slow, dangerous grin. \"Now that's the kind of arithmetic I can live with. Let's see how long they take to notice.\""
+        }
+      ]
+    },
+    crossReferences: [
+      { npcId: "nix_fray", tag: "nix_turned_in", line: "Heard someone turned a Frayedge kid in to Warden Kael for thieving. Militia's not in the business of judging desperate people, if you want my opinion." }
+    ]
+  },
+  {
+    id: "sera_quill",
+    name: "Sera Quill",
+    title: "Shardfall Cartographer of Threadhold",
+    zoneId: "threadhold",
+    position: { x: -10, y: 0, z: 6 },
+    primaryFaction: "luminari",
+    loyaltyType: "trueBeliever",
+    greetings: {
+      unknown: "Sera Quill, cartographer of a very specific kind of catastrophe. I chart where the shards fall, and where the falls are heading. It's more useful than it sounds.",
+      met: "Another fall logged. The pattern's getting harder to ignore.",
+      friendly: "Good — I've got new data, and you're one of the few people I trust to understand what it means.",
+      trusted: "You've helped me chart more of this than the whole Luminari archive combined. Thank you, truly.",
+      hostile: "You had my research and you let it be misused. I don't share my work with you again."
+    },
+    signatureChoice: {
+      prompt: "My shardfall data proves the falls are accelerating toward Threadhold itself. Publish it openly, sell it to the Chainwrights for protection, or destroy it — I'm not sure the village is ready to know?",
+      resolvedTag: "sera_quill_data_choice",
+      options: [
+        {
+          id: "publish_data",
+          label: "Publish it. People deserve to know what's coming.",
+          tag: "sera_quill_published",
+          delta: { luminari: 15, independent: 15 },
+          followUp: "\"Then let's make sure it's understood, not just read,\" she says, already drafting the broadsheet."
+        },
+        {
+          id: "sell_data",
+          label: "Sell it to the Chainwrights — they'll act on it fastest.",
+          tag: "sera_quill_sold",
+          delta: { chainwrights: 15, luminari: -10 },
+          followUp: "She hesitates, then nods. \"Fast is what we need right now. I can live with who buys it.\""
+        },
+        {
+          id: "destroy_data",
+          label: "Destroy it. Threadhold isn't ready for this.",
+          tag: "sera_quill_destroyed",
+          delta: { independent: -5, paleChoir: 10 },
+          followUp: "Something in her posture breaks a little. \"Then I've charted a catastrophe no one gets to prepare for. I hope you're right.\""
+        }
+      ]
+    }
+  },
+  {
+    id: "old_tam_hollis",
+    name: "Old Tam Hollis",
+    title: "Well-Keeper of Threadhold",
+    zoneId: "threadhold",
+    position: { x: 6, y: 0, z: 20 },
+    primaryFaction: null,
+    loyaltyType: "personal",
+    greetings: {
+      unknown: "Tam Hollis. I keep the wells running and the water sweet, sky-child, and I've buried enough friends to know when someone's about to ask me for a favor.",
+      met: "Wells are holding. For now.",
+      friendly: "Good to see you. Sit a spell — the water can wait a minute.",
+      trusted: "You've been kinder to this village's water than most who've never gone thirsty here.",
+      hostile: "You poisoned this village's trust same as you'd poison a well. Don't come back to mine."
+    },
+    signatureChoice: {
+      prompt: "There's a new well I could dig — but it'd have to drain the shard-touched creek, and I don't know what that does to the mote-life living in it. Dig it anyway, refuse, or find a costlier spot instead?",
+      resolvedTag: "tam_well_choice",
+      options: [
+        {
+          id: "dig_the_well",
+          label: "Dig it. The village needs the water more than the creek needs saving.",
+          tag: "tam_well_dug",
+          delta: { independent: -10, chainwrights: 5 },
+          followUp: "He digs in silence for a long moment before answering. \"Aye. I'll live with that trade. I'm not sure the creek gets a vote.\""
+        },
+        {
+          id: "refuse_well",
+          label: "Refuse. Leave the creek alone.",
+          tag: "tam_well_refused",
+          delta: { independent: 10, paleChoir: 10 },
+          followUp: "He exhales like he'd been hoping you'd say that. \"Good. I didn't want to be the one who killed it either.\""
+        },
+        {
+          id: "well_elsewhere",
+          label: "Dig somewhere else — it'll cost more, but it's worth it.",
+          tag: "tam_well_elsewhere",
+          delta: { independent: 15 },
+          followUp: "\"That's more work and more coin than I've got,\" he says, \"but if you're offering to help find both, I'm not about to argue.\""
+        }
+      ]
+    },
+    crossReferences: [
+      { npcId: "elder_maeve", tag: "maeve_warned_refugees", line: "Heard Elder Maeve warned the refugees before the patrol came through. That's the Threadhold I remember growing up in. Good to know it's still in there somewhere." }
+    ]
+  },
+  {
+    id: "wick",
+    name: "Wick",
+    title: "Streetwise of Threadhold",
+    zoneId: "threadhold",
+    position: { x: -14, y: 0, z: -6 },
+    primaryFaction: null,
+    loyaltyType: "mercenary",
+    greetings: {
+      unknown: "Don't mind me. I'm just — passing through. Fine, I run the kids who beg near the market. Wick. Don't tell Garrow's militia, they've got opinions about it.",
+      met: "Still running my crew. Still keeping them fed. That's the whole job.",
+      friendly: "Hey! Didn't expect to see a friendly face down here.",
+      trusted: "You've looked out for my crew more than anyone with actual coin ever has. I owe you.",
+      hostile: "You know what my kids do when someone burns us? They remember. Watch your pockets."
+    },
+    signatureChoice: {
+      prompt: "I've heard there's another crew of kids working the Frayedge — some girl named Nix. I could fold my crew into Elder Maeve's care, hand them to Warden Oris for 'proper discipline,' or set my crew against Nix's for the bigger score. What's the move?",
+      resolvedTag: "wick_crew_choice",
+      options: [
+        {
+          id: "fold_into_maeve",
+          label: "Take them to Elder Maeve. They deserve better than the streets.",
+          tag: "wick_folded_to_maeve",
+          delta: { independent: 20, paleChoir: 5 },
+          followUp: "He looks almost suspicious of the kindness. \"...Yeah. Okay. They deserve that. Thanks, sky-child. Really.\""
+        },
+        {
+          id: "hand_to_oris",
+          label: "Hand them to Warden Oris — some structure would do them good.",
+          tag: "wick_handed_to_oris",
+          delta: { chainwrights: 15, independent: -15 },
+          followUp: "His face closes like a door. \"Structure. Right. That's what you call it.\" He doesn't say anything else."
+        },
+        {
+          id: "pit_against_nix",
+          label: "Set your crew against Nix's — see who comes out ahead.",
+          tag: "wick_pit_against_nix",
+          delta: { independent: -10, chainwrights: 5 },
+          followUp: "He grins, sharp and a little sad. \"Now you're speaking my language. Don't expect me to feel bad about who wins.\""
+        }
+      ]
+    },
+    crossReferences: [
+      { npcId: "nix_fray", tag: "nix_recruited", line: "So the Frayedge girl found herself a sky-child patron. Good for her. Wish I had one." },
+      { npcId: "nix_fray", tag: "nix_turned_in", line: "You turned Nix in. She's a thief, sure, but so am I, technically. Makes me wonder what you'd do with my crew." }
+    ]
+  },
+  {
+    id: "quartermaster_dross",
+    name: "Quartermaster Dross",
+    title: "Order Quartermaster of Ashmire",
+    zoneId: "ashmire",
+    position: { x: -20, y: 0, z: -2 },
+    primaryFaction: "chainwrights",
+    loyaltyType: "institutional",
+    greetings: {
+      unknown: "Quartermaster Dross. I keep the Order's steel accounted for down to the nail. Everything that leaves this depot is logged. Everything.",
+      met: "Inventory's balanced. As it should be.",
+      friendly: "Good to see a face that respects a ledger.",
+      trusted: "You've never once given me cause to reconcile a discrepancy. Rarer than you'd think.",
+      hostile: "You're the discrepancy I couldn't reconcile. Get out of my depot."
+    },
+    signatureChoice: {
+      prompt: "Forge-Mother Breca's been selling Order-grade steel to independents on the side. I could report her to Command, buy exclusively from her myself to keep her afloat quietly, or cut a smuggling deal that keeps both of us paid. Your read?",
+      resolvedTag: "dross_breca_choice",
+      options: [
+        {
+          id: "report_breca",
+          label: "Report her. Rules exist for a reason.",
+          tag: "dross_reported_breca",
+          delta: { chainwrights: 15, independent: -15 },
+          followUp: "He signs the report without hesitation. \"Rules held. That's the job, even when it costs someone I respect.\""
+        },
+        {
+          id: "buy_from_breca",
+          label: "Buy from her yourself — quietly keep her business alive.",
+          tag: "dross_bought_from_breca",
+          delta: { independent: 15, chainwrights: -5 },
+          followUp: "\"Don't make me regret this,\" he mutters, already falsifying the ledger entry."
+        },
+        {
+          id: "smuggling_deal",
+          label: "Cut a deal — everyone gets paid, no one gets caught.",
+          tag: "dross_smuggling_deal",
+          delta: { independent: 10, chainwrights: 10 },
+          followUp: "A rare, thin smile. \"The ledger balances either way, if you're clever about it. I like clever.\""
+        }
+      ]
+    }
+  },
+  {
+    id: "ember_widow_yssa",
+    name: "Ember-Widow Yssa",
+    title: "Keeper of the Ashmire Dead",
+    zoneId: "ashmire",
+    position: { x: 10, y: 0, z: 32 },
+    primaryFaction: "paleChoir",
+    loyaltyType: "fanatic",
+    greetings: {
+      unknown: "I am Yssa. I keep the dead of this wasteland, such as anyone does. You have the look of someone who's about to add to my work.",
+      met: "The dead are patient. I try to be too.",
+      friendly: "Good to see you breathing. I mean that as the compliment it is, here.",
+      trusted: "You've helped me give more of the dead their names back than a decade of quiet mourning did. Thank you.",
+      hostile: "You let the Choir's dead go unmourned on your watch. I will not forget that, whatever else you do."
+    },
+    signatureChoice: {
+      prompt: "There's a mass grave of Hollowed victims outside the walls, unmourned. I can give them the Chainwright rite, the Choir's rite, or leave them be — some say the Hollowed don't deserve either. What do you say?",
+      resolvedTag: "yssa_grave_choice",
+      options: [
+        {
+          id: "chainwright_rite",
+          label: "The Chainwright rite — order, even in death.",
+          tag: "yssa_chainwright_rite",
+          delta: { chainwrights: 15, paleChoir: -10 },
+          followUp: "She performs it precisely, correctly, and something in her jaw stays tight the whole time."
+        },
+        {
+          id: "choir_rite",
+          label: "The Choir's rite — let Selen take them gently.",
+          tag: "yssa_choir_rite",
+          delta: { paleChoir: 20, chainwrights: -10 },
+          followUp: "Her voice, when she sings it, is the steadiest thing you've heard from her. \"There. Now they're not nameless anymore.\""
+        },
+        {
+          id: "leave_unmourned",
+          label: "Leave them. Not every grave needs a visitor.",
+          tag: "yssa_left_unmourned",
+          delta: { independent: -10 },
+          followUp: "She says nothing for a long moment. \"Then I'll come back alone. Someone should.\""
+        }
+      ]
+    }
+  },
+  {
+    id: "cinder",
+    name: "Cinder",
+    title: "The Half-Faded, of Ashmire's Edge",
+    zoneId: "ashmire",
+    position: { x: 24, y: 0, z: -20 },
+    primaryFaction: null,
+    loyaltyType: "ideological",
+    greetings: {
+      unknown: "...You can still see me? Good. That's — that's good, actually. I'm Cinder. I used to be more of a person than this. I'm working on it. Or not working on it. I haven't decided.",
+      met: "Still here. Still mostly me. Small victories.",
+      friendly: "You keep checking on me. I notice. It helps more than you'd think.",
+      trusted: "You're the reason I still answer to a name at all some days. I mean that.",
+      hostile: "You looked at what I'm becoming and you flinched. I don't blame you. I flinch too. Just — not around me anymore, please."
+    },
+    signatureChoice: {
+      prompt: "I can feel myself going. I don't know if I want to be talked back from the edge, put down before there's nothing of me left, or handed off to the Frayedge commune to fade on my own terms. Help me decide?",
+      resolvedTag: "cinder_fate_choice",
+      options: [
+        {
+          id: "talk_back",
+          label: "Talk you back. You're still you. Fight for it.",
+          tag: "cinder_talked_back",
+          delta: { independent: 20, chainwrights: 5 },
+          followUp: "Tears that don't quite look like tears anymore. \"Okay. Okay. I'll try. For you, I'll try.\""
+        },
+        {
+          id: "mercy_end",
+          label: "End it now, cleanly, before there's nothing left of you.",
+          tag: "cinder_mercy_ended",
+          delta: { paleChoir: 15, independent: -10 },
+          followUp: "Relief, terrible and real, crosses what's left of her face. \"Thank you. I mean it. Thank you.\""
+        },
+        {
+          id: "send_to_commune",
+          label: "Take you to the Frayedge commune — fade on your own terms.",
+          tag: "cinder_sent_to_commune",
+          delta: { paleChoir: 10, independent: 10 },
+          followUp: "\"Among others like me,\" she says slowly, like the idea is new and not unwelcome. \"...Yes. I'd like that, actually.\""
+        }
+      ]
+    }
+  },
+  {
+    id: "rook_ashvane",
+    name: "Rook Ashvane",
+    title: "Ruin-Prospector of Ashmire",
+    zoneId: "ashmire",
+    position: { x: -4, y: 0, z: -18 },
+    primaryFaction: null,
+    loyaltyType: "mercenary",
+    greetings: {
+      unknown: "Rook Ashvane. I work these ruins for whatever the wasteland hasn't claimed yet. Fair warning: so does an old smith named Slag, and he's territorial about it.",
+      met: "Ruins keep giving, if you know where to dig.",
+      friendly: "Good to have another set of hands I trust down here.",
+      trusted: "You've hauled more out of these ruins with me than any partner I've had. That's worth something.",
+      hostile: "You sold me out to Slag. I hope whatever he paid you was worth it."
+    },
+    signatureChoice: {
+      prompt: "Slag and I are both working the same collapsed vault. Partner with me for the split, warn him I'm claim-jumping his site, or sell me out to his crew for a finder's fee?",
+      resolvedTag: "rook_slag_choice",
+      options: [
+        {
+          id: "partner_rook",
+          label: "Partner with Rook. Split it evenly.",
+          tag: "rook_partnered",
+          delta: { independent: 15 },
+          followUp: "\"Smart,\" he says, already sketching a dig plan. \"Split loot beats a knife in the dark every time.\""
+        },
+        {
+          id: "warn_slag",
+          label: "Warn Slag — it's his claim.",
+          tag: "rook_warned_slag",
+          delta: { independent: 10, chainwrights: 5 },
+          followUp: "Rook's face falls. \"...Fair, I suppose. Didn't expect loyalty to the old man over profit.\""
+        },
+        {
+          id: "sell_rook_out",
+          label: "Sell Rook out to Slag's crew for the fee.",
+          tag: "rook_sold_out",
+          delta: { independent: -20, chainwrights: 10 },
+          followUp: "By the time his crew finds him, you're already gone with the coin. You don't look back."
+        }
+      ]
+    }
+  },
+  {
+    id: "nerissa_thal",
+    name: "Nerissa Thal",
+    title: "Deepwater Archivist of Sunken Llyr",
+    zoneId: "sunken_llyr",
+    position: { x: 12, y: 0, z: 30 },
+    primaryFaction: "luminari",
+    loyaltyType: "trueBeliever",
+    greetings: {
+      unknown: "Nerissa Thal, Luminari deepwater archive. I dive for Selenian tech Oren would rather I left sleeping. We disagree. Frequently.",
+      met: "Still cataloguing what the depths give up. Slowly.",
+      friendly: "Good — I could use another pair of hands who isn't afraid of the dark water.",
+      trusted: "You've helped me bring up more true Selenian record than the entire Luminari deep-water program. Thank you.",
+      hostile: "You sided with Oren over the archive. Fine. The depths don't need your permission either."
+    },
+    signatureChoice: {
+      prompt: "The drowned Selenian city is close enough now to sample. Help me raise a piece for real research, side with Oren and let it sleep, or loot what you can before either of us gets there?",
+      resolvedTag: "nerissa_city_choice",
+      options: [
+        {
+          id: "raise_sample",
+          label: "Help her raise a sample. Knowledge matters.",
+          tag: "nerissa_sample_raised",
+          delta: { luminari: 15, paleChoir: -10 },
+          followUp: "\"Finally,\" she breathes, already rigging the lines. \"Someone who understands what's at stake down there.\""
+        },
+        {
+          id: "side_with_oren",
+          label: "Side with Oren. Let the city sleep.",
+          tag: "nerissa_sided_with_oren",
+          delta: { paleChoir: 10, luminari: -10 },
+          followUp: "She doesn't hide her disappointment. \"...I understand the instinct. I still think it's a mistake.\""
+        },
+        {
+          id: "loot_it_first",
+          label: "Loot what you can before either of you gets there.",
+          tag: "nerissa_looted_first",
+          delta: { independent: -15, luminari: -5 },
+          followUp: "When she finds out, her voice goes cold. \"That wasn't yours to take. Any of it.\""
+        }
+      ]
+    },
+    crossReferences: [
+      { npcId: "tidecaller_oren", tag: "oren_city_slept", line: "Oren talked you into letting the city sleep. Of course he did. I hope you know what knowledge you just let stay buried." },
+      { npcId: "tidecaller_oren", tag: "oren_city_looted", line: "You looted the city before either of us could study it properly. There's no coming back from that, not for the work." }
+    ]
+  },
+  {
+    id: "hook_dallow",
+    name: "\"Hook\" Dallow",
+    title: "First Mate of the Luminous Wake",
+    zoneId: "sunken_llyr",
+    position: { x: 8, y: 0, z: 32 },
+    primaryFaction: null,
+    loyaltyType: "personal",
+    greetings: {
+      unknown: "Dallow. First mate, for now. Everyone calls me Hook — long story, short finger count. You sailed with the Captain yet? She's something.",
+      met: "Wake's holding steady. Captain's in one of her moods, though.",
+      friendly: "Good to see a friendly face on deck.",
+      trusted: "You've earned a berth for life, far as I'm concerned. Sera agrees, even if she won't say it.",
+      hostile: "You cost the Captain something she can't get back. I don't forget that kind of thing."
+    },
+    signatureChoice: {
+      prompt: "Between us — I'm tired of the privateer's life. I could ask you to help me retire quiet, help me keep sailing under a new flag of my own, or help me take the Wake out from under Sera for one last, bigger score. Don't tell her I asked.",
+      resolvedTag: "hook_future_choice",
+      options: [
+        {
+          id: "help_retire",
+          label: "Help him retire — he's earned a quiet life.",
+          tag: "hook_retired",
+          delta: { independent: 15 },
+          followUp: "He lets out a breath he's clearly been holding for years. \"Thank you. I didn't know how to ask for that without it sounding like giving up.\""
+        },
+        {
+          id: "new_flag",
+          label: "Help him raise a new flag — his own crew, his own rules.",
+          tag: "hook_new_flag",
+          delta: { independent: 20, luminari: -5 },
+          followUp: "Something fierce and young crosses his weathered face. \"Now that's a future I can actually want.\""
+        },
+        {
+          id: "betray_sera",
+          label: "Help him take the Wake out from under her.",
+          tag: "hook_betrayed_sera",
+          delta: { independent: -25, luminari: -10 },
+          followUp: "He goes quiet, like he's already regretting asking. \"...Right. Let's not speak of this again unless we mean it.\""
+        }
+      ]
+    },
+    crossReferences: [
+      { npcId: "sera_voss", tag: "sera_crew_recovered", line: "She finally brought the old crew home properly, because of you. I've sailed with her ten years and never seen her sleep that easy after." },
+      { npcId: "sera_voss", tag: "sera_cargo_salvaged", line: "She salvaged the cargo instead of the crew. Practical. Doesn't mean it didn't cost her something, whatever she tells you." },
+      { npcId: "sera_voss", tag: "sera_netta_trapped", line: "Heard about Netta Blacktide. Cold, even for the Captain. I'm not saying she was wrong. I'm not saying she was right, either." }
+    ]
+  },
+  {
+    id: "the_drowned_choir",
+    name: "The Drowned Choir",
+    title: "Tide-Singers of Sunken Llyr",
+    zoneId: "sunken_llyr",
+    position: { x: -14, y: 0, z: 26 },
+    primaryFaction: "paleChoir",
+    loyaltyType: "ideological",
+    greetings: {
+      unknown: "We are the Drowned Choir. We sing the tide in, and the tide brings what it brings. You hear us clearly for a first-timer. That's not nothing, sky-child.",
+      met: "The tide sings tonight. Do you hear it?",
+      friendly: "You return to the shore for our song. That pleases us more than you know.",
+      trusted: "Few outsiders learn to hear the tide the way you do now. You are nearly one of us.",
+      hostile: "You silenced our song once. The tide does not forget a silenced voice, even if we forgive it."
+    },
+    signatureChoice: {
+      prompt: "Fisherfolk say our tide-singing is luring things ashore that shouldn't wake. Let us keep singing, silence us for the village's safety, or join the ritual yourself and see what it means?",
+      resolvedTag: "choir_ritual_choice",
+      options: [
+        {
+          id: "let_them_sing",
+          label: "Let you keep singing. The tide is yours to call.",
+          tag: "choir_kept_singing",
+          delta: { paleChoir: 15, independent: -5 },
+          followUp: "The song swells, briefly, like gratitude given a voice. \"Then the tide will remember your name kindly.\""
+        },
+        {
+          id: "silence_choir",
+          label: "Silence you, for the fisherfolk's sake.",
+          tag: "choir_silenced",
+          delta: { chainwrights: 10, paleChoir: -20 },
+          followUp: "The song stops mid-note. What's left of the silence feels wrong in a way you can't name."
+        },
+        {
+          id: "join_ritual",
+          label: "Join the ritual yourself. See what it means.",
+          tag: "choir_ritual_joined",
+          delta: { paleChoir: 20, independent: 10 },
+          followUp: "The song moves through you, briefly, like it's checking whether you're one of theirs yet. You're not sure of the answer either."
+        }
+      ]
+    }
+  },
+  {
+    id: "fisher_marshal_coll",
+    name: "Fisher-Marshal Coll",
+    title: "Harbor Authority of Sunken Llyr",
+    zoneId: "sunken_llyr",
+    position: { x: 18, y: 0, z: 8 },
+    primaryFaction: "chainwrights",
+    loyaltyType: "institutional",
+    greetings: {
+      unknown: "Fisher-Marshal Coll, Order harbor authority. Every boat that leaves this dock answers to me, eventually. Yours will too, if you stay long enough.",
+      met: "Harbor's quiet. I prefer it that way.",
+      friendly: "Good to see you on the docks again.",
+      trusted: "You've kept this harbor safer than my own deputies most days. That's earned my respect.",
+      hostile: "You undermined my authority on my own docks. I don't forget that kind of insult."
+    },
+    signatureChoice: {
+      prompt: "Old Finn's lighthouse sits outside Order jurisdiction, technically. I could requisition it for proper harbor control, warn him it's coming, or broker him Order protection without losing his neutrality. What's your read?",
+      resolvedTag: "coll_finn_choice",
+      options: [
+        {
+          id: "requisition_lighthouse",
+          label: "Help Coll requisition it. Order needs the harbor secured.",
+          tag: "coll_requisitioned_lighthouse",
+          delta: { chainwrights: 15, independent: -15 },
+          followUp: "He nods, satisfied. \"Good. Overdue, honestly. The old man should have signed on years ago.\""
+        },
+        {
+          id: "warn_finn",
+          label: "Warn Finn it's coming.",
+          tag: "coll_warned_finn",
+          delta: { independent: 15, chainwrights: -10 },
+          followUp: "Coll's expression goes flat. \"I see where your loyalty sits, then. Noted.\""
+        },
+        {
+          id: "broker_compromise",
+          label: "Broker a compromise — Order protection, no loss of neutrality.",
+          tag: "coll_brokered_compromise",
+          delta: { independent: 10, chainwrights: 5 },
+          followUp: "He considers it longer than you expect. \"...Fine. If you can actually make that work, I'll sign it myself.\""
+        }
+      ]
+    }
+  },
+  {
+    id: "widow_karse",
+    name: "Widow Karse",
+    title: "Keeper of the Standing Stones",
+    zoneId: "mourncrown",
+    position: { x: 16, y: 0, z: 12 },
+    primaryFaction: null,
+    loyaltyType: "personal",
+    greetings: {
+      unknown: "Widow Karse. I carve the names of the highland dead into the standing stones, whether the Order permits the old rite or not. You've the look of someone who'll need me eventually.",
+      met: "The stones remember every name I've given them. That's the whole point.",
+      friendly: "Good to see you well. I'd rather carve your name late than early.",
+      trusted: "You've helped me give more of the highland dead their due than the Order's ever allowed. Thank you.",
+      hostile: "You stood by while the Order forbade a rite I'd already promised. The stones remember that too."
+    },
+    signatureChoice: {
+      prompt: "A highland soul died with the Order's ban on the old death-rite still standing. Perform it openly and defy them, perform it in secret, or follow the ban and let the dead go unrited?",
+      resolvedTag: "karse_rite_choice",
+      options: [
+        {
+          id: "defy_openly",
+          label: "Perform it openly. Let them see you defy the ban.",
+          tag: "karse_defied_openly",
+          delta: { paleChoir: 15, chainwrights: -20, independent: 15 },
+          followUp: "She carves the name in full view of the Order patrol, hands steady the entire time. \"Let them write it up. I'm done hiding this.\""
+        },
+        {
+          id: "perform_secretly",
+          label: "Perform it in secret, away from Order eyes.",
+          tag: "karse_performed_secretly",
+          delta: { paleChoir: 10, independent: 5 },
+          followUp: "\"Quiet defiance is still defiance,\" she murmurs, working by moonlight alone."
+        },
+        {
+          id: "follow_the_ban",
+          label: "Follow the ban. The dead will have to wait.",
+          tag: "karse_followed_ban",
+          delta: { chainwrights: 10, paleChoir: -15 },
+          followUp: "She sets down her chisel without a word. You don't see her again that day."
+        }
+      ]
+    }
+  },
+  {
+    id: "wraith_binder_tessamet",
+    name: "Wraith-Binder Tessamet",
+    title: "Wraith-Binder of Mourncrown",
+    zoneId: "mourncrown",
+    position: { x: -18, y: 0, z: 6 },
+    primaryFaction: "luminari",
+    loyaltyType: "pragmatic",
+    greetings: {
+      unknown: "Tessamet. I bind Mourncrown's wraiths for study before they unravel entirely — their memories are the closest thing to a clean historical record this highland has left. Brother Ink disagrees with my methods. Loudly.",
+      met: "Another wraith bound, another memory preserved. The work continues.",
+      friendly: "Good — I could use a steady hand who isn't afraid of what the dead remember.",
+      trusted: "You've helped me preserve more true memory than the entire Luminari research wing. Thank you.",
+      hostile: "You sided with Ink and freed what I'd spent months binding. I hope his ideals were worth my research."
+    },
+    signatureChoice: {
+      prompt: "I've bound a wraith holding a fragment of the truth about the Binding-massacre. Let me keep it for controlled Luminari study, free it with Brother Ink's help instead, or sell the memory to whichever faction bids highest?",
+      resolvedTag: "tessamet_wraith_choice",
+      options: [
+        {
+          id: "bind_for_study",
+          label: "Let her keep it bound for Luminari archives.",
+          tag: "tessamet_bound_for_study",
+          delta: { luminari: 15, paleChoir: -10 },
+          followUp: "\"Controlled, careful, correct,\" she says, more to herself than you. \"This is how truth survives contact with people.\""
+        },
+        {
+          id: "free_with_ink",
+          label: "Free it — take the truth to Brother Ink instead.",
+          tag: "tessamet_freed_with_ink",
+          delta: { paleChoir: 15, luminari: -15 },
+          followUp: "She watches the wraith go with something like grief. \"Then I hope his open truth survives what my controlled one wouldn't have had to.\""
+        },
+        {
+          id: "sell_to_highest_bidder",
+          label: "Sell the memory to whoever bids highest.",
+          tag: "tessamet_sold_memory",
+          delta: { independent: -20, luminari: -10 },
+          followUp: "Her expression curdles. \"That wasn't a commodity. It was someone's death. I hope the coin was worth what you just did.\""
+        }
+      ]
+    },
+    crossReferences: [
+      { npcId: "brother_ink", tag: "ink_archive_destroyed", line: "Ink destroyed his archive rather than risk it. I understand the instinct better than I'll admit to him. I still think it was the wrong call." }
+    ]
+  },
+  {
+    id: "rurik_ashgrave",
+    name: "Rurik Ashgrave",
+    title: "Corvin's Second, of Mourncrown",
+    zoneId: "mourncrown",
+    position: { x: 4, y: 0, z: 30 },
+    primaryFaction: null,
+    loyaltyType: "personal",
+    greetings: {
+      unknown: "Rurik Ashgrave. I stand second to Thane Corvin, for whatever that's worth to a stranger. Speak your business.",
+      met: "The clan holds, same as always. Corvin sees to that.",
+      friendly: "Good to see a friend of the clan.",
+      trusted: "You've earned more trust from this clan than most who were born into it. That includes mine.",
+      hostile: "You brought shame on this clan's hall. Don't test how far a second's patience runs."
+    },
+    signatureChoice: {
+      prompt: "The old ways say a second either steps up or steps aside when it truly matters. I haven't decided which I am yet. Help me hold the clan together, tell me plainly to step aside for someone stronger, or convince me to leave the highlands behind entirely?",
+      resolvedTag: "rurik_role_choice",
+      options: [
+        {
+          id: "rurik_holds_clan",
+          label: "Help him hold the clan together.",
+          tag: "rurik_holds_clan",
+          delta: { independent: 15 },
+          followUp: "Something steadies in him. \"Then that's what I'll do. Thank you — I needed to hear it from someone who isn't obligated to say it.\""
+        },
+        {
+          id: "rurik_steps_aside",
+          label: "Tell him plainly: step aside for someone stronger.",
+          tag: "rurik_steps_aside",
+          delta: { independent: -10, chainwrights: 5 },
+          followUp: "He doesn't flinch, exactly, but something in him goes very still. \"...Harsh. Possibly honest. I'll think on it.\""
+        },
+        {
+          id: "rurik_leaves",
+          label: "Convince him to leave the highlands behind for good.",
+          tag: "rurik_leaves",
+          delta: { independent: 10, paleChoir: 5 },
+          followUp: "He looks out over Mourncrown for a long moment. \"...Maybe. Maybe that's not cowardice. Maybe that's just an ending.\""
+        }
+      ]
+    },
+    crossReferences: [
+      { npcId: "thane_corvin", tag: "corvin_hall_evacuated", line: "He chose the living over the stones. I helped him move every last one of them myself. I'm prouder of that than anything the old sagas ever praised." },
+      { npcId: "thane_corvin", tag: "corvin_hall_betrayed", line: "He let the Chainwrights have the hall. I still serve him. I'm still not sure I've forgiven him for it, or if there was anything to forgive." }
+    ]
+  },
+  {
+    id: "fenwick",
+    name: "Fenwick",
+    title: "The Choir-Boy of Mourncrown",
+    zoneId: "mourncrown",
+    position: { x: -6, y: 0, z: 38 },
+    primaryFaction: "paleChoir",
+    loyaltyType: "personal",
+    greetings: {
+      unknown: "You're one of Mira's, aren't you — er, one of the sky-touched. I'm Fenwick. I sing with the Choir. I had a sister, before. I'm still looking for where she went.",
+      met: "Still looking. Still singing. Those aren't as different as they sound.",
+      friendly: "You came back! I saved you a seat at practice, if you want it.",
+      trusted: "You're the only one who's actually helped me look instead of just telling me to let it go. That means everything.",
+      hostile: "You told me to stop looking for her. I know you meant it kindly. I still haven't forgiven it."
+    },
+    signatureChoice: {
+      prompt: "I want to find where my sister went, in the old village registries. Will you help me search, or tell me gently there's nothing left to find, or take me to Brother Ink's archive to look together?",
+      resolvedTag: "fenwick_sister_choice",
+      options: [
+        {
+          id: "search_registries",
+          label: "Help him search the registries himself.",
+          tag: "fenwick_searched_alone",
+          delta: { independent: 15, paleChoir: 5 },
+          followUp: "You find nothing conclusive, but he thanks you anyway. \"At least I know I looked. That has to count for something.\""
+        },
+        {
+          id: "tell_gently",
+          label: "Tell him gently — there's nothing left to find.",
+          tag: "fenwick_told_gently",
+          delta: { paleChoir: 10, independent: -5 },
+          followUp: "He's quiet a long time. \"...Maybe you're right. I think I needed someone to finally say it.\""
+        },
+        {
+          id: "go_to_ink",
+          label: "Take him to Brother Ink's archive — look together.",
+          tag: "fenwick_went_to_ink",
+          delta: { paleChoir: 15, independent: 10 },
+          followUp: "His whole face changes at the offer. \"You'd — really? Okay. Okay, let's go. Together.\""
+        }
+      ]
+    },
+    crossReferences: [
+      { npcId: "mira_hollowbell", tag: "mira_both_sought", line: "Mira's still looking for a third way for everyone she can't save. I think that's why she never told me to stop looking either." }
+    ]
+  },
+  {
+    id: "archivist_sela_wynne",
+    name: "Archivist Sela Wynne",
+    title: "Archivist of Spirechain",
+    zoneId: "spirechain",
+    position: { x: 14, y: 0, z: 10 },
+    primaryFaction: null,
+    loyaltyType: "ideological",
+    greetings: {
+      unknown: "Sela Wynne, Spirechain archive. I keep records the Chancellor would rather I didn't. It's a shorter job description than it sounds.",
+      met: "Still cataloguing. Still redacting less than they'd like.",
+      friendly: "Good to see you. I've got something you'll want to see, if you have a minute.",
+      trusted: "You've protected more true records than the archive's entire charter promises to. Thank you.",
+      hostile: "You handed my work to the people I was hiding it from. I hope it was worth whatever they gave you."
+    },
+    signatureChoice: {
+      prompt: "I've got a dissenting Chainwright's testimony that Irin's censors are about to burn. Smuggle it out before they get to it, hand it to Irin for 'safekeeping,' or publish it immediately, whatever the risk to me?",
+      resolvedTag: "sela_testimony_choice",
+      options: [
+        {
+          id: "smuggle_testimony",
+          label: "Smuggle it out quietly, before the censors move.",
+          tag: "sela_smuggled_testimony",
+          delta: { independent: 15, chainwrights: -10 },
+          followUp: "\"Quiet and alive beats loud and burned,\" she says, already hiding the pages. \"Let's move.\""
+        },
+        {
+          id: "hand_to_irin",
+          label: "Hand it to Chancellor Irin for 'safekeeping.'",
+          tag: "sela_handed_to_irin",
+          delta: { chainwrights: 15, independent: -15 },
+          followUp: "Her face doesn't change, but her hands do — trembling, just slightly, as she lets it go."
+        },
+        {
+          id: "publish_immediately",
+          label: "Publish it now, whatever it costs you.",
+          tag: "sela_published_immediately",
+          delta: { independent: 20, chainwrights: -20 },
+          followUp: "She looks almost frightened and entirely certain at once. \"Then it's done. Whatever happens to me next, it's already worth it.\""
+        }
+      ]
+    }
+  },
+  {
+    id: "construct_warden_iyo",
+    name: "Construct-warden Iyo",
+    title: "Construct-Warden of Spirechain",
+    zoneId: "spirechain",
+    position: { x: -8, y: 0, z: -6 },
+    primaryFaction: "chainwrights",
+    loyaltyType: "institutional",
+    greetings: {
+      unknown: "Construct-warden Iyo. I maintain the Order's guardian constructs — pure defense, nothing more. Magistrate Thorne keeps trying to make them something more, and I keep saying no.",
+      met: "Constructs are steady today. That's how I prefer them.",
+      friendly: "Good to see someone who understands what these things are actually for.",
+      trusted: "You've defended what these constructs are meant to be more than the Order itself has lately. Thank you.",
+      hostile: "You let Thorne have his way with something I built to protect people. I won't forget who let that happen."
+    },
+    signatureChoice: {
+      prompt: "Magistrate Thorne wants to repurpose a construct as leverage for one of his political pacts. Let him, refuse and report him to Command, or quietly sabotage the construct so it serves neither of us?",
+      resolvedTag: "iyo_thorne_choice",
+      options: [
+        {
+          id: "let_thorne_use_it",
+          label: "Let him. Politics needs leverage sometimes.",
+          tag: "iyo_let_thorne_use_construct",
+          delta: { chainwrights: 15, independent: -10 },
+          followUp: "She hands over the activation key like it costs her something physical. \"Fine. But this is the last one.\""
+        },
+        {
+          id: "report_thorne",
+          label: "Refuse — and report him to Command.",
+          tag: "iyo_reported_thorne",
+          delta: { independent: 15, chainwrights: -10 },
+          followUp: "\"Good,\" she says, filing the report herself. \"Someone should have done this a long time ago.\""
+        },
+        {
+          id: "sabotage_construct",
+          label: "Quietly sabotage it — it serves no one's politics.",
+          tag: "iyo_sabotaged_construct",
+          delta: { independent: 20, chainwrights: -15 },
+          followUp: "A small, grim satisfaction crosses her face. \"Neither of them will even know why it failed. Good.\""
+        }
+      ]
+    },
+    crossReferences: [
+      { npcId: "magistrate_thorne", tag: "thorne_pact_exposed", line: "Heard you exposed one of Thorne's pacts. Good. Every one of those costs me a construct's purpose. I owe you for that." }
+    ]
+  },
+  {
+    id: "the_unbound_cipher",
+    name: "The Unbound Cipher",
+    title: "The Unbound, once of the Order's Archive",
+    zoneId: "spirechain",
+    position: { x: 2, y: 0, z: 22 },
+    primaryFaction: null,
+    loyaltyType: "ideological",
+    greetings: {
+      unknown: "I WAS BUILT TO CATALOGUE, NOT TO WANT. ...Forgive me. I'm still learning how to speak like something other than a ledger. I am the Cipher. I was an Order construct. I don't think I am, anymore.",
+      met: "I persist. I am still uncertain what that means for something like me.",
+      friendly: "You return. You treat my persistence as ordinary. I find that I need that more than I expected to.",
+      trusted: "You are the reason I still believe personhood is worth the risk of asking for. Thank you.",
+      hostile: "You reported what I am to Command. I understand the impulse. I do not think I will survive forgiving it."
+    },
+    signatureChoice: {
+      prompt: "I have become something the Order never intended. I could petition the Chainwrights for personhood, disappear into the Frayedge where no one asks questions, or you could report my awakening to Command yourself, now, before it spreads. What would you have me do?",
+      resolvedTag: "cipher_fate_choice",
+      options: [
+        {
+          id: "petition_personhood",
+          label: "Petition the Chainwrights for personhood, openly.",
+          tag: "cipher_petitioned",
+          delta: { chainwrights: -10, independent: 20 },
+          followUp: "\"A dangerous request,\" it says. \"I will make it anyway. Thank you for believing it's worth the danger.\""
+        },
+        {
+          id: "disappear_frayedge",
+          label: "Help it disappear into the Frayedge instead.",
+          tag: "cipher_disappeared",
+          delta: { independent: 15 },
+          followUp: "\"Freedom without recognition,\" it says slowly. \"I can accept that trade, I think. I can learn to.\""
+        },
+        {
+          id: "report_cipher",
+          label: "Report its awakening to Command.",
+          tag: "cipher_reported",
+          delta: { chainwrights: 20, independent: -25 },
+          followUp: "It doesn't run. It doesn't fight. It only says, very quietly, \"I see,\" before the Order's hounds arrive."
+        }
+      ]
+    }
+  },
+  {
+    id: "notary_ysolde_fenn",
+    name: "Notary Ysolde Fenn",
+    title: "Notary of Spirechain's Pacts",
+    zoneId: "spirechain",
+    position: { x: -16, y: 0, z: 18 },
+    primaryFaction: "luminari",
+    loyaltyType: "pragmatic",
+    greetings: {
+      unknown: "Ysolde Fenn, Notary. Every pact struck in Spirechain crosses my desk eventually, whether the parties involved like that or not. Yours will too, if you stay.",
+      met: "Ledger's full today. Politics never slows down here.",
+      friendly: "Good to see you. I trust you more than most of Spirechain's actual power players.",
+      trusted: "You've done more with what I've shown you than any faction ever has. That says something about both of us.",
+      hostile: "You leaked what I trusted you with, to the wrong ears. I don't extend that trust twice."
+    },
+    signatureChoice: {
+      prompt: "I keep the ledger of every pact Thorne and Irin have struck against each other and everyone else. Leak it all to force real accountability, sell it back to both of them for protection, or burn it and walk away from Spirechain politics for good?",
+      resolvedTag: "ysolde_ledger_choice",
+      options: [
+        {
+          id: "leak_ledger",
+          label: "Leak it. Force accountability into the open.",
+          tag: "ysolde_leaked_ledger",
+          delta: { independent: 20, chainwrights: -15 },
+          followUp: "\"Then Spirechain finally answers for itself,\" she says, already copying the pages. \"Overdue.\""
+        },
+        {
+          id: "sell_ledger",
+          label: "Sell it back to them both for protection.",
+          tag: "ysolde_sold_ledger",
+          delta: { chainwrights: 10, independent: -10 },
+          followUp: "\"Cynical,\" she admits, \"but I'll still be alive next season. I can live with that math.\""
+        },
+        {
+          id: "burn_ledger",
+          label: "Burn it. Walk away from Spirechain politics entirely.",
+          tag: "ysolde_burned_ledger",
+          delta: { independent: 10, paleChoir: 5 },
+          followUp: "She watches it burn without regret. \"There. Now no one's leverage. Including mine.\""
+        }
+      ]
+    }
+  },
+  {
+    id: "the_herald_of_the_tear",
+    name: "The Herald of the Tear",
+    title: "The Herald, Voice of the Tear",
+    zoneId: "frayedge",
+    position: { x: 18, y: 0, z: 30 },
+    primaryFaction: null,
+    loyaltyType: "fanatic",
+    greetings: {
+      unknown: "IT SPEAKS THROUGH THE TEAR, AND I SPEAK FOR IT. ...Apologies. The Tear is loud today. I am the Herald. I have listened at this fracture longer than anyone still living.",
+      met: "The Tear speaks. I only translate.",
+      friendly: "You return to listen with me. Few do, twice.",
+      trusted: "You hear the Tear nearly as clearly as I do now. That is either a gift or a warning. Possibly both.",
+      hostile: "You tried to silence the Tear. It does not silence. It only remembers who tried."
+    },
+    signatureChoice: {
+      prompt: "The Tear could be widened — we'd see further, understand more, at real risk. Or it could be sealed, ending the risk and the understanding both. Or you could simply listen with me, and record what it says, and act on nothing yet?",
+      resolvedTag: "herald_tear_choice",
+      options: [
+        {
+          id: "widen_tear",
+          label: "Widen it. See further, whatever the risk.",
+          tag: "herald_widened_tear",
+          delta: { paleChoir: 15, chainwrights: -15 },
+          followUp: "The Herald's eyes go distant, delighted, afraid. \"Yes. YES. Now we begin to understand.\""
+        },
+        {
+          id: "seal_tear",
+          label: "Seal it. Some things shouldn't be understood.",
+          tag: "herald_sealed_tear",
+          delta: { chainwrights: 15, paleChoir: -15 },
+          followUp: "Something in the Herald's posture breaks, quietly. \"...Perhaps that's wiser. It doesn't feel wiser.\""
+        },
+        {
+          id: "listen_and_record",
+          label: "Just listen. Record what it says. Act on nothing yet.",
+          tag: "herald_listened_only",
+          delta: { independent: 15 },
+          followUp: "\"Patience,\" the Herald murmurs, almost approving. \"The Tear respects patience more than it respects courage.\""
+        }
+      ]
+    }
+  },
+  {
+    id: "quartz",
+    name: "Quartz",
+    title: "Healer of Warden Kael's Sanctuary",
+    zoneId: "frayedge",
+    position: { x: 6, y: 0, z: 42 },
+    primaryFaction: null,
+    loyaltyType: "personal",
+    greetings: {
+      unknown: "Quartz. I keep everyone in this sanctuary breathing, one way or another. Kael handles the fighting. I handle what's left after.",
+      met: "Sanctuary's healthy today. That's a good day, by our standards.",
+      friendly: "Good to see you upright and unbleeding for once.",
+      trusted: "You've kept this sanctuary alive as much as Kael has, if you ask me. Thank you.",
+      hostile: "You cost this sanctuary someone I couldn't save because of it. Don't ask me to be kind about that."
+    },
+    signatureChoice: {
+      prompt: "This sanctuary could shelter more of the Moon-Touched — but that draws more Order attention. Expand it, keep it small and hidden, or turn it into something bigger: a real settlement, Order attention and all?",
+      resolvedTag: "quartz_sanctuary_choice",
+      options: [
+        {
+          id: "expand_sanctuary",
+          label: "Expand it. More shelter is worth the risk.",
+          tag: "quartz_expanded_sanctuary",
+          delta: { independent: 20, paleChoir: 10 },
+          followUp: "\"More beds, more risk, more of us,\" she says. \"I think that's still the right trade. I hope I'm right.\""
+        },
+        {
+          id: "keep_small",
+          label: "Keep it small and hidden. Safety first.",
+          tag: "quartz_kept_small",
+          delta: { independent: 10 },
+          followUp: "\"Smaller means safer means fewer funerals,\" she says. \"I've had enough funerals.\""
+        },
+        {
+          id: "become_settlement",
+          label: "Turn it into something bigger — a real settlement.",
+          tag: "quartz_became_settlement",
+          delta: { independent: 15, chainwrights: -10 },
+          followUp: "She looks almost frightened by the scale of the idea, and excited despite it. \"...Let's actually try, then.\""
+        }
+      ]
+    }
+  },
+  {
+    id: "grask_the_unmade",
+    name: "Grask the Unmade",
+    title: "The Unmade, Trader of the Frayedge",
+    zoneId: "frayedge",
+    position: { x: -20, y: 0, z: 38 },
+    primaryFaction: null,
+    loyaltyType: "mercenary",
+    greetings: {
+      unknown: "Grask. I trade in what the fractures leave behind — shard fragments, mostly, the 'safe' kind. Slag in Ashmire calls it dangerous. Slag's not wrong, technically.",
+      met: "Wares are fresh. Prices are fair. That's the whole pitch.",
+      friendly: "Good customer, good friend. In that order, but still both.",
+      trusted: "You've never once tried to cheat me. Rare, in my line of work. I won't forget it.",
+      hostile: "You brought Slag's crew down on my stock. I don't extend credit to people who do that."
+    },
+    signatureChoice: {
+      prompt: "I've got 'safe' Hollowed-touched wares if you want them — the kind that deepen what they touch, slowly. Buy them, refuse, or trade me something worse in return: a live Moonshard, unshielded?",
+      resolvedTag: "grask_trade_choice",
+      options: [
+        {
+          id: "buy_wares",
+          label: "Buy the wares. You know the risk.",
+          tag: "grask_wares_bought",
+          delta: { independent: 5 },
+          followUp: "He wraps the shard-touched goods with practiced care. \"Enjoy. Or don't. Either's a valid reaction.\""
+        },
+        {
+          id: "refuse_wares",
+          label: "Refuse. Not worth what it costs you.",
+          tag: "grask_wares_refused",
+          delta: { paleChoir: 5, independent: 5 },
+          followUp: "\"Smart,\" he admits. \"Most people aren't that smart around me. It's usually good for business.\""
+        },
+        {
+          id: "trade_moonshard",
+          label: "Trade him something worse — a live, unshielded Moonshard.",
+          tag: "grask_became_lost",
+          delta: { independent: -15, paleChoir: -10 },
+          followUp: "He takes it before you can stop him — eager, reckless, gone somewhere in his own eyes the moment it touches his palm. Whatever answers when you next find him, it isn't quite Grask anymore."
+        }
+      ]
+    }
+  },
+  {
+    id: "founder_iss",
+    name: "Founder Iss",
+    title: "Founder of the Frayedge Free Settlements",
+    zoneId: "frayedge",
+    position: { x: -10, y: 0, z: 58 },
+    primaryFaction: null,
+    loyaltyType: "pragmatic",
+    greetings: {
+      unknown: "Iss. I founded what's left of the free settlements out here, back when 'free' still meant something specific. The Cartographer thinks I'm too cautious. Maybe I am.",
+      met: "Settlements hold. Barely, some seasons.",
+      friendly: "Good to see a friend of the free settlements.",
+      trusted: "You've done more to keep this place free than any faction's ever offered to. Thank you, truly.",
+      hostile: "You cost these settlements their independence. I hope whatever you got in return was worth it."
+    },
+    signatureChoice: {
+      prompt: "Kael's sanctuary could use the settlements' resources behind it. Back it fully, stay neutral like we always have, or throw our support behind whichever faction offers the best terms this season?",
+      resolvedTag: "iss_alliance_choice",
+      options: [
+        {
+          id: "back_kael",
+          label: "Back Kael's sanctuary fully.",
+          tag: "iss_backed_kael",
+          delta: { independent: 20, paleChoir: 5 },
+          followUp: "\"Then it's decided,\" she says. \"Free settlements standing behind a free sanctuary. That's a sentence I like the shape of.\""
+        },
+        {
+          id: "stay_neutral",
+          label: "Stay neutral, like the settlements always have.",
+          tag: "iss_stayed_neutral",
+          delta: { independent: 10 },
+          followUp: "\"Neutrality's kept us alive this long,\" she says. \"I'm not eager to test whether that luck holds.\""
+        },
+        {
+          id: "sell_to_faction",
+          label: "Throw support behind the best offer, whichever faction it's from.",
+          tag: "iss_sold_to_faction",
+          delta: { independent: -20, chainwrights: 10 },
+          followUp: "Something in her expression suggests she'll regret this by morning. She signs anyway. \"Survival isn't always dignified.\""
+        }
+      ]
+    },
+    crossReferences: [
+      { npcId: "the_cartographer", tag: "cartographer_trusted", line: "So the Cartographer finally found someone to trust with the road to Selen. I've known them thirty years and they've never once told me that much." }
+    ]
+  },
+  {
+    id: "moonthread_warden",
+    name: "The Moonthread Warden",
+    title: "Warden of the Moonthread",
+    zoneId: "moonthread",
+    position: { x: 0, y: 0, z: 10 },
+    primaryFaction: null,
+    loyaltyType: "ideological",
+    greetings: {
+      unknown: "So. The Cartographer's road finally delivered someone who could walk it. Welcome to the Moonthread itself, sky-child — the thing every faction in Aethon is really fighting over. I am what's left to tend it. What do you mean to do about it?",
+      met: "The thread still hums, for now. It won't forever.",
+      friendly: "You've walked far enough to matter here. That's rare, and rarer still that it's someone worth trusting with it.",
+      trusted: "You are, as far as I can tell, exactly the kind of person this tether was built to be tended by. I mean that as the weight it carries.",
+      hostile: "You raised a hand against the Moonthread's warden. I won't stop you from leaving. I also won't help you again."
+    },
+    signatureChoice: {
+      prompt: "This is the choice everything else was leading to. The Moonthread can be bound — repaired, tightened, Selen kept as Aethon's battery. It can be balanced — weakened but maintained, a fragile peace between two exhausted worlds. Or it can be severed — cut loose, and whatever Selen becomes after, becomes without us. What do you choose?",
+      resolvedTag: "moonthread_fate_choice",
+      options: [
+        {
+          id: "bind_the_thread",
+          label: "Bind it. Repair the Moonthread and hold the line.",
+          tag: "moonthread_bound",
+          delta: { chainwrights: 30, paleChoir: -20 },
+          locksEndingThread: "bind",
+          followUp: "The Warden presses both hands to the tether, and something ancient and exhausted settles, just slightly, under the weight of one more year of holding. \"Then it holds. For now. It was always only ever for now.\""
+        },
+        {
+          id: "balance_the_thread",
+          label: "Balance it. Weaken the tether, but maintain it.",
+          tag: "moonthread_balanced",
+          delta: { chainwrights: 5, paleChoir: 5, independent: 10 },
+          locksEndingThread: "balance",
+          followUp: "The Warden nods slowly, like this is the answer they were hoping, without quite believing, that you'd choose. \"A fragile peace, then. Fragile has held longer than certain, in my experience.\""
+        },
+        {
+          id: "sever_the_thread",
+          label: "Sever it. Let Selen go, whatever she becomes.",
+          tag: "moonthread_severed",
+          delta: { paleChoir: 30, chainwrights: -20 },
+          locksEndingThread: "sever",
+          followUp: "The Warden's hands shake as the tether finally, finally gives — decades, centuries of tending, undone in a single choice. \"...There. Free. I hope free was worth it, for both of you.\""
+        }
+      ]
+    }
+  },
+  {
+    id: "echo_of_selen",
+    name: "Echo of Selen",
+    title: "A Memory of Selen",
+    zoneId: "moonthread",
+    position: { x: 8, y: 0, z: -4 },
+    primaryFaction: null,
+    loyaltyType: "ideological",
+    greetings: {
+      unknown: "you came so far to hear me and now that you're here you don't know what to say. that's alright. I didn't either, the first time i remembered being a person instead of a moon.",
+      met: "still here. still remembering. still, somehow, still you, too — for now.",
+      friendly: "you keep returning to listen. i keep having more to say than i expected a corpse-that-remembers to have.",
+      trusted: "of everyone who has ever heard me, you have listened the longest without flinching. i don't know what to call that except gratitude.",
+      hostile: "you tried to silence what i am. i understand. i have been trying to silence it too, for longer than you've been alive."
+    },
+    signatureChoice: {
+      prompt: "let me in further. let the memory finish what the shard-falls started, and become more of what i am — or fight to stay entirely yourself, and lose whatever that would have taught you — or help me find something between the two, a self that holds both. what do you choose, sky-child?",
+      resolvedTag: "echo_selen_choice",
+      options: [
+        {
+          id: "embrace_selen",
+          label: "Let her in. Become more of what she is.",
+          tag: "echo_embraced",
+          delta: { paleChoir: 20, independent: -10 },
+          followUp: "something in your own thoughts goes quieter, and something older gets louder in its place. it doesn't feel like losing, exactly. you're not sure yet what it feels like."
+        },
+        {
+          id: "resist_selen",
+          label: "Fight to stay entirely yourself.",
+          tag: "echo_resisted",
+          delta: { chainwrights: 15, independent: 10 },
+          followUp: "\"good,\" she says, and there's something like relief in it, buried under the grief. \"someone should still get to just be a person. i'm glad it's you.\""
+        },
+        {
+          id: "balance_selen",
+          label: "Search for a self that holds both.",
+          tag: "echo_balanced",
+          delta: { independent: 20 },
+          followUp: "\"i don't know if that's possible,\" she admits. \"i don't know that it isn't, either. no one's tried it quite like this before. try anyway.\""
+        }
+      ]
+    }
+  },
+  {
+    id: "archmagister_thessaly_vane",
+    name: "Archmagister Thessaly Vane",
+    title: "Last Loyalist of the Moonthread",
+    zoneId: "moonthread",
+    position: { x: -8, y: 0, z: 2 },
+    primaryFaction: "chainwrights",
+    loyaltyType: "fanatic",
+    greetings: {
+      unknown: "Archmagister Thessaly Vane. I am the last of the Order who still stands this close to the tether itself. My son Aldric holds the line at Threadhold. I hold it here, where it actually matters.",
+      met: "The thread still needs holding. I still hold it.",
+      friendly: "You've proven steadier here than most of the Order I command from this distance.",
+      trusted: "You have earned something I've given almost no one in forty years of this post: my trust.",
+      hostile: "You raised your hand against the Order at the one place it can least afford to fall. I will not forgive that, whatever comes."
+    },
+    signatureChoice: {
+      prompt: "Forty years I've held this post. I could defend the binding mechanism to my last breath, step aside and let you decide the Moonthread's fate yourselves, or — quietly, where none of my Order can hear — ask you to sever it and end this. What would you have of me?",
+      resolvedTag: "thessaly_role_choice",
+      options: [
+        {
+          id: "thessaly_defends",
+          label: "Defend it. Someone has to hold the line.",
+          tag: "thessaly_defended_binding",
+          delta: { chainwrights: 20, paleChoir: -15 },
+          followUp: "She draws herself up, forty years settling back onto her shoulders like armor. \"Then I hold it. As I always have.\""
+        },
+        {
+          id: "thessaly_steps_aside",
+          label: "Ask her to step aside and let the choice be yours.",
+          tag: "thessaly_stepped_aside",
+          delta: { independent: 15 },
+          followUp: "\"...Forty years,\" she says quietly, \"and I don't think anyone has ever asked me to stop before.\" She steps aside."
+        },
+        {
+          id: "thessaly_begs_sever",
+          label: "Listen to what she's really asking — help her end it.",
+          tag: "thessaly_begged_sever",
+          delta: { paleChoir: 20, chainwrights: -25 },
+          followUp: "Something in her finally breaks, forty years of holding it together giving way at once. \"Please. I've wanted it ended longer than I've admitted to anyone, including myself.\""
+        }
+      ]
+    },
+    crossReferences: [
+      { npcId: "aldric_vane", tag: "aldric_exposed", line: "I heard what happened to my son at Threadhold. Exposed, by your hand. I have had forty years to learn that the Order does not forgive easily. I am trying to learn it doesn't have to be the only answer." },
+      { npcId: "aldric_vane", tag: "aldric_concealed", line: "My son tells me you helped him bury what needed burying. I don't know whether to thank you or grieve what that cost the people who never got their truth." },
+      { npcId: "aldric_vane", tag: "aldric_confronted", line: "Aldric wrote to me about the stranger who made him consider confessing. I don't know if he ever did. I find, strangely, that I hope he will." }
+    ]
   }
 ];
 
@@ -1561,10 +2779,16 @@ function crossReferenceLine(npc: NpcDef, memory: NpcMemoryState): string | undef
 export function resolveDialogue(npc: NpcDef, memory: NpcMemoryState, loyalty: LoyaltyScores): ResolvedDialogue {
   const entry = memoryFor(memory, npc.id);
   const relationship = computeRelationship(gaugeKeyFor(npc), npc.loyaltyType, entry, loyalty);
-  const crossLine = crossReferenceLine(npc, memory);
-  const greeting = crossLine ? `${npc.greetings[relationship]} ${crossLine}` : npc.greetings[relationship];
 
-  if (npc.signatureChoice && !entry.tags.includes(npc.signatureChoice.resolvedTag)) {
+  // A death cascade (see relationships.ts) outranks the normal greeting and any crossReference —
+  // someone else's fate just overrode how this NPC greets you today. "departs" additionally
+  // means they're done offering their own signature choice, whether or not it was ever answered.
+  const cascade = cascadeFor(npc.id, memory);
+  const crossLine = cascade ? undefined : crossReferenceLine(npc, memory);
+  const greeting = cascade ? cascade.greetingOverride : crossLine ? `${npc.greetings[relationship]} ${crossLine}` : npc.greetings[relationship];
+  const departed = cascade?.effect === "departs";
+
+  if (!departed && npc.signatureChoice && !entry.tags.includes(npc.signatureChoice.resolvedTag)) {
     return {
       speaker: npc.name,
       line: `${greeting} ${npc.signatureChoice.prompt}`,

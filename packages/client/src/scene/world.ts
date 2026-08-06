@@ -160,7 +160,9 @@ const THEME_VISUALS: Record<ZoneDef["theme"], ThemeVisuals> = {
   coastal: { deadTrees: false, treeCount: 40, rockCount: 100, moteCount: 50, moteColor: "#8fe3ff", moteName: "sea-glow", moteHeight: 3.0 },
   highland: { deadTrees: true, treeCount: 10, rockCount: 150, moteCount: 30, moteColor: "#c9c3d6", moteName: "mist-wisps", moteHeight: 3.6 },
   arcane: { deadTrees: true, treeCount: 5, rockCount: 60, moteCount: 70, moteColor: "#9fd0ff", moteName: "arcane-motes", moteHeight: 3.2 },
-  fractured: { deadTrees: true, treeCount: 15, rockCount: 160, moteCount: 45, moteColor: "#ff6b8f", moteName: "rift-motes", moteHeight: 4.8 }
+  fractured: { deadTrees: true, treeCount: 15, rockCount: 160, moteCount: 45, moteColor: "#ff6b8f", moteName: "rift-motes", moteHeight: 4.8 },
+  // The Moonthread itself: no trees at all, just stone and the moon's own light given form.
+  lunar: { deadTrees: true, treeCount: 0, rockCount: 90, moteCount: 90, moteColor: "#e8ecff", moteName: "moonlight", moteHeight: 5.5 }
 };
 
 function scatterScenery(target: THREE.Group, zone: ZoneDef) {

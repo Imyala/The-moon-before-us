@@ -90,6 +90,12 @@ export interface ChooseDialogueOptionMessage {
   optionId: string;
 }
 
+/** Dismisses one active companion by NPC id, freeing a slot for a swap (see MAX_COMPANIONS). */
+export interface DismissCompanionMessage {
+  t: "dismissCompanion";
+  npcId: string;
+}
+
 export type ClientMessage =
   | JoinMessage
   | InputMessage
@@ -106,7 +112,8 @@ export type ClientMessage =
   | ChatMessage
   | LeaveMessage
   | TalkMessage
-  | ChooseDialogueOptionMessage;
+  | ChooseDialogueOptionMessage
+  | DismissCompanionMessage;
 
 // ---------------- Server -> Client ----------------
 

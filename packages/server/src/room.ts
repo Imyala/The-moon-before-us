@@ -19,7 +19,12 @@ import {
   resolveFollowUp,
   applyLoyaltyDelta,
   markMet,
+  memoryFor,
   withTag,
+  moonTouchedStageFor,
+  touchedAxisFor,
+  MAJOR_ENDINGS,
+  MAX_COMPANIONS,
   type CharacterState,
   type ClientMessage,
   type CompanionSnapshot,
@@ -43,6 +48,8 @@ import {
   COMPANION_BASE_DAMAGE,
   COMPANION_FOLLOW_DISTANCE,
   COMPANION_MAX_HP,
+  COMPANION_RETALIATION_PCT,
+  COMPANION_REVIVE_MS,
   COMPANION_SPEED,
   DODGE_COOLDOWN_MS,
   DODGE_DURATION_MS,
@@ -160,15 +167,29 @@ interface NpcEntity {
   position: Vec3;
 }
 
-/** A recruited companion; keyed by and lives one-per-owner (see Room.companions). */
+/**
+ * A recruited companion. Keyed by a composite id (`${ownerId}:${defId}`, see Room.companions) so
+ * one owner can have up to MAX_COMPANIONS active at once. Damage is a deliberate scope choice
+ * (see COMPANION_RETALIATION_PCT in world.ts): rather than independent enemy-AI targeting, a
+ * companion takes retaliation damage from whatever it's currently fighting.
+ */
 interface CompanionEntity {
-  id: string; // == ownerId
+  id: string; // `${ownerId}:${defId}`
+  ownerId: string;
   defId: string; // NpcDef id
   zoneId: string;
   position: Vec3;
   facing: number;
   state: EntityState;
   attackReadyAt: number;
+  hp: number;
+  maxHp: number;
+  deadAt: number | null;
+  reviveAt: number | null;
+}
+
+function companionEntityId(ownerId: string, defId: string): string {
+  return `${ownerId}:${defId}`;
 }
 
 export class Room {
@@ -307,7 +328,9 @@ export class Room {
     p.character.position = p.position;
     this.persist(p.token, p.character);
     this.players.delete(playerId);
-    this.companions.delete(playerId);
+    for (const [id, companion] of this.companions) {
+      if (companion.ownerId === playerId) this.companions.delete(id);
+    }
     this.broadcastRoster();
     if (this.players.size === 0) {
       this.shutdown();
@@ -358,6 +381,10 @@ export class Room {
       }
       case "chooseDialogueOption": {
         this.handleDialogueChoice(player, msg.npcId, msg.optionId);
+        break;
+      }
+      case "dismissCompanion": {
+        this.dismissCompanion(player, msg.npcId);
         break;
       }
       case "craft": {
@@ -812,8 +839,23 @@ export class Room {
     player.character.npcMemory = withTag(player.character.npcMemory, npc.id, choice.resolvedTag);
 
     if (option.recruits) {
-      player.character.companionId = npc.id;
-      this.syncCompanion(player);
+      if (!player.character.companionIds.includes(npc.id)) {
+        if (player.character.companionIds.length >= MAX_COMPANIONS) {
+          this.send(player.ws, { t: "error", message: `You can only travel with ${MAX_COMPANIONS} companions at once. Dismiss one first.` });
+        } else {
+          player.character.companionIds = [...player.character.companionIds, npc.id];
+          this.syncCompanions(player);
+        }
+      }
+    }
+
+    // The scripted finale: this permanently locks the character's real ending, rather than the
+    // Character panel's live "trending" preview (see endings.ts).
+    if (option.locksEndingThread && !player.character.endingId) {
+      const stage = moonTouchedStageFor(player.character.lunarResonance);
+      const touched = touchedAxisFor(stage.stage);
+      const ending = MAJOR_ENDINGS.find((e) => e.thread === option.locksEndingThread && e.touched === touched);
+      if (ending) player.character.endingId = ending.id;
     }
 
     const followUp = resolveFollowUp(npc, optionId);
@@ -829,10 +871,14 @@ export class Room {
     if (player.character.hp <= 0 || player.casting || now < player.travelCooldownUntil) return;
     const zone = getZone(player.character.zoneId);
     for (const tp of zone.travelPoints) {
-      if (distance(player.position, tp.pos) <= tp.radius) {
-        this.travelPlayer(player, tp, now);
+      if (distance(player.position, tp.pos) > tp.radius) continue;
+      if (tp.requiresTag && !memoryFor(player.character.npcMemory, tp.requiresTag.npcId).tags.includes(tp.requiresTag.tag)) {
+        this.send(player.ws, { t: "error", message: tp.requiresTag.deniedMessage });
+        player.travelCooldownUntil = now + 3000; // avoid spamming the denial every tick while standing here
         return;
       }
+      this.travelPlayer(player, tp, now);
+      return;
     }
   }
 
@@ -851,33 +897,58 @@ export class Room {
 
   // ---------------- Companion ----------------
 
-  /** Ensures the companion entity (if any) matches the owner's companionId and current zone. */
-  private syncCompanion(owner: PlayerEntity) {
-    const companionId = owner.character.companionId;
-    if (!companionId) {
-      this.companions.delete(owner.id);
-      return;
+  /** Reconciles the owner's companionIds (up to MAX_COMPANIONS) against live companion entities, and follows zone travel. */
+  private syncCompanions(owner: PlayerEntity) {
+    const wanted = new Set(owner.character.companionIds);
+    for (const [id, companion] of this.companions) {
+      if (companion.ownerId === owner.id && !wanted.has(companion.defId)) this.companions.delete(id);
     }
-    let companion = this.companions.get(owner.id);
-    if (!companion) {
-      companion = {
-        id: owner.id,
-        defId: companionId,
-        zoneId: owner.character.zoneId,
-        position: { ...owner.position },
-        facing: owner.facing,
-        state: "idle",
-        attackReadyAt: 0
-      };
-      this.companions.set(owner.id, companion);
-    } else if (companion.zoneId !== owner.character.zoneId) {
-      // The owner traveled; the companion follows instantly rather than being left behind.
-      companion.zoneId = owner.character.zoneId;
-      companion.position = { ...owner.position };
+    for (const defId of owner.character.companionIds) {
+      const id = companionEntityId(owner.id, defId);
+      let companion = this.companions.get(id);
+      if (!companion) {
+        companion = {
+          id,
+          ownerId: owner.id,
+          defId,
+          zoneId: owner.character.zoneId,
+          position: { ...owner.position },
+          facing: owner.facing,
+          state: "idle",
+          attackReadyAt: 0,
+          hp: COMPANION_MAX_HP,
+          maxHp: COMPANION_MAX_HP,
+          deadAt: null,
+          reviveAt: null
+        };
+        this.companions.set(id, companion);
+      } else if (companion.zoneId !== owner.character.zoneId) {
+        // The owner traveled; the companion follows instantly rather than being left behind.
+        companion.zoneId = owner.character.zoneId;
+        companion.position = { ...owner.position };
+      }
     }
   }
 
+  private dismissCompanion(owner: PlayerEntity, npcId: string) {
+    if (!owner.character.companionIds.includes(npcId)) return;
+    owner.character.companionIds = owner.character.companionIds.filter((id) => id !== npcId);
+    this.companions.delete(companionEntityId(owner.id, npcId));
+    this.sendCharacterUpdate(owner);
+  }
+
   private tickCompanion(companion: CompanionEntity, owner: PlayerEntity, dt: number, now: number) {
+    if (companion.deadAt !== null) {
+      if (companion.reviveAt !== null && now >= companion.reviveAt) {
+        companion.hp = companion.maxHp;
+        companion.deadAt = null;
+        companion.reviveAt = null;
+        companion.position = { ...owner.position };
+        companion.state = "idle";
+      }
+      return;
+    }
+
     if (owner.character.hp <= 0) return;
 
     let target: EnemyEntity | undefined;
@@ -919,7 +990,12 @@ export class Room {
     }
   }
 
-  /** Simple, non-crit companion damage. Assists are credited to the owner for XP/loot, same as the owner's own hits. */
+  /**
+   * Simple, non-crit companion damage; assists are credited to the owner for XP/loot, same as
+   * the owner's own hits. The enemy swings back for a fraction of its own attack damage every
+   * time the companion lands a hit — see COMPANION_RETALIATION_PCT in world.ts for why this
+   * stands in for full independent enemy-vs-companion targeting.
+   */
   private companionAttack(companion: CompanionEntity, enemy: EnemyEntity, owner: PlayerEntity, now: number) {
     const amount = COMPANION_BASE_DAMAGE;
     enemy.hp = Math.max(0, enemy.hp - amount);
@@ -929,7 +1005,21 @@ export class Room {
     this.events.push({ type: "damage", targetId: enemy.id, amount, crit: false, sourceId: companion.id, pos: enemy.position, zoneId: enemy.zoneId });
     if (enemy.hp <= 0 && enemy.deadAt === null) {
       this.killEnemy(enemy, now);
+      return;
     }
+
+    const enemyDef = getEnemy(enemy.defId)!;
+    const retaliation = Math.round(enemyDef.attackDamage * COMPANION_RETALIATION_PCT);
+    companion.hp = Math.max(0, companion.hp - retaliation);
+    this.events.push({ type: "damage", targetId: companion.id, amount: retaliation, crit: false, sourceId: enemy.id, pos: companion.position, zoneId: companion.zoneId });
+    if (companion.hp <= 0) this.killCompanion(companion, now);
+  }
+
+  private killCompanion(companion: CompanionEntity, now: number) {
+    companion.deadAt = now;
+    companion.reviveAt = now + COMPANION_REVIVE_MS;
+    companion.state = "dead";
+    this.events.push({ type: "death", entityId: companion.id, isPlayer: false, zoneId: companion.zoneId });
   }
 
   // ---------------- Tick loop ----------------
@@ -945,9 +1035,9 @@ export class Room {
     for (const node of this.nodes.values()) this.tickNode(node, now);
     this.tickHealZones(now);
 
-    for (const player of this.players.values()) this.syncCompanion(player);
+    for (const player of this.players.values()) this.syncCompanions(player);
     for (const companion of this.companions.values()) {
-      const owner = this.players.get(companion.id);
+      const owner = this.players.get(companion.ownerId);
       if (!owner) {
         this.companions.delete(companion.id);
         continue;
@@ -1275,12 +1365,12 @@ export class Room {
             id: c.id,
             defId: c.defId,
             name: def.name,
-            ownerId: c.id,
+            ownerId: c.ownerId,
             position: c.position,
             facing: c.facing,
-            hp: COMPANION_MAX_HP,
-            maxHp: COMPANION_MAX_HP,
-            state: c.state
+            hp: c.hp,
+            maxHp: c.maxHp,
+            state: c.deadAt !== null ? "dead" : c.state
           };
         });
 

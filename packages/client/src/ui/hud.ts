@@ -215,13 +215,13 @@ export class Hud {
       .join("");
   }
 
-  setCompanionName(name: string | null) {
-    if (!name) {
+  setCompanionNames(names: string[]) {
+    if (names.length === 0) {
       this.companionBadgeEl.style.display = "none";
       return;
     }
     this.companionBadgeEl.style.display = "block";
-    this.companionBadgeEl.textContent = `Traveling with ${name}`;
+    this.companionBadgeEl.textContent = `Traveling with ${names.join(" and ")}`;
   }
 
   setZoneName(name: string) {

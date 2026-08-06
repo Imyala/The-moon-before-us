@@ -104,6 +104,30 @@ export const ENEMIES: EnemyDef[] = [
     ],
     scale: 2.3,
     color: "#3d3557"
+  },
+  // The Moonthread's own guardians: what's left of the tether's oldest defenses, tougher than
+  // anything in the six built zones — a deliberately small, dense endgame encounter rather than
+  // another wide spawn field.
+  {
+    id: "selenian_remnant",
+    name: "Selenian Remnant",
+    tier: "boss",
+    maxHp: 900,
+    power: 26,
+    moveSpeed: 2.8,
+    aggroRadius: 16,
+    attackRange: 9,
+    attackDamage: 32,
+    attackCooldownMs: 2000,
+    attackTelegraphMs: 700,
+    xpReward: 340,
+    loot: [
+      { itemId: "mat_starlight_essence", chance: 0.7, minQty: 2, maxQty: 4 },
+      { itemId: "mat_moonpetal", chance: 0.5, minQty: 2, maxQty: 3 },
+      { itemId: "trinket_lucky_charm", chance: 0.12, minQty: 1, maxQty: 1 }
+    ],
+    scale: 2.0,
+    color: "#c9d6ff"
   }
 ];
 
