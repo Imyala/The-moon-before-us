@@ -1,0 +1,20 @@
+{
+  "name": "the-moon-before-us",
+  "private": true,
+  "version": "0.1.0",
+  "description": "A drop-in, drop-out coop action-MMO prototype.",
+  "workspaces": [
+    "packages/shared",
+    "packages/server",
+    "packages/client"
+  ],
+  "scripts": {
+    "dev:server": "npm run dev -w @moon/server",
+    "dev:client": "npm run dev -w @moon/client",
+    "build": "npm run build -w @moon/shared && npm run build -w @moon/server && npm run build -w @moon/client",
+    "typecheck": "npm run typecheck -w @moon/shared && npm run typecheck -w @moon/server && npm run typecheck -w @moon/client"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
