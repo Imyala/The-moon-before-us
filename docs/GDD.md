@@ -217,6 +217,8 @@ Being explicit about scope, because it matters: the original narrative design fo
 
 A handful of the original brief's "immediate decisions" are also still genuinely open and worth answering: how many playable origins (all Moon-Touched the same way, vs. class-based, vs. region/race-based, vs. player-authored background); whether more than three factions should exist or players can belong to more than one at once; overall tone (hopeful-gothic vs. cosmic horror vs. high fantasy adventure); whether the moon's true nature is revealed at launch or stays ambiguous for years; how deep companion romance/loyalty arcs should go versus staying functional; and voice acting scope (full, partial, or text+whisper-audio only).
 
+The full, unabridged brainstorm this GDD was distilled from — the 8-chapter/~120-decision choice architecture, all 60+ character dossiers, the faction-switching economy, the companion Bond/Disgust romance system, the origin/class/Moon-Touched-path layer, and the complete 9-major/14-secret ending matrix — is archived at [`docs/DESIGN_BRAINSTORM.md`](DESIGN_BRAINSTORM.md) for future reference. It is source material to pull from when authoring the next slice of content, not a spec of what's already built.
+
 ## Architecture notes (for whoever picks this up next)
 
 - `@moon/shared` is the single source of truth for game data (classes/abilities/items/recipes/enemies, zones, factions/memory/NPC dialogue/endings) and the WebSocket protocol types. Client and server both import it, so balance and protocol changes can't silently drift apart.

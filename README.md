@@ -56,5 +56,6 @@ packages/
   server/   authoritative WebSocket game server, SQLite persistence
   client/   Three.js game client, UI, input, networking
 docs/
-  GDD.md    game design document
+  GDD.md                game design document (what's built, what's scoped, what's next)
+  DESIGN_BRAINSTORM.md  the full unabridged narrative brainstorm, archived for reference
 ```
