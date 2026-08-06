@@ -84,6 +84,12 @@ export function buildPlayerAvatar(classId: PlayerClassId, color: string): Avatar
   return buildHumanoid(color, WEAPON_BY_CLASS[classId]);
 }
 
+export function buildNpcAvatar(color: string): Avatar {
+  const avatar = buildHumanoid(color, "orb");
+  avatar.parts.weapon?.removeFromParent();
+  return avatar;
+}
+
 export function buildEnemyAvatar(defId: string, color: string, scale: number): Avatar {
   let avatar: Avatar;
   if (defId === "moonlit_wolf") {

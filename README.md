@@ -1,8 +1,10 @@
-# The Moon Before Us
+# The Moon Above Our World
 
 A drop-in, drop-out coop action-RPG with an MMO feel — inspired by SWTOR, Guild Wars 2, WoW, and Fellowship. Play solo or bring friends; jump in and out anytime, no commitment required.
 
-This repo contains a playable **vertical slice**: a real client/server game with deep-enough combat, crafting, and progression systems, built as the foundation for a larger game. See [`docs/GDD.md`](docs/GDD.md) for the full design vision and roadmap.
+The moon **Selen** is chained to the world **Aethon** by a failing celestial engine called the **Moonthread**. Every character is **Moon-Touched** — able to hear the moon's memories — and three factions (the order-bound Chainwrights, the exploit-it Luminari, and the let-it-die Pale Choir) are fighting over what to do when the thread finally breaks.
+
+This repo contains a playable **vertical slice**: a real client/server game with deep-enough combat, crafting, and progression systems, plus a working narrative layer — faction loyalty, NPC memory, and in-world (no-cutscene) dialogue — built as the foundation for a larger game. See [`docs/GDD.md`](docs/GDD.md) for the full design vision, narrative bible, and roadmap.
 
 ## Stack
 
@@ -34,7 +36,7 @@ Run `npm run typecheck` to typecheck all three packages.
 | Look / orbit camera | hold right-click + move mouse |
 | Abilities 1–6 | `1` `2` `3` `4` `5` `6` |
 | Dodge (brief invulnerability) | `Space` |
-| Gather a resource node | `E` |
+| Gather a resource node / talk to an NPC | `E` |
 | Inventory | `I` |
 | Crafting | `R` |
 | Character & skill tree | `C` |
@@ -49,7 +51,8 @@ On the landing screen, choose **Start a Party** to get a shareable 5-character c
 
 ```
 packages/
-  shared/   game data + network protocol, shared by client and server
+  shared/         game data + network protocol, shared by client and server
+    src/lore/     factions, NPC memory, dialogue, Moon-Touched progression, endings
   server/   authoritative WebSocket game server, SQLite persistence
   client/   Three.js game client, UI, input, networking
 docs/

@@ -3,7 +3,7 @@ import type { Vec3 } from "@moon/shared";
 
 interface Plate {
   el: HTMLDivElement;
-  fill: HTMLDivElement;
+  fill: HTMLDivElement | null;
   label: HTMLDivElement;
 }
 
@@ -12,14 +12,17 @@ export class NameplateManager {
 
   constructor(private container: HTMLElement, private camera: THREE.PerspectiveCamera) {}
 
-  ensure(id: string, name: string, tone: "ally" | "enemy" | "boss"): Plate {
+  ensure(id: string, name: string, tone: "ally" | "enemy" | "boss" | "npc", title?: string): Plate {
     let plate = this.plates.get(id);
     if (!plate) {
       const el = document.createElement("div");
       el.className = `nameplate nameplate--${tone}`;
-      el.innerHTML = `<div class="nameplate-name">${escapeHtml(name)}</div><div class="nameplate-track"><div class="nameplate-fill"></div></div>`;
+      el.innerHTML =
+        tone === "npc"
+          ? `<div class="nameplate-name">${escapeHtml(name)}</div>${title ? `<div class="nameplate-title">${escapeHtml(title)}</div>` : ""}`
+          : `<div class="nameplate-name">${escapeHtml(name)}</div><div class="nameplate-track"><div class="nameplate-fill"></div></div>`;
       this.container.appendChild(el);
-      plate = { el, fill: el.querySelector(".nameplate-fill")!, label: el.querySelector(".nameplate-name")! };
+      plate = { el, fill: el.querySelector(".nameplate-fill"), label: el.querySelector(".nameplate-name")! };
       this.plates.set(id, plate);
     }
     return plate;
@@ -41,7 +44,7 @@ export class NameplateManager {
     const x = (v.x * 0.5 + 0.5) * window.innerWidth;
     const y = (1 - (v.y * 0.5 + 0.5)) * window.innerHeight;
     plate.el.style.transform = `translate(${x}px, ${y}px)`;
-    plate.fill.style.width = `${Math.max(0, Math.min(1, hpFrac)) * 100}%`;
+    if (plate.fill) plate.fill.style.width = `${Math.max(0, Math.min(1, hpFrac)) * 100}%`;
   }
 
   remove(id: string) {

@@ -1,13 +1,19 @@
 import {
+  FACTIONS,
   ITEMS,
   RECIPES,
   SUBCLASSES,
   activeAbilities,
+  dominantFaction,
   getItem,
   getSubclass,
+  loyaltyState,
+  moonTouchedStageFor,
   specializationsForClass,
+  trendingEnding,
   type CharacterState,
-  type EquipmentSlot
+  type EquipmentSlot,
+  type LoyaltyKey
 } from "@moon/shared";
 import type { NetClient } from "../net.js";
 
@@ -251,6 +257,23 @@ export class Panels {
       })
       .join("");
 
+    const stage = moonTouchedStageFor(c.lunarResonance);
+    const ending = trendingEnding(c.factionLoyalty, stage.stage);
+    const dominant = dominantFaction(c.factionLoyalty);
+    const loyaltyRows = (["chainwrights", "luminari", "paleChoir", "independent"] as LoyaltyKey[])
+      .map((key) => {
+        const score = c.factionLoyalty[key];
+        const label = key === "independent" ? "Independent" : FACTIONS[key].name;
+        const state = loyaltyState(score);
+        const pct = Math.round(((score + 100) / 200) * 100);
+        return `
+        <div class="loyalty-row">
+          <div class="loyalty-label">${label}<span class="loyalty-state">${state}</span></div>
+          <div class="bar-track"><div class="bar-fill loyalty" style="width:${pct}%"></div></div>
+        </div>`;
+      })
+      .join("");
+
     this.panel.innerHTML = `
       <button class="close-btn">✕</button>
       <h2 class="title-font">${c.name}</h2>
@@ -260,6 +283,10 @@ export class Panels {
       <div class="skill-list">${skillCards}</div>
       <h3 style="margin-top:20px;font-size:15px">Specialization${specLocked ? ` (unlocks at Lv${specs[0]?.unlockLevel})` : ""}</h3>
       <div class="skill-list">${specLocked ? '<p style="opacity:0.6;font-size:12px">Keep leveling to unlock a specialization.</p>' : specCards}</div>
+      <h3 style="margin-top:20px;font-size:15px">Fate</h3>
+      <p style="color:#9aa3c9;font-size:12.5px">Moon-Touched stage: <strong style="color:#cfe0ff">${stage.stage}</strong> — ${stage.description}</p>
+      <div class="loyalty-list">${loyaltyRows}</div>
+      <p style="color:#9aa3c9;font-size:12.5px;margin-top:10px">Trending toward <strong style="color:#ffe9a8">${ending.name}</strong> (leaning ${dominant === "independent" ? "Independent" : FACTIONS[dominant].name}). ${ending.tone}</p>
     `;
     this.panel.querySelector(".close-btn")!.addEventListener("click", () => this.close());
     this.panel.querySelectorAll<HTMLButtonElement>("[data-ability]").forEach((btn) => {

@@ -125,6 +125,13 @@ body {
 .toast.loot { color: #bcd6ff; }
 @keyframes toastIn { from { opacity: 0; transform: translateY(-8px);} to { opacity: 1; transform: translateY(0);} }
 
+.dialogue-panel { position: absolute; left: 50%; bottom: 128px; transform: translateX(-50%); width: min(560px, 86vw); background: rgba(8,8,18,0.88); border: 1px solid rgba(255,255,255,0.14); border-radius: 12px; padding: 14px 18px; }
+.dialogue-speaker { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: #cfe0ff; margin-bottom: 6px; }
+.dialogue-line { font-size: 14px; line-height: 1.5; color: #f0f0f6; }
+.dialogue-choices { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.dialogue-choice { text-align: left; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14); border-radius: 8px; padding: 8px 12px; color: #f0f0f6; font-size: 13px; cursor: pointer; }
+.dialogue-choice:hover { background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.3); }
+
 .floatnum { position: fixed; top: 0; left: 0; font-weight: 700; font-size: 15px; text-shadow: 0 1px 3px rgba(0,0,0,0.9); pointer-events: none; }
 .floatnum--damage { color: #ff8a7a; }
 .floatnum--crit { color: #ffcf5c; font-size: 19px; }
@@ -137,6 +144,8 @@ body {
 .nameplate--enemy .nameplate-fill { background: linear-gradient(90deg, #ff8a7a, #d94040); }
 .nameplate--boss .nameplate-fill { background: linear-gradient(90deg, #ffcf5c, #d98b40); }
 .nameplate--boss .nameplate-name { color: #ffcf5c; font-weight: 700; }
+.nameplate--npc .nameplate-name { color: #d9c98a; font-weight: 600; }
+.nameplate--npc .nameplate-title { font-size: 9px; color: #a99a6b; margin-top: -1px; white-space: nowrap; }
 
 .center-hint { position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%); text-align: center; background: rgba(10,10,22,0.75); padding: 14px 22px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.15); font-size: 14px; }
 
@@ -191,6 +200,12 @@ body {
 .skill-card .desc { font-size: 11px; color: #9aa3c9; max-width: 340px; }
 .skill-card .ranks { display: flex; gap: 4px; margin-top: 6px; }
 .skill-card .rank-dot { width: 9px; height: 9px; border-radius: 50%; background: rgba(255,255,255,0.15); }
+
+.loyalty-list { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.loyalty-row .bar-track { height: 10px; }
+.loyalty-label { display: flex; justify-content: space-between; font-size: 12px; color: #cfd4ff; margin-bottom: 3px; }
+.loyalty-state { text-transform: capitalize; color: #9aa3c9; font-weight: 400; }
+.bar-fill.loyalty { background: linear-gradient(90deg, #8f8474, #d9c98a); }
 .skill-card .rank-dot.filled { background: #ffd77a; }
 .skill-card button { background: #7c6bd6; border: none; color: #fff; border-radius: 8px; padding: 7px 11px; font-size: 12px; cursor: pointer; }
 .skill-card button:disabled { background: #44415e; cursor: not-allowed; }

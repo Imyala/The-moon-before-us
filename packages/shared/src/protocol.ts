@@ -79,6 +79,17 @@ export interface LeaveMessage {
   t: "leave";
 }
 
+export interface TalkMessage {
+  t: "talk";
+  npcId: string;
+}
+
+export interface ChooseDialogueOptionMessage {
+  t: "chooseDialogueOption";
+  npcId: string;
+  optionId: string;
+}
+
 export type ClientMessage =
   | JoinMessage
   | InputMessage
@@ -93,7 +104,9 @@ export type ClientMessage =
   | ChooseSpecializationMessage
   | ChooseSubclassMessage
   | ChatMessage
-  | LeaveMessage;
+  | LeaveMessage
+  | TalkMessage
+  | ChooseDialogueOptionMessage;
 
 // ---------------- Server -> Client ----------------
 
@@ -138,6 +151,14 @@ export interface NodeSnapshot {
   depleted: boolean;
 }
 
+export interface NpcSnapshot {
+  id: string;
+  defId: string;
+  name: string;
+  title: string;
+  position: Vec3;
+}
+
 // Every event carries the zoneId it happened in, so a room hosting players split across
 // multiple zones can hand each player only the events relevant to the zone they're standing in
 // (see Room.broadcastSnapshot on the server) — the same "who can see what" boundary a zone copy
@@ -160,6 +181,7 @@ export interface SnapshotMessage {
   players: PlayerSnapshot[];
   enemies: EnemySnapshot[];
   nodes: NodeSnapshot[];
+  npcs: NpcSnapshot[];
   events: GameEvent[];
 }
 
@@ -191,10 +213,24 @@ export interface ErrorMessage {
   message: string;
 }
 
+export interface DialogueChoiceOption {
+  id: string;
+  label: string;
+}
+
+export interface NpcDialogueMessage {
+  t: "npcDialogue";
+  npcId: string;
+  speaker: string;
+  line: string;
+  choices?: DialogueChoiceOption[];
+}
+
 export type ServerMessage =
   | SnapshotMessage
   | WelcomeMessage
   | CharacterUpdateMessage
   | PartyRosterMessage
   | ChatBroadcastMessage
-  | ErrorMessage;
+  | ErrorMessage
+  | NpcDialogueMessage;

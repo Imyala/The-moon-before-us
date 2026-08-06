@@ -18,13 +18,14 @@ import {
   type EnemySnapshot,
   type GameEvent,
   type NodeSnapshot,
+  type NpcSnapshot,
   type PlayerClassId,
   type PlayerSnapshot,
   type ServerMessage,
   type Vec3
 } from "@moon/shared";
 import { createWorld } from "./scene/world.js";
-import { buildPlayerAvatar, buildEnemyAvatar, animateAvatar, type Avatar } from "./scene/avatars.js";
+import { buildPlayerAvatar, buildEnemyAvatar, buildNpcAvatar, animateAvatar, type Avatar } from "./scene/avatars.js";
 import { buildNodeMesh } from "./scene/nodes.js";
 import { EffectsManager } from "./scene/effects.js";
 import { InputController } from "./controller.js";
@@ -33,6 +34,7 @@ import { Hud } from "./ui/hud.js";
 import { Panels } from "./ui/panels.js";
 import type { PanelKind } from "./ui/panels.js";
 import { NameplateManager } from "./ui/nameplates.js";
+import { DialoguePanel } from "./ui/dialogue.js";
 import { renderLanding } from "./ui/landing.js";
 import { getOrCreateToken, getSavedProfile, saveProfile } from "./identity.js";
 
@@ -97,6 +99,13 @@ interface NodeVisual {
   defId: string;
 }
 
+interface NpcVisual {
+  avatar: Avatar;
+  name: string;
+  title: string;
+  position: Vec3;
+}
+
 function runGame(net: NetClient, selfId: string, roomCode: string, initialCharacter: CharacterState) {
   const world = createWorld(canvas);
   let currentZoneId = initialCharacter.zoneId ?? START_ZONE_ID;
@@ -107,7 +116,10 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
   const controller = new InputController(canvas);
   const hud = new Hud(uiRoot, initialCharacter.classId);
   const panels = new Panels(uiRoot, net, () => character);
+  const dialogue = new DialoguePanel(uiRoot);
   const dmgContainer = uiRoot;
+
+  dialogue.onChoose = (npcId, optionId) => net.send({ t: "chooseDialogueOption", npcId, optionId });
 
   hud.setRoomCode(roomCode === "solo" ? null : roomCode);
   hud.setZoneName(getZone(currentZoneId).name);
@@ -134,6 +146,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
   const players = new Map<string, PlayerVisual>();
   const enemies = new Map<string, EnemyVisual>();
   const nodes = new Map<string, NodeVisual>();
+  const npcs = new Map<string, NpcVisual>();
   const cooldownReadyAt = new Map<string, number>();
   const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   const raycaster = new THREE.Raycaster();
@@ -141,6 +154,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
   let selectedTargetId: string | null = null;
   let gathering: { nodeId: string; startedAt: number; durationMs: number } | null = null;
   let nearestNodeId: string | null = null;
+  let nearestNpcId: string | null = null;
   let lastInputSentAt = 0;
   let lastSentMove: Vec3 = { x: 0, y: 0, z: 0 };
   let latestRoster: { id: string; name: string; classId: PlayerClassId; level: number }[] = [{ id: selfId, name: character.name, classId: character.classId, level: character.level }];
@@ -150,8 +164,11 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
   function handleServerMessage(msg: ServerMessage) {
     switch (msg.t) {
       case "snapshot":
-        applySnapshot(msg.players, msg.enemies, msg.nodes);
+        applySnapshot(msg.players, msg.enemies, msg.nodes, msg.npcs);
         for (const ev of msg.events) handleEvent(ev);
+        break;
+      case "npcDialogue":
+        dialogue.show(msg.npcId, msg.speaker, msg.line, msg.choices);
         break;
       case "characterUpdate":
         character = msg.character;
@@ -224,7 +241,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
     shakeUntil = performance.now() + 160;
   }
 
-  function applySnapshot(playerSnaps: PlayerSnapshot[], enemySnaps: EnemySnapshot[], nodeSnaps: NodeSnapshot[]) {
+  function applySnapshot(playerSnaps: PlayerSnapshot[], enemySnaps: EnemySnapshot[], nodeSnaps: NodeSnapshot[], npcSnaps: NpcSnapshot[]) {
     const seenPlayers = new Set<string>();
     for (const p of playerSnaps) {
       seenPlayers.add(p.id);
@@ -315,7 +332,29 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
       }
     }
 
+    const seenNpcs = new Set<string>();
+    for (const n of npcSnaps) {
+      seenNpcs.add(n.id);
+      let vis = npcs.get(n.id);
+      if (!vis) {
+        const avatar = buildNpcAvatar("#8f8474");
+        world.scene.add(avatar.group);
+        vis = { avatar, name: n.name, title: n.title, position: { ...n.position } };
+        npcs.set(n.id, vis);
+      }
+      vis.position = n.position;
+      vis.avatar.group.position.set(n.position.x, 0, n.position.z);
+    }
+    for (const id of [...npcs.keys()]) {
+      if (!seenNpcs.has(id)) {
+        world.scene.remove(npcs.get(id)!.avatar.group);
+        npcs.delete(id);
+        nameplates.remove(id);
+      }
+    }
+
     updateNearestNode();
+    updateNearestNpc();
   }
 
   function updateNearestNode() {
@@ -330,6 +369,19 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
       }
     }
     nearestNodeId = best;
+  }
+
+  function updateNearestNpc() {
+    let best: string | null = null;
+    let bestDist = 4;
+    for (const [id, vis] of npcs) {
+      const d = Math.hypot(vis.position.x - selfPos.x, vis.position.z - selfPos.z);
+      if (d < bestDist) {
+        bestDist = d;
+        best = id;
+      }
+    }
+    nearestNpcId = best;
   }
 
   // ---------------- Input handling ----------------
@@ -378,6 +430,14 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
 
   function tryInteract() {
     if (panels.isOpen() || hud.isChatFocused()) return;
+
+    const npcDist = nearestNpcId ? Math.hypot(npcs.get(nearestNpcId)!.position.x - selfPos.x, npcs.get(nearestNpcId)!.position.z - selfPos.z) : Infinity;
+    const nodeDist = nearestNodeId ? Math.hypot(nodes.get(nearestNodeId)!.mesh.position.x - selfPos.x, nodes.get(nearestNodeId)!.mesh.position.z - selfPos.z) : Infinity;
+
+    if (nearestNpcId && npcDist <= nodeDist) {
+      net.send({ t: "talk", npcId: nearestNpcId });
+      return;
+    }
     if (nearestNodeId) {
       const vis = nodes.get(nearestNodeId);
       if (!vis) return;
@@ -497,6 +557,12 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
     for (const [, vis] of nodes) {
       const spin = vis.mesh.userData.spin as THREE.Object3D | undefined;
       if (spin) spin.rotation.y += dt * 0.6;
+    }
+
+    for (const [id, vis] of npcs) {
+      animateAvatar(vis.avatar, now / 1000 + id.length, false, now);
+      nameplates.ensure(id, vis.name, "npc", vis.title);
+      nameplates.update(id, add(vis.position, { x: 0, y: 2.05, z: 0 }), 1, true);
     }
 
     // camera

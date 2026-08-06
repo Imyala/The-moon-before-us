@@ -1,7 +1,7 @@
 import Database from "better-sqlite3";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { START_ZONE_ID, type CharacterState } from "@moon/shared";
+import { DEFAULT_LOYALTY, START_ZONE_ID, type CharacterState } from "@moon/shared";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dbPath = process.env.MOON_DB_PATH ?? path.join(__dirname, "..", "moon.sqlite");
@@ -28,25 +28,36 @@ db.exec(`
     equipmentJson TEXT NOT NULL,
     positionJson TEXT NOT NULL,
     zoneId TEXT,
+    factionLoyaltyJson TEXT,
+    npcMemoryJson TEXT,
+    lunarResonance REAL,
     updatedAt INTEGER NOT NULL
   );
 `);
-try {
-  db.exec("ALTER TABLE characters ADD COLUMN zoneId TEXT");
-} catch {
-  // column already exists on databases created before zones were added
+for (const migration of [
+  "ALTER TABLE characters ADD COLUMN zoneId TEXT",
+  "ALTER TABLE characters ADD COLUMN factionLoyaltyJson TEXT",
+  "ALTER TABLE characters ADD COLUMN npcMemoryJson TEXT",
+  "ALTER TABLE characters ADD COLUMN lunarResonance REAL"
+]) {
+  try {
+    db.exec(migration);
+  } catch {
+    // column already exists on databases created before this migration was added
+  }
 }
 
 const getStmt = db.prepare("SELECT * FROM characters WHERE token = ?");
 const upsertStmt = db.prepare(`
-  INSERT INTO characters (token, id, name, classId, level, xp, hp, maxHp, resource, maxResource, statsJson, skillPoints, abilityRanksJson, inventoryJson, equipmentJson, positionJson, zoneId, updatedAt)
-  VALUES (@token, @id, @name, @classId, @level, @xp, @hp, @maxHp, @resource, @maxResource, @statsJson, @skillPoints, @abilityRanksJson, @inventoryJson, @equipmentJson, @positionJson, @zoneId, @updatedAt)
+  INSERT INTO characters (token, id, name, classId, level, xp, hp, maxHp, resource, maxResource, statsJson, skillPoints, abilityRanksJson, inventoryJson, equipmentJson, positionJson, zoneId, factionLoyaltyJson, npcMemoryJson, lunarResonance, updatedAt)
+  VALUES (@token, @id, @name, @classId, @level, @xp, @hp, @maxHp, @resource, @maxResource, @statsJson, @skillPoints, @abilityRanksJson, @inventoryJson, @equipmentJson, @positionJson, @zoneId, @factionLoyaltyJson, @npcMemoryJson, @lunarResonance, @updatedAt)
   ON CONFLICT(token) DO UPDATE SET
     name=excluded.name, classId=excluded.classId, level=excluded.level, xp=excluded.xp,
     hp=excluded.hp, maxHp=excluded.maxHp, resource=excluded.resource, maxResource=excluded.maxResource,
     statsJson=excluded.statsJson, skillPoints=excluded.skillPoints, abilityRanksJson=excluded.abilityRanksJson,
     inventoryJson=excluded.inventoryJson, equipmentJson=excluded.equipmentJson, positionJson=excluded.positionJson,
-    zoneId=excluded.zoneId, updatedAt=excluded.updatedAt;
+    zoneId=excluded.zoneId, factionLoyaltyJson=excluded.factionLoyaltyJson, npcMemoryJson=excluded.npcMemoryJson,
+    lunarResonance=excluded.lunarResonance, updatedAt=excluded.updatedAt;
 `);
 
 interface Row {
@@ -67,6 +78,9 @@ interface Row {
   equipmentJson: string;
   positionJson: string;
   zoneId: string | null;
+  factionLoyaltyJson: string | null;
+  npcMemoryJson: string | null;
+  lunarResonance: number | null;
   updatedAt: number;
 }
 
@@ -89,7 +103,10 @@ export function loadCharacter(token: string): CharacterState | null {
     inventory: JSON.parse(row.inventoryJson),
     equipment: JSON.parse(row.equipmentJson),
     position: JSON.parse(row.positionJson),
-    zoneId: row.zoneId ?? START_ZONE_ID
+    zoneId: row.zoneId ?? START_ZONE_ID,
+    factionLoyalty: row.factionLoyaltyJson ? JSON.parse(row.factionLoyaltyJson) : { ...DEFAULT_LOYALTY },
+    npcMemory: row.npcMemoryJson ? JSON.parse(row.npcMemoryJson) : {},
+    lunarResonance: row.lunarResonance ?? 0
   };
 }
 
@@ -112,6 +129,9 @@ export function saveCharacter(token: string, c: CharacterState): void {
     equipmentJson: JSON.stringify(c.equipment),
     positionJson: JSON.stringify(c.position),
     zoneId: c.zoneId ?? START_ZONE_ID,
+    factionLoyaltyJson: JSON.stringify(c.factionLoyalty ?? DEFAULT_LOYALTY),
+    npcMemoryJson: JSON.stringify(c.npcMemory ?? {}),
+    lunarResonance: c.lunarResonance ?? 0,
     updatedAt: Date.now()
   });
 }

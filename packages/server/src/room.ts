@@ -13,12 +13,20 @@ import {
   distance,
   normalize,
   scale,
+  getNpc,
+  npcsInZone,
+  resolveDialogue,
+  resolveFollowUp,
+  applyLoyaltyDelta,
+  markMet,
+  withTag,
   type CharacterState,
   type ClientMessage,
   type EnemySnapshot,
   type EntityState,
   type GameEvent,
   type NodeSnapshot,
+  type NpcSnapshot,
   type PlayerSnapshot,
   type ServerMessage,
   type TravelPoint,
@@ -138,6 +146,12 @@ interface HealZoneEntity {
   tickAmount: number;
 }
 
+interface NpcEntity {
+  id: string;
+  zoneId: string;
+  position: Vec3;
+}
+
 export class Room {
   readonly id = randomUUID();
   readonly code: string | undefined;
@@ -146,6 +160,7 @@ export class Room {
   private enemies = new Map<string, EnemyEntity>();
   private nodes = new Map<string, NodeEntity>();
   private healZones = new Map<string, HealZoneEntity>();
+  private npcs = new Map<string, NpcEntity>();
   private events: GameEvent[] = [];
   private tick = 0;
   private interval: ReturnType<typeof setInterval> | null = null;
@@ -211,6 +226,9 @@ export class Room {
           respawnAt: null,
           gatheringBy: null
         });
+      }
+      for (const npc of npcsInZone(zoneId)) {
+        this.npcs.set(npc.id, { id: npc.id, zoneId, position: { ...npc.position } });
       }
     }
   }
@@ -311,6 +329,14 @@ export class Room {
       }
       case "interactNode": {
         this.tryGather(player, msg.nodeId, now);
+        break;
+      }
+      case "talk": {
+        this.tryTalk(player, msg.npcId);
+        break;
+      }
+      case "chooseDialogueOption": {
+        this.handleDialogueChoice(player, msg.npcId, msg.optionId);
         break;
       }
       case "craft": {
@@ -728,6 +754,46 @@ export class Room {
         this.events.push({ type: "loot", playerId: player.id, itemId: entry.itemId, quantity: qty, rarity: "common", zoneId: player.character.zoneId });
       }
     }
+    // Aether crystals are, narratively, fragments of Selen herself — handling them deepens the
+    // Moon-Touched condition (see lore/moonTouched.ts).
+    if (node.defId === "node_crystal") {
+      player.character.lunarResonance += 1;
+    }
+    this.sendCharacterUpdate(player);
+  }
+
+  // ---------------- Dialogue ----------------
+
+  private tryTalk(player: PlayerEntity, npcId: string) {
+    const npcEntity = this.npcs.get(npcId);
+    const npc = getNpc(npcId);
+    if (!npcEntity || !npc || player.character.hp <= 0) return;
+    if (npcEntity.zoneId !== player.character.zoneId) return;
+    if (distance(player.position, npcEntity.position) > 4) return;
+
+    const resolved = resolveDialogue(npc, player.character.npcMemory, player.character.factionLoyalty);
+    player.character.npcMemory = markMet(player.character.npcMemory, npc.id);
+    this.send(player.ws, { t: "npcDialogue", npcId: npc.id, speaker: resolved.speaker, line: resolved.line, choices: resolved.choices });
+    this.sendCharacterUpdate(player);
+  }
+
+  private handleDialogueChoice(player: PlayerEntity, npcId: string, optionId: string) {
+    const npc = getNpc(npcId);
+    const choice = npc?.signatureChoice;
+    if (!npc || !choice) return;
+    const memory = player.character.npcMemory[npc.id];
+    if (memory?.tags.includes(choice.resolvedTag)) return; // already answered
+    const option = choice.options.find((o) => o.id === optionId);
+    if (!option) return;
+
+    player.character.factionLoyalty = applyLoyaltyDelta(player.character.factionLoyalty, option.delta);
+    player.character.npcMemory = withTag(player.character.npcMemory, npc.id, option.tag);
+    player.character.npcMemory = withTag(player.character.npcMemory, npc.id, choice.resolvedTag);
+
+    const followUp = resolveFollowUp(npc, optionId);
+    if (followUp) {
+      this.send(player.ws, { t: "npcDialogue", npcId: npc.id, speaker: followUp.speaker, line: followUp.line });
+    }
     this.sendCharacterUpdate(player);
   }
 
@@ -1075,9 +1141,16 @@ export class Room {
           depleted: n.depleted
         }));
 
+      const npcs: NpcSnapshot[] = [...this.npcs.values()]
+        .filter((n) => n.zoneId === zoneId)
+        .map((n) => {
+          const def = getNpc(n.id)!;
+          return { id: n.id, defId: n.id, name: def.name, title: def.title, position: n.position };
+        });
+
       const events = this.events.filter((e) => e.zoneId === zoneId);
 
-      this.send(recipient.ws, { t: "snapshot", tick: this.tick, serverTime: now, players, enemies, nodes, events });
+      this.send(recipient.ws, { t: "snapshot", tick: this.tick, serverTime: now, players, enemies, nodes, npcs, events });
     }
   }
 }

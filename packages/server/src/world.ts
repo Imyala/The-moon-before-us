@@ -22,7 +22,7 @@ export interface NodeSpawnPoint {
 // zone below, so friends dropping in see the places they know regardless of which zone they
 // each happen to be standing in.
 export const ZONE_ENEMY_SPAWNS: Record<string, EnemySpawnPoint[]> = {
-  glade: [
+  threadhold: [
     { defId: "moonlit_wolf", pos: { x: 10, y: 0, z: -8 }, patrolRadius: 6 },
     { defId: "moonlit_wolf", pos: { x: 16, y: 0, z: -4 }, patrolRadius: 6 },
     { defId: "moonlit_wolf", pos: { x: -12, y: 0, z: -10 }, patrolRadius: 6 },
@@ -36,9 +36,9 @@ export const ZONE_ENEMY_SPAWNS: Record<string, EnemySpawnPoint[]> = {
     { defId: "bramble_stalker", pos: { x: 34, y: 0, z: -18 }, patrolRadius: 5 },
     { defId: "wane_wraith", pos: { x: 0, y: 0, z: -48 }, patrolRadius: 4 }
   ],
-  // A barren stretch of ruins beyond the glade's southern gate: stone guardians and husks
+  // A barren stretch of ruins beyond Threadhold's southern gate: stone guardians and husks
   // among the dead ground, with the wolves and stalkers thinning out toward its ashen center.
-  ashen_reach: [
+  ashmire: [
     { defId: "stone_sentinel", pos: { x: 12, y: 0, z: 20 }, patrolRadius: 4 },
     { defId: "stone_sentinel", pos: { x: -16, y: 0, z: 10 }, patrolRadius: 4 },
     { defId: "stone_sentinel", pos: { x: 4, y: 0, z: -14 }, patrolRadius: 4 },
@@ -54,7 +54,7 @@ export const ZONE_ENEMY_SPAWNS: Record<string, EnemySpawnPoint[]> = {
 };
 
 export const ZONE_NODE_SPAWNS: Record<string, NodeSpawnPoint[]> = {
-  glade: [
+  threadhold: [
     { defId: "node_ore_vein", pos: { x: 8, y: 0, z: 10 } },
     { defId: "node_ore_vein", pos: { x: -10, y: 0, z: 16 } },
     { defId: "node_ore_vein", pos: { x: -28, y: 0, z: -4 } },
@@ -71,7 +71,7 @@ export const ZONE_NODE_SPAWNS: Record<string, NodeSpawnPoint[]> = {
   ],
   // No timber in a wasteland: ore and crystal dominate, with herbs only where the ground
   // hasn't fully died.
-  ashen_reach: [
+  ashmire: [
     { defId: "node_ore_vein", pos: { x: 16, y: 0, z: -6 } },
     { defId: "node_ore_vein", pos: { x: -18, y: 0, z: 18 } },
     { defId: "node_ore_vein", pos: { x: -6, y: 0, z: -22 } },

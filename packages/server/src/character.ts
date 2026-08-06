@@ -1,6 +1,7 @@
 import {
   BASE_STATS,
   CLASSES,
+  DEFAULT_LOYALTY,
   ITEMS,
   START_ZONE_ID,
   type CharacterState,
@@ -45,7 +46,10 @@ export function getOrCreateCharacter(token: string, name: string, classId: Playe
     inventory: [...STARTER_ITEMS, { itemId: cls.altWeaponItemId, quantity: 1, rarity: "common" }],
     equipment: { weapon: { itemId: cls.weaponItemId, quantity: 1, rarity: "common" } },
     position: { x: 0, y: 0, z: 0 },
-    zoneId: START_ZONE_ID
+    zoneId: START_ZONE_ID,
+    factionLoyalty: { ...DEFAULT_LOYALTY },
+    npcMemory: {},
+    lunarResonance: 0
   };
   saveCharacter(token, character);
   return character;

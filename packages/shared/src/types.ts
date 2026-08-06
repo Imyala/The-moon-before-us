@@ -1,4 +1,6 @@
 import type { Vec3 } from "./vec.js";
+import type { LoyaltyScores } from "./lore/factions.js";
+import type { NpcMemoryState } from "./lore/memory.js";
 
 export type PlayerClassId = "warden" | "ranger" | "mystic";
 
@@ -181,6 +183,10 @@ export interface CharacterState extends CharacterSummary {
   equipment: Partial<Record<EquipmentSlot, ItemStack>>;
   position: Vec3;
   zoneId: string;
+  factionLoyalty: LoyaltyScores;
+  npcMemory: NpcMemoryState;
+  /** Aether-crystal exposure; see lore/moonTouched.ts for the stage thresholds it drives. */
+  lunarResonance: number;
 }
 
 export function xpForLevel(level: number): number {
