@@ -38,6 +38,18 @@ export const ITEMS: ItemDef[] = [
     description: "A moonstone focus, humming with Aether. Moonbolt, Lunar Nova, Arcane Surge.",
     statBonus: { power: 4 }
   },
+  {
+    id: "weapon_duskblade_daggers",
+    name: "Wayfarer's Daggers",
+    kind: "weapon",
+    slot: "weapon",
+    classId: "duskblade",
+    weaponType: "duskblade_daggers",
+    rarity: "common",
+    icon: "dagger",
+    description: "A matched pair of well-balanced fighting knives. Twin Strike, Shadowstep Slash, Umbral Flurry.",
+    statBonus: { power: 4, critChance: 0.02 }
+  },
 
   // ---- class weapons (starting gear, kit B) ----
   {
@@ -76,8 +88,20 @@ export const ITEMS: ItemDef[] = [
     description: "A melee scythe wreathed in dark Aether. Reap, Dark Harvest, Gravity Well.",
     statBonus: { power: 5 }
   },
+  {
+    id: "weapon_duskblade_glaive",
+    name: "Wayfarer's Glaive",
+    kind: "weapon",
+    slot: "weapon",
+    classId: "duskblade",
+    weaponType: "duskblade_glaive",
+    rarity: "common",
+    icon: "dagger",
+    description: "A hooked throwing glaive that returns to the hand. Glaive Throw, Returning Edge, Umbral Pull.",
+    statBonus: { power: 5 }
+  },
 
-  // ---- crafted weapons (sword & board / bow / focus line) ----
+  // ---- crafted weapons (sword & board / bow / focus / daggers line) ----
   {
     id: "weapon_iron_sword",
     name: "Iron Sword",
@@ -115,6 +139,18 @@ export const ITEMS: ItemDef[] = [
     statBonus: { power: 10 }
   },
   {
+    id: "weapon_umbral_daggers",
+    name: "Umbral Daggers",
+    kind: "weapon",
+    slot: "weapon",
+    classId: "duskblade",
+    weaponType: "duskblade_daggers",
+    rarity: "uncommon",
+    icon: "dagger",
+    description: "Blackened steel that seems to drink the light around it.",
+    statBonus: { power: 9, critChance: 0.02 }
+  },
+  {
     id: "weapon_silver_blade",
     name: "Silvered Greatblade",
     kind: "weapon",
@@ -149,6 +185,18 @@ export const ITEMS: ItemDef[] = [
     icon: "orb",
     description: "A conduit that channels the deep well of the night sky.",
     statBonus: { power: 18 }
+  },
+  {
+    id: "weapon_duskfall_daggers",
+    name: "Duskfall Fangs",
+    kind: "weapon",
+    slot: "weapon",
+    classId: "duskblade",
+    weaponType: "duskblade_daggers",
+    rarity: "rare",
+    icon: "dagger",
+    description: "Twin blades quenched in something that was never quite water.",
+    statBonus: { power: 16, critChance: 0.04 }
   },
 
   // ---- armor (single "armor" slot for simplicity) ----

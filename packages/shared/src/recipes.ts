@@ -56,6 +56,18 @@ export const RECIPES: RecipeDef[] = [
     description: "Bind Wisp Essence into a fresh casting focus."
   },
   {
+    id: "recipe_umbral_daggers",
+    name: "Umbral Daggers",
+    resultItemId: "weapon_umbral_daggers",
+    resultQuantity: 1,
+    requiredLevel: 3,
+    inputs: [
+      { itemId: "mat_iron_ore", quantity: 4 },
+      { itemId: "mat_essence", quantity: 2 }
+    ],
+    description: "Blacken a matched pair of blades in Wisp Essence smoke."
+  },
+  {
     id: "recipe_ironhide_vest",
     name: "Ironhide Vest",
     resultItemId: "armor_ironhide_vest",
@@ -126,6 +138,18 @@ export const RECIPES: RecipeDef[] = [
       { itemId: "mat_moonpetal", quantity: 3 }
     ],
     description: "A conduit wrought entirely from distilled starlight."
+  },
+  {
+    id: "recipe_duskfall_daggers",
+    name: "Duskfall Fangs",
+    resultItemId: "weapon_duskfall_daggers",
+    resultQuantity: 1,
+    requiredLevel: 8,
+    inputs: [
+      { itemId: "mat_silver_ore", quantity: 5 },
+      { itemId: "mat_starlight_essence", quantity: 2 }
+    ],
+    description: "Quench twin blades in something drawn from the Wane Wraith itself."
   },
   {
     id: "recipe_moonweave_robe",

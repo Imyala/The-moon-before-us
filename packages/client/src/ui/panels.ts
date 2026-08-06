@@ -24,6 +24,7 @@ const ICONS: Record<string, string> = {
   sword: "⚔️",
   bow: "🏹",
   orb: "🔮",
+  dagger: "🗡️",
   armor: "🥋",
   charm: "🍀",
   ore: "🪨",

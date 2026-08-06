@@ -109,8 +109,11 @@ export interface PlayerEntity {
   powerBuffPct: number;
   lifestealUntil: number; // Bloodrage
   lifestealPct: number;
-  damageReductionUntil: number; // Unbreakable
+  damageReductionUntil: number; // Unbreakable, Vanish
   damageReductionPct: number;
+  umbralStacks: number; // Nightstalker: 0-5 stacking crit chance, built by landing crits
+  umbralStacksUntil: number;
+  forcedCritUntil: number; // Vanishing Strike: guarantees the next hit crits
 }
 
 interface EnemyEntity {
@@ -310,7 +313,10 @@ export class Room {
       lifestealUntil: 0,
       lifestealPct: 0,
       damageReductionUntil: 0,
-      damageReductionPct: 0
+      damageReductionPct: 0,
+      umbralStacks: 0,
+      umbralStacksUntil: 0,
+      forcedCritUntil: 0
     };
     if (character.hp <= 0) {
       entity.position = { ...zone.spawnPoint };
@@ -564,6 +570,7 @@ export class Room {
         const enemy = targetEntityId ? this.enemies.get(targetEntityId) : this.nearestEnemyInRange(player, ability.range);
         if (!enemy || enemy.hp <= 0 || enemy.zoneId !== zoneId) return;
         if (distance(player.position, enemy.position) > ability.range + 1.5) return;
+        if (ability.special === "duskblade_vanishingstrike") player.forcedCritUntil = now + 50;
         const dealt = this.damageEnemy(enemy, rawAmount, player, now);
         if (ability.special === "mystic_reap" && dealt > 0) {
           const healAmt = Math.round(dealt * 0.4);
@@ -574,11 +581,17 @@ export class Room {
       }
       case "aoe_damage": {
         const origin = ability.range === 0 ? player.position : targetPos ?? player.position;
+        let totalDealt = 0;
         for (const enemy of this.enemies.values()) {
           if (enemy.hp <= 0 || enemy.zoneId !== zoneId) continue;
           if (distance(origin, enemy.position) <= ability.radius) {
-            this.damageEnemy(enemy, rawAmount, player, now);
+            totalDealt += this.damageEnemy(enemy, rawAmount, player, now);
           }
+        }
+        if (ability.special === "duskblade_crimsoneclipse" && totalDealt > 0) {
+          const healAmt = Math.round(totalDealt * 0.3);
+          player.character.hp = Math.min(player.character.maxHp, player.character.hp + healAmt);
+          this.events.push({ type: "heal", targetId: player.id, amount: healAmt, sourceId: player.id, pos: player.position, zoneId });
         }
         break;
       }
@@ -653,6 +666,9 @@ export class Room {
           player.lifestealPct = 0.15;
         } else if (ability.special === "ranger_callthepack") {
           player.packUntil = now + (ability.ccDurationMs ?? 8000);
+        } else if (ability.special === "duskblade_vanish") {
+          player.damageReductionUntil = now + (ability.ccDurationMs ?? 2500);
+          player.damageReductionPct = ability.basePower;
         } else {
           player.shield = rawAmount;
           player.shieldUntil = now + (ability.ccDurationMs ?? 5000);
@@ -688,11 +704,20 @@ export class Room {
   }
 
   private damageEnemy(enemy: EnemyEntity, rawAmount: number, source: PlayerEntity, now: number): number {
+    const spec = source.character.specializationId;
     let critChance = source.character.stats.critChance;
-    if (source.character.specializationId === "ranger_strider") {
+    if (spec === "ranger_strider") {
       critChance += source.momentum * 0.02;
+    } else if (spec === "duskblade_nightstalker" && now < source.umbralStacksUntil) {
+      critChance += source.umbralStacks * 0.03;
     }
-    const crit = Math.random() < critChance;
+    const forcedCrit = now < source.forcedCritUntil;
+    const crit = forcedCrit || Math.random() < critChance;
+    if (forcedCrit) source.forcedCritUntil = 0;
+    if (crit && spec === "duskblade_nightstalker") {
+      source.umbralStacks = Math.min(5, (now < source.umbralStacksUntil ? source.umbralStacks : 0) + 1);
+      source.umbralStacksUntil = now + 6000;
+    }
     let amount = rawAmount * (crit ? source.character.stats.critDamage : 1);
     if (enemy.markedUntil > now) amount *= 1 + enemy.markedBonus;
     amount = Math.round(amount);
@@ -701,6 +726,13 @@ export class Room {
     enemy.state = enemy.hp > 0 ? enemy.state : "dead";
     if (!enemy.targetId) enemy.targetId = source.id;
     this.events.push({ type: "damage", targetId: enemy.id, amount, crit, sourceId: source.id, pos: enemy.position, zoneId: enemy.zoneId });
+    if (spec === "duskblade_bloodmoon") {
+      const healAmt = Math.round(amount * 0.12);
+      if (healAmt > 0) {
+        source.character.hp = Math.min(source.character.maxHp, source.character.hp + healAmt);
+        this.events.push({ type: "heal", targetId: source.id, amount: healAmt, sourceId: source.id, pos: source.position, zoneId: source.character.zoneId });
+      }
+    }
     if (source.lifestealUntil > now) {
       const healAmt = Math.round(amount * source.lifestealPct);
       if (healAmt > 0) {

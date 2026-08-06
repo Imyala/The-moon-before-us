@@ -15,6 +15,20 @@ export interface ClassDef {
 }
 
 export const CLASSES: Record<PlayerClassId, ClassDef> = {
+  duskblade: {
+    id: "duskblade",
+    name: "Duskblade",
+    tagline: "Burst melee striker feeding on the dark",
+    description:
+      "The Duskblade fights fast and close, cutting into the space between heartbeats. Umbra builds through the fight itself, fueling harder and harder strikes the longer a battle runs.",
+    resource: "umbra",
+    resourceName: "Umbra",
+    resourceRegenPerSec: 4,
+    baseStats: { power: 13, vitality: 11, haste: 0, critChance: 0.1, critDamage: 1.6 },
+    color: "#8a3f6b",
+    weaponItemId: "weapon_duskblade_daggers",
+    altWeaponItemId: "weapon_duskblade_glaive"
+  },
   warden: {
     id: "warden",
     name: "Warden",

@@ -100,7 +100,8 @@ export const ENEMIES: EnemyDef[] = [
       { itemId: "mat_silver_ore", chance: 0.5, minQty: 2, maxQty: 4 },
       { itemId: "weapon_starlight_bow", chance: 0.05, minQty: 1, maxQty: 1 },
       { itemId: "weapon_silver_blade", chance: 0.05, minQty: 1, maxQty: 1 },
-      { itemId: "weapon_starlight_focus", chance: 0.05, minQty: 1, maxQty: 1 }
+      { itemId: "weapon_starlight_focus", chance: 0.05, minQty: 1, maxQty: 1 },
+      { itemId: "weapon_duskfall_daggers", chance: 0.05, minQty: 1, maxQty: 1 }
     ],
     scale: 2.3,
     color: "#3d3557"

@@ -2,12 +2,12 @@ import type { Vec3 } from "./vec.js";
 import type { LoyaltyScores } from "./lore/factions.js";
 import type { NpcMemoryState } from "./lore/memory.js";
 
-export type PlayerClassId = "warden" | "ranger" | "mystic";
+export type PlayerClassId = "warden" | "ranger" | "mystic" | "duskblade";
 
 /** How many companions a character can have active at once (see CharacterState.companionIds). */
 export const MAX_COMPANIONS = 2;
 
-export type ResourceType = "resolve" | "focus" | "aether";
+export type ResourceType = "resolve" | "focus" | "aether" | "umbra";
 
 export interface StatBlock {
   power: number; // scales ability damage & healing
@@ -33,7 +33,9 @@ export type WeaponType =
   | "ranger_bow"
   | "ranger_pistols"
   | "mystic_focus"
-  | "mystic_scythe";
+  | "mystic_scythe"
+  | "duskblade_daggers"
+  | "duskblade_glaive";
 
 export type ItemRarity = "common" | "uncommon" | "rare" | "epic";
 

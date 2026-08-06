@@ -60,6 +60,26 @@ export const SPECIALIZATIONS: SpecializationDef[] = [
     mechanicDescription: "Damaging Aether spells stack Umbral Power, up to +15% power.",
     unlockLevel: 5,
     color: "#9a6ad6"
+  },
+  {
+    id: "duskblade_nightstalker",
+    classId: "duskblade",
+    name: "Nightstalker",
+    tagline: "Every crit sharpens the next",
+    description: "A Duskblade who turns one good opening into a string of them, snowballing precision through a fight.",
+    mechanicDescription: "Landing a critical hit builds a stack of Umbral Focus (up to 5, decaying if unused), each granting +3% crit chance.",
+    unlockLevel: 5,
+    color: "#5c3a6b"
+  },
+  {
+    id: "duskblade_bloodmoon",
+    classId: "duskblade",
+    name: "Bloodmoon",
+    tagline: "Strongest the longer the fight runs",
+    description: "Trades one-shot burst for relentless attrition — every strike feeds the Duskblade back.",
+    mechanicDescription: "Your attacks always lifesteal for 12% of the damage they deal.",
+    unlockLevel: 5,
+    color: "#7a2f3f"
   }
 ];
 

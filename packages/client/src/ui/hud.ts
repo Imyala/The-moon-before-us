@@ -30,7 +30,17 @@ const ABILITY_GLYPHS: Record<string, string> = {
   mystic_healingtide: "💧",
   mystic_barrier: "🔷",
   mystic_lunarsanctuary: "🌕",
-  mystic_eclipse: "🌑"
+  mystic_eclipse: "🌑",
+  duskblade_twinstrike: "🗡️",
+  duskblade_shadowstepslash: "🔪",
+  duskblade_umbralflurry: "🌀",
+  duskblade_glaivethrow: "🪃",
+  duskblade_returningedge: "↩️",
+  duskblade_umbralpull: "🪝",
+  duskblade_vanish: "🌫️",
+  duskblade_umbralmend: "🩹",
+  duskblade_vanishingstrike: "🌘",
+  duskblade_crimsoneclipse: "🌚"
 };
 
 export class Hud {

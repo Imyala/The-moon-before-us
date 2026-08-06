@@ -14,7 +14,7 @@ Everything in the current build is built around that pillar: quick jump in, quic
 ## Design pillars
 
 1. **Drop-in, drop-out first.** Every system (loot, XP, respawn, party membership) is designed so a player joining or leaving mid-session never blocks or punishes anyone.
-2. **Deep enough to matter, light enough to onboard in a minute.** Three classes, five abilities each, a 3-rank upgrade per ability, real itemization — but no 40-hour tutorial.
+2. **Deep enough to matter, light enough to onboard in a minute.** Four classes, five abilities each, a 3-rank upgrade per ability, real itemization — but no 40-hour tutorial.
 3. **Coop-friendly, not coop-required.** XP and loot are rolled per-player (not shared/contested), so a full party never feels worse than soloing.
 4. **Beautiful without needing an art team.** Stylized, toon-shaded low-poly geometry + moonlit lighting reads as intentional and charming without hand-authored art assets.
 5. **Choices remembered, not cutscened.** NPCs react to what you did, in dialogue delivered while you're still standing in the world — no camera lock, no paused combat, no forced cutscene (see "Playable conversations" below).
@@ -42,13 +42,14 @@ Each player tracks their own current zone; a party can freely split across zones
 
 ### Classes & combat
 
-Three archetypes, each layered the way the best MMO class systems are — base class, weapon-driven kit, and a chosen specialization — so "class" means more than a name and a weapon icon:
+Four archetypes, each layered the way the best MMO class systems are — base class, weapon-driven kit, and a chosen specialization — so "class" means more than a name and a weapon icon:
 
 | Class | Role | Resource | Weapon kits |
 |---|---|---|---|
 | **Warden** | Melee bruiser | Resolve | Sword & Board (control: Steel Strike, Shield Bash, Shield Wall) or Greataxe (cleave/burst: Cleave, Rending Swing, Whirlwind) |
 | **Ranger** | Ranged skirmisher | Focus | Longbow (range: Quickshot, Piercing Volley, Barrage) or Dual Pistols (close-range: Twin Shot, Scatter Blast, Evasive Shot) |
 | **Mystic** | Caster / healer hybrid | Aether | Focus (ranged casting: Moonbolt, Lunar Nova, Arcane Surge) or Scythe (melee lifesteal: Reap, Dark Harvest, Gravity Well) |
+| **Duskblade** | Burst melee striker | Umbra | Twin Daggers (fast/close: Twin Strike, Shadowstep Slash, Umbral Flurry) or Shadow Glaive (thrown/return: Glaive Throw, Returning Edge, Umbral Pull) |
 
 The hotbar is 6 slots: swapping your equipped weapon swaps abilities **1–3**; two fixed utility abilities always sit in **4–5** (heal/shield/CC that don't depend on your weapon); slot **6** is an elite ability unlocked by your specialization. Every character starts with both weapon options in their bag, so trying the other kit is just an equip away, mid-session, no cost.
 
@@ -59,6 +60,9 @@ At level 5, each class picks one of two **specializations** — a GW2-elite-spec
 | Warden | **Bulwark** (banked Resolve converts to damage reduction; elite: *Unbreakable* — brief 50% DR + taunt) vs. **Berserker** (bonus damage below 50% HP; elite: *Bloodrage* — power + lifesteal) |
 | Ranger | **Strider** (movement stacks crit; elite: *Windrunner's Volley* — 360° burst) vs. **Beastcaller** (a spirit hawk periodically strikes your target; elite: *Call the Pack* — hawk hits harder for a duration) |
 | Mystic | **Tidecaller** (heals also grant a shield; elite: *Lunar Sanctuary* — a ground zone that heals allies standing in it) vs. **Voidblade** (damage spells stack a power buff; elite: *Eclipse* — a heavy self-centered nuke) |
+| Duskblade | **Nightstalker** (landing a crit builds a decaying stack of +3% crit chance, up to 5; elite: *Vanishing Strike* — a guaranteed critical hit) vs. **Bloodmoon** (all damage dealt lifesteals 12%, always on; elite: *Crimson Eclipse* — an AoE burst that heals you for a share of everything it hits) |
+
+Duskblade is the vertical slice's fourth class, added after launch to prove the class framework generalizes: a new resource type (Umbra), two full weapon kits, two utility abilities, and two specializations with their own elites, wired against the exact same generic ability-resolution pipeline (`Room.resolveAbility` in `packages/server/src/room.ts`) the first three classes use — no new core engineering, just new data plus a handful of `special`-tagged mechanic hooks (guaranteed crit, stacking crit chance, flat lifesteal) that mirror the pattern Warden's Bloodrage and Ranger's Strider already established. Verified live over the wire: joining as a Duskblade grants the correct starting weapon and Umbra pool, Twin Strike lands real damage and kills, and swapping to the Shadow Glaive kit correctly swaps which three abilities are active.
 
 Combat itself is real-time and positional, not tab-target: abilities have range, radius, cast times, and cooldowns; a universal **Dodge** (`Space`) grants brief invulnerability frames, so surviving a boss telegraph is about reading and reacting, not gear checks alone. Enemies telegraph their attacks (a red ground ring) before they land, so the counterplay is legible even solo.
 
@@ -220,7 +224,7 @@ A handful of the original brief's "immediate decisions" are also still genuinely
 Roughly in the order they'd most improve the game:
 
 1. **Deeper story structure** — the finale is currently one climactic choice (the Moonthread Warden's Bind/Balance/Sever), not the full 8-chapter branching campaign the original brief calls for, and the nine major endings have no secret-ending or NPC-survival variants yet. The relationship graph, death-cascade mechanism, companion system, zone-gating, and ending-lock are all built and proven (see "Rivalries, alliances, and death cascades," "Companions," and "Fate" above) — this is chapter/branch content authoring against those systems, not new core engineering.
-2. **A fourth combat class, and/or a second specialization tier** (à la GW2's multiple elite specs) — the weapon-kit/specialization system generalizes cleanly to more of both.
+2. **A second specialization tier** (à la GW2's multiple elite specs per class) — the fourth class (Duskblade) is now built; the weapon-kit/specialization system has proven it generalizes twice over (to a new class, and could just as well generalize to a second elite spec per existing class).
 3. **Dungeons**: an instanced room variant with a boss-gated multi-enemy encounter and its own loot table.
 4. **Player trading / a shared economy** — deliberately deferred; per-player loot avoids needing it for the vertical slice, but a real game wants it.
 5. **Mounts / faster traversal** for a bigger world.

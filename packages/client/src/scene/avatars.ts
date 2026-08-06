@@ -18,7 +18,8 @@ export interface Avatar {
 const WEAPON_BY_CLASS: Record<PlayerClassId, "sword" | "bow" | "orb"> = {
   warden: "sword",
   ranger: "bow",
-  mystic: "orb"
+  mystic: "orb",
+  duskblade: "sword"
 };
 
 function buildWeapon(kind: "sword" | "bow" | "orb"): THREE.Object3D {

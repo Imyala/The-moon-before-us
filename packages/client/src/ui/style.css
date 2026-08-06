@@ -44,7 +44,7 @@ body {
 }
 .landing input[type="text"]:focus { outline: none; border-color: #8f9fff; }
 
-.class-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.class-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
 .class-card {
   border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 14px;
   cursor: pointer; background: rgba(255,255,255,0.03); transition: all 0.15s ease;
