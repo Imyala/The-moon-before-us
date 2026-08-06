@@ -1,7 +1,7 @@
 import Database from "better-sqlite3";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { CharacterState } from "@moon/shared";
+import { START_ZONE_ID, type CharacterState } from "@moon/shared";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dbPath = process.env.MOON_DB_PATH ?? path.join(__dirname, "..", "moon.sqlite");
@@ -27,20 +27,26 @@ db.exec(`
     inventoryJson TEXT NOT NULL,
     equipmentJson TEXT NOT NULL,
     positionJson TEXT NOT NULL,
+    zoneId TEXT,
     updatedAt INTEGER NOT NULL
   );
 `);
+try {
+  db.exec("ALTER TABLE characters ADD COLUMN zoneId TEXT");
+} catch {
+  // column already exists on databases created before zones were added
+}
 
 const getStmt = db.prepare("SELECT * FROM characters WHERE token = ?");
 const upsertStmt = db.prepare(`
-  INSERT INTO characters (token, id, name, classId, level, xp, hp, maxHp, resource, maxResource, statsJson, skillPoints, abilityRanksJson, inventoryJson, equipmentJson, positionJson, updatedAt)
-  VALUES (@token, @id, @name, @classId, @level, @xp, @hp, @maxHp, @resource, @maxResource, @statsJson, @skillPoints, @abilityRanksJson, @inventoryJson, @equipmentJson, @positionJson, @updatedAt)
+  INSERT INTO characters (token, id, name, classId, level, xp, hp, maxHp, resource, maxResource, statsJson, skillPoints, abilityRanksJson, inventoryJson, equipmentJson, positionJson, zoneId, updatedAt)
+  VALUES (@token, @id, @name, @classId, @level, @xp, @hp, @maxHp, @resource, @maxResource, @statsJson, @skillPoints, @abilityRanksJson, @inventoryJson, @equipmentJson, @positionJson, @zoneId, @updatedAt)
   ON CONFLICT(token) DO UPDATE SET
     name=excluded.name, classId=excluded.classId, level=excluded.level, xp=excluded.xp,
     hp=excluded.hp, maxHp=excluded.maxHp, resource=excluded.resource, maxResource=excluded.maxResource,
     statsJson=excluded.statsJson, skillPoints=excluded.skillPoints, abilityRanksJson=excluded.abilityRanksJson,
     inventoryJson=excluded.inventoryJson, equipmentJson=excluded.equipmentJson, positionJson=excluded.positionJson,
-    updatedAt=excluded.updatedAt;
+    zoneId=excluded.zoneId, updatedAt=excluded.updatedAt;
 `);
 
 interface Row {
@@ -60,6 +66,7 @@ interface Row {
   inventoryJson: string;
   equipmentJson: string;
   positionJson: string;
+  zoneId: string | null;
   updatedAt: number;
 }
 
@@ -81,7 +88,8 @@ export function loadCharacter(token: string): CharacterState | null {
     abilityRanks: JSON.parse(row.abilityRanksJson),
     inventory: JSON.parse(row.inventoryJson),
     equipment: JSON.parse(row.equipmentJson),
-    position: JSON.parse(row.positionJson)
+    position: JSON.parse(row.positionJson),
+    zoneId: row.zoneId ?? START_ZONE_ID
   };
 }
 
@@ -103,6 +111,7 @@ export function saveCharacter(token: string, c: CharacterState): void {
     inventoryJson: JSON.stringify(c.inventory),
     equipmentJson: JSON.stringify(c.equipment),
     positionJson: JSON.stringify(c.position),
+    zoneId: c.zoneId ?? START_ZONE_ID,
     updatedAt: Date.now()
   });
 }

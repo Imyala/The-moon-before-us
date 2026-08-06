@@ -180,6 +180,7 @@ export interface CharacterState extends CharacterSummary {
   inventory: ItemStack[];
   equipment: Partial<Record<EquipmentSlot, ItemStack>>;
   position: Vec3;
+  zoneId: string;
 }
 
 export function xpForLevel(level: number): number {

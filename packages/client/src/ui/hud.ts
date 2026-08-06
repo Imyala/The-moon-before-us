@@ -48,6 +48,7 @@ export class Hud {
   private kitSignature = "";
   private rosterEl: HTMLDivElement;
   private roomCodeEl: HTMLDivElement;
+  private zoneBadgeEl: HTMLDivElement;
   private toastsEl: HTMLDivElement;
   private chatLogEl: HTMLDivElement;
   private chatInput: HTMLInputElement;
@@ -67,6 +68,8 @@ export class Hud {
         WASD move · Hold right-click to look · 1-6 abilities · Space dodge<br/>
         E gather · I inventory · R crafting · C character
       </div>
+
+      <div class="zone-badge" id="zoneBadge"></div>
 
       <div class="player-frame">
         <div class="bar-row">
@@ -124,6 +127,7 @@ export class Hud {
     this.abilityBarEl = this.root.querySelector("#abilityBar")!;
     this.rosterEl = this.root.querySelector("#rosterList")!;
     this.roomCodeEl = this.root.querySelector("#roomCodeBadge")!;
+    this.zoneBadgeEl = this.root.querySelector("#zoneBadge")!;
     this.toastsEl = this.root.querySelector("#toasts")!;
     this.chatLogEl = this.root.querySelector("#chatLog")!;
     this.chatInput = this.root.querySelector("#chatInput")!;
@@ -206,6 +210,10 @@ export class Hud {
       </div>`
       )
       .join("");
+  }
+
+  setZoneName(name: string) {
+    this.zoneBadgeEl.textContent = name;
   }
 
   setRoomCode(code: string | null) {

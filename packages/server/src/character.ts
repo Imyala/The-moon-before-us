@@ -2,6 +2,7 @@ import {
   BASE_STATS,
   CLASSES,
   ITEMS,
+  START_ZONE_ID,
   type CharacterState,
   type ItemStack,
   type PlayerClassId,
@@ -43,7 +44,8 @@ export function getOrCreateCharacter(token: string, name: string, classId: Playe
     abilityRanks: {},
     inventory: [...STARTER_ITEMS, { itemId: cls.altWeaponItemId, quantity: 1, rarity: "common" }],
     equipment: { weapon: { itemId: cls.weaponItemId, quantity: 1, rarity: "common" } },
-    position: { x: 0, y: 0, z: 0 }
+    position: { x: 0, y: 0, z: 0 },
+    zoneId: START_ZONE_ID
   };
   saveCharacter(token, character);
   return character;

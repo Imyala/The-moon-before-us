@@ -8,4 +8,4 @@ export * from "./items.js";
 export * from "./recipes.js";
 export * from "./enemies.js";
 export * from "./protocol.js";
-export * from "./world-config.js";
+export * from "./zones.js";

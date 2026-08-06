@@ -20,14 +20,16 @@ Everything in the current build is built around that pillar: quick jump in, quic
 
 ## Current scope: the vertical slice
 
-This build is a **foundation**, not the finished game. It implements one zone ("the glade") with the full gameplay loop working end-to-end — movement, combat, AI, gathering, crafting, itemization, leveling, and real-time coop — so every future feature (more zones, more classes, dungeons, PvP, mounts, a real economy) has a proven spine to build on rather than a prototype that needs rearchitecting.
+This build is a **foundation**, not the finished game. It implements two zones with the full gameplay loop working end-to-end — movement, combat, AI, gathering, crafting, itemization, leveling, zone travel, and real-time coop — so every future feature (more zones, more classes, dungeons, PvP, mounts, a real economy) has a proven spine to build on rather than a prototype that needs rearchitecting.
 
 ### World
 
-A single moonlit glade (a circular zone, ~58-unit radius) shared by every instance of the game — solo and party sessions are two live copies of the *same place*, not different content. It's stocked with:
+Every room instance (solo or party) simulates its own live copy of the whole world, not just one zone. Two zones exist today, linked by a standing travel point — walk into it and you're through, no loading screen or confirmation, the same way a zone line works in a classic MMO:
 
-- 12 enemy spawns across 5 enemy types (3 common "minion" types, 1 "elite," 1 zone "boss")
-- 13 resource nodes across 4 gathering types (ore, timber, herbs, Aether crystals)
+- **The Glade** (~58-unit radius) — the starting moonlit forest. 12 enemy spawns across 5 enemy types (3 common "minion" types, 1 "elite," 1 zone "boss"), 13 resource nodes across 4 gathering types (ore, timber, herbs, Aether crystals). Its southern gate, past the zone boss, leads to the Ashen Reach.
+- **The Ashen Reach** (~46-unit radius) — a barren ruin beyond the glade, guarded by Stone Sentinels rather than a single boss. 11 enemy spawns (no unique boss — a step up in density/elite presence instead), 9 resource nodes (ore and crystal dominate; no timber, the ground is too dead for trees).
+
+Each player tracks their own current zone; a party can freely split across zones and reconvene later (the shared party roster and chat stay room-wide either way). Combat, gathering, enemy AI targeting, and the snapshot each client receives are all scoped to "players/enemies/nodes in *my* zone" — the same population/visibility boundary a channel, shard, or zone copy enforces in a full-scale MMO, just applied within a single room instance here. See `packages/shared/src/zones.ts` for the zone registry and `Room.broadcastSnapshot` in `packages/server/src/room.ts` for the per-zone filtering.
 
 ### Classes & combat
 
@@ -64,7 +66,7 @@ Gather from nodes in the world (`E` to interact) → open the crafting panel (`R
 
 ### Coop model
 
-- A **Room** is a live server-side simulation of the glade — either a private **solo** instance or a **party** instance identified by a shareable code.
+- A **Room** is a live server-side simulation of the whole world (every zone at once) — either a private **solo** instance or a **party** instance identified by a shareable code.
 - Joining or leaving a room never pauses or resets it for anyone else.
 - Enemy kills and gathering award XP/loot **per player**, independently — no kill-stealing, no ninja looting, no reason a bigger party ever feels worse than soloing.
 - Characters persist per-browser (a local token), independent of which room they're played in — the *character* is the persistent unit, not the session.
@@ -79,10 +81,10 @@ Gather from nodes in the world (`E` to interact) → open the crafting panel (`R
 
 Roughly in the order they'd most improve the game:
 
-1. **More zones** — the world/room system already supports it; needs new spawn layouts + a travel point.
+1. **More zones beyond the Ashen Reach** — adding a third+ zone is now just a spawn layout, a theme, and a travel point (see `packages/shared/src/zones.ts`); the room/snapshot system already scopes combat and visibility per zone.
 2. **A fourth combat class, and/or a second specialization tier** (à la GW2's multiple elite specs) — the weapon-kit/specialization system generalizes cleanly to more of both.
 3. **Dungeons**: an instanced room variant with a boss-gated multi-enemy encounter and its own loot table.
 4. **Player trading / a shared economy** — deliberately deferred; per-player loot avoids needing it for the vertical slice, but a real game wants it.
 5. **Mounts / faster traversal** for a bigger world.
 6. **Persistent world events** (e.g., a roaming rare spawn) to give solo and party play a reason to cross paths without forcing grouping.
-7. **Audio** — currently silent; ambient moonlit-glade audio + combat SFX would be the single highest-impact next pass on "amazing and fun."
+7. **Audio** — currently silent; ambient per-zone audio + combat SFX would be the single highest-impact next pass on "amazing and fun."

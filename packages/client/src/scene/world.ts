@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { WORLD_RADIUS } from "@moon/shared";
+import type { TravelPoint, ZoneDef } from "@moon/shared";
 import { toonMaterial } from "./materials.js";
 
 export interface WorldScene {
@@ -7,10 +7,12 @@ export interface WorldScene {
   camera: THREE.PerspectiveCamera;
   renderer: THREE.WebGLRenderer;
   resize(): void;
+  /** Tears down the previous zone's ground/scenery/travel markers and builds the new one. */
+  loadZone(zone: ZoneDef): void;
 }
 
-function buildGround(): THREE.Mesh {
-  const geo = new THREE.CircleGeometry(WORLD_RADIUS + 6, 96);
+function buildGround(zone: ZoneDef): THREE.Mesh {
+  const geo = new THREE.CircleGeometry(zone.radius + 6, 96);
   geo.rotateX(-Math.PI / 2);
   const pos = geo.attributes.position as THREE.BufferAttribute;
   for (let i = 0; i < pos.count; i++) {
@@ -23,8 +25,8 @@ function buildGround(): THREE.Mesh {
   geo.computeVertexNormals();
 
   const colors = new Float32Array(pos.count * 3);
-  const base = new THREE.Color("#2c4a3e");
-  const highlight = new THREE.Color("#3f6b52");
+  const base = new THREE.Color(zone.groundColor);
+  const highlight = new THREE.Color(zone.groundHighlight);
   for (let i = 0; i < pos.count; i++) {
     const y = pos.getY(i);
     const t = THREE.MathUtils.clamp((y + 1) / 2, 0, 1);
@@ -76,75 +78,134 @@ function mulberry32(seed: number) {
   };
 }
 
-function buildTree(): THREE.Group {
+function hashSeed(id: string): number {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (Math.imul(h, 31) + id.charCodeAt(i)) | 0;
+  return h;
+}
+
+function buildTree(dead: boolean): THREE.Group {
   const group = new THREE.Group();
-  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.28, 2.2, 6), toonMaterial("#4a3524"));
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.28, 2.2, 6), toonMaterial(dead ? "#392e24" : "#4a3524"));
   trunk.position.y = 1.1;
   trunk.castShadow = true;
   group.add(trunk);
-  const foliageColors = ["#2f5d3f", "#356847", "#3d7250"];
-  for (let i = 0; i < 3; i++) {
-    const s = 1.5 - i * 0.32;
-    const foliage = new THREE.Mesh(new THREE.IcosahedronGeometry(s, 0), toonMaterial(foliageColors[i % foliageColors.length]));
-    foliage.position.y = 2.1 + i * 1.05;
-    foliage.rotation.y = i * 1.3;
-    foliage.castShadow = true;
-    group.add(foliage);
+  if (dead) {
+    for (let i = 0; i < 3; i++) {
+      const branch = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.09, 1.0 + i * 0.15, 5), toonMaterial("#2c231c"));
+      branch.position.set((Math.random() - 0.5) * 0.6, 1.9 + i * 0.4, (Math.random() - 0.5) * 0.6);
+      branch.rotation.z = (Math.random() - 0.5) * 1.3;
+      branch.rotation.x = (Math.random() - 0.5) * 0.6;
+      branch.castShadow = true;
+      group.add(branch);
+    }
+  } else {
+    const foliageColors = ["#2f5d3f", "#356847", "#3d7250"];
+    for (let i = 0; i < 3; i++) {
+      const s = 1.5 - i * 0.32;
+      const foliage = new THREE.Mesh(new THREE.IcosahedronGeometry(s, 0), toonMaterial(foliageColors[i % foliageColors.length]));
+      foliage.position.y = 2.1 + i * 1.05;
+      foliage.rotation.y = i * 1.3;
+      foliage.castShadow = true;
+      group.add(foliage);
+    }
   }
   return group;
 }
 
-function buildRock(): THREE.Mesh {
-  const geo = new THREE.IcosahedronGeometry(0.5 + Math.random() * 0.6, 0);
+function buildRock(rand: () => number): THREE.Mesh {
+  const geo = new THREE.IcosahedronGeometry(0.5 + rand() * 0.6, 0);
   const rock = new THREE.Mesh(geo, toonMaterial("#5f6470"));
   rock.castShadow = true;
   rock.receiveShadow = true;
   return rock;
 }
 
-function scatterScenery(scene: THREE.Scene) {
-  const rand = mulberry32(1337);
-  const treeCount = 140;
-  const rockCount = 70;
+function buildTravelMarker(tp: TravelPoint): THREE.Group {
+  const group = new THREE.Group();
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(tp.radius, 0.15, 8, 32), new THREE.MeshBasicMaterial({ color: "#8fe3ff" }));
+  ring.rotation.x = Math.PI / 2;
+  ring.position.y = 0.05;
+  group.add(ring);
+
+  const beam = new THREE.Mesh(
+    new THREE.CylinderGeometry(tp.radius * 0.6, tp.radius * 0.6, 5, 24, 1, true),
+    new THREE.MeshBasicMaterial({ color: "#8fe3ff", transparent: true, opacity: 0.16, side: THREE.DoubleSide })
+  );
+  beam.position.y = 2.4;
+  group.add(beam);
+
+  const glow = new THREE.PointLight("#8fe3ff", 1.3, 14, 2);
+  glow.position.y = 1.6;
+  group.add(glow);
+
+  group.position.set(tp.pos.x, 0, tp.pos.z);
+  group.name = `travelPoint:${tp.id}`;
+  return group;
+}
+
+function scatterScenery(target: THREE.Group, zone: ZoneDef) {
+  const rand = mulberry32(hashSeed(zone.id));
+  const ashen = zone.theme === "ashen";
+  const treeCount = ashen ? 22 : 140;
+  const rockCount = ashen ? 130 : 70;
+  const moteCount = ashen ? 40 : 60;
 
   for (let i = 0; i < treeCount; i++) {
     const angle = rand() * Math.PI * 2;
-    const radius = 14 + rand() * (WORLD_RADIUS - 6);
+    const radius = 14 + rand() * (zone.radius - 6);
     const x = Math.cos(angle) * radius;
     const z = Math.sin(angle) * radius;
-    const tree = buildTree();
+    const tree = buildTree(ashen);
     tree.position.set(x, 0, z);
     const s = 0.8 + rand() * 0.6;
     tree.scale.setScalar(s);
     tree.rotation.y = rand() * Math.PI * 2;
-    scene.add(tree);
+    target.add(tree);
   }
 
   for (let i = 0; i < rockCount; i++) {
     const angle = rand() * Math.PI * 2;
-    const radius = rand() * (WORLD_RADIUS + 4);
-    const rock = buildRock();
+    const radius = rand() * (zone.radius + 4);
+    const rock = buildRock(rand);
     rock.position.set(Math.cos(angle) * radius, 0.2, Math.sin(angle) * radius);
     rock.rotation.set(rand() * Math.PI, rand() * Math.PI, rand() * Math.PI);
-    scene.add(rock);
+    target.add(rock);
   }
 
-  // fireflies
-  const fireflyCount = 60;
-  const fpos = new Float32Array(fireflyCount * 3);
-  for (let i = 0; i < fireflyCount; i++) {
+  // fireflies over living ground, drifting embers over ash
+  const motePositions = new Float32Array(moteCount * 3);
+  for (let i = 0; i < moteCount; i++) {
     const angle = rand() * Math.PI * 2;
-    const radius = rand() * WORLD_RADIUS;
-    fpos[i * 3] = Math.cos(angle) * radius;
-    fpos[i * 3 + 1] = 0.6 + rand() * 2.4;
-    fpos[i * 3 + 2] = Math.sin(angle) * radius;
+    const radius = rand() * zone.radius;
+    motePositions[i * 3] = Math.cos(angle) * radius;
+    motePositions[i * 3 + 1] = 0.6 + rand() * (ashen ? 4.5 : 2.4);
+    motePositions[i * 3 + 2] = Math.sin(angle) * radius;
   }
-  const fgeo = new THREE.BufferGeometry();
-  fgeo.setAttribute("position", new THREE.BufferAttribute(fpos, 3));
-  const fmat = new THREE.PointsMaterial({ color: "#bff3a8", size: 0.22, sizeAttenuation: true, transparent: true, opacity: 0.85 });
-  const fireflies = new THREE.Points(fgeo, fmat);
-  fireflies.name = "fireflies";
-  scene.add(fireflies);
+  const moteGeo = new THREE.BufferGeometry();
+  moteGeo.setAttribute("position", new THREE.BufferAttribute(motePositions, 3));
+  const moteMat = new THREE.PointsMaterial({
+    color: ashen ? "#ff9a52" : "#bff3a8",
+    size: ashen ? 0.28 : 0.22,
+    sizeAttenuation: true,
+    transparent: true,
+    opacity: 0.85
+  });
+  const motes = new THREE.Points(moteGeo, moteMat);
+  motes.name = ashen ? "embers" : "fireflies";
+  target.add(motes);
+
+  for (const tp of zone.travelPoints) target.add(buildTravelMarker(tp));
+}
+
+function disposeObject(obj: THREE.Object3D) {
+  obj.traverse((child) => {
+    const mesh = child as THREE.Mesh;
+    if (mesh.geometry) mesh.geometry.dispose();
+    const mat = (mesh as unknown as { material?: THREE.Material | THREE.Material[] }).material;
+    if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
+    else mat?.dispose();
+  });
 }
 
 export function createWorld(canvas: HTMLCanvasElement): WorldScene {
@@ -180,8 +241,10 @@ export function createWorld(canvas: HTMLCanvasElement): WorldScene {
 
   scene.add(buildStars());
   scene.add(buildMoon());
-  scene.add(buildGround());
-  scatterScenery(scene);
+
+  const zoneGroup = new THREE.Group();
+  zoneGroup.name = "zoneGroup";
+  scene.add(zoneGroup);
 
   function resize() {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -190,5 +253,16 @@ export function createWorld(canvas: HTMLCanvasElement): WorldScene {
   }
   window.addEventListener("resize", resize);
 
-  return { scene, camera, renderer, resize };
+  function loadZone(zone: ZoneDef) {
+    for (const child of [...zoneGroup.children]) {
+      zoneGroup.remove(child);
+      disposeObject(child);
+    }
+    zoneGroup.add(buildGround(zone));
+    scatterScenery(zoneGroup, zone);
+    scene.background = new THREE.Color(zone.backgroundColor);
+    scene.fog = new THREE.FogExp2(zone.fogColor, 0.012);
+  }
+
+  return { scene, camera, renderer, resize, loadZone };
 }

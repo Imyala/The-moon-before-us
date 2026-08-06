@@ -5,6 +5,8 @@ import {
   getAbility,
   getEnemy,
   getResourceNode,
+  getZone,
+  START_ZONE_ID,
   add,
   sub,
   scale,
@@ -97,6 +99,9 @@ interface NodeVisual {
 
 function runGame(net: NetClient, selfId: string, roomCode: string, initialCharacter: CharacterState) {
   const world = createWorld(canvas);
+  let currentZoneId = initialCharacter.zoneId ?? START_ZONE_ID;
+  let currentZoneRadius = getZone(currentZoneId).radius;
+  world.loadZone(getZone(currentZoneId));
   const effects = new EffectsManager(world.scene, world.camera, uiRoot);
   const nameplates = new NameplateManager(uiRoot, world.camera);
   const controller = new InputController(canvas);
@@ -105,6 +110,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
   const dmgContainer = uiRoot;
 
   hud.setRoomCode(roomCode === "solo" ? null : roomCode);
+  hud.setZoneName(getZone(currentZoneId).name);
   hud.onChatSend = (msg) => net.send({ t: "chat", message: msg });
   controller.onAbility = (slot) => useAbility(slot);
   controller.onDodge = () => sendDodge();
@@ -116,7 +122,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
 
   let character: CharacterState = initialCharacter;
   let selfPos: Vec3 = { ...initialCharacter.position };
-  if (selfPos.x === 0 && selfPos.y === 0 && selfPos.z === 0) selfPos = { x: 0, y: 0, z: 6 };
+  if (selfPos.x === 0 && selfPos.y === 0 && selfPos.z === 0) selfPos = { ...getZone(currentZoneId).spawnPoint };
   let selfFacing = 0;
   let lastServerSelfPos: Vec3 = { ...selfPos };
   let selfState: string = "idle";
@@ -193,7 +199,20 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
       if (!ev.isPlayer) {
         effects.clearTelegraph(ev.entityId);
       }
+    } else if (ev.type === "zoneChange") {
+      if (ev.playerId === selfId) enterZone(ev.toZoneId);
     }
+  }
+
+  function enterZone(zoneId: string) {
+    currentZoneId = zoneId;
+    const zone = getZone(zoneId);
+    currentZoneRadius = zone.radius;
+    world.loadZone(zone);
+    selfPos = { ...character.position };
+    lastServerSelfPos = { ...selfPos };
+    hud.setZoneName(zone.name);
+    hud.pushToast(`Entering ${zone.name}`, "info");
   }
 
   function itemName(itemId: string): string {
@@ -413,7 +432,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
       if (moving && canMove) {
         selfFacing = Math.atan2(intent.x, intent.z);
         const next = add(selfPos, scale({ x: intent.x, y: 0, z: intent.z }, 5.2 * dt));
-        selfPos = clampToRadius(next, 58 - 0.5);
+        selfPos = clampToRadius(next, currentZoneRadius - 0.5);
         if (gathering) gathering = null;
       }
       maybeSendInput(intent);

@@ -138,15 +138,20 @@ export interface NodeSnapshot {
   depleted: boolean;
 }
 
+// Every event carries the zoneId it happened in, so a room hosting players split across
+// multiple zones can hand each player only the events relevant to the zone they're standing in
+// (see Room.broadcastSnapshot on the server) — the same "who can see what" boundary a zone copy
+// or channel enforces in a real MMO, just scoped to a single room instance here.
 export type GameEvent =
-  | { type: "damage"; targetId: string; amount: number; crit: boolean; sourceId: string; pos: Vec3 }
-  | { type: "heal"; targetId: string; amount: number; sourceId: string; pos: Vec3 }
-  | { type: "death"; entityId: string; isPlayer: boolean }
-  | { type: "levelUp"; playerId: string; level: number }
-  | { type: "loot"; playerId: string; itemId: string; quantity: number; rarity: string }
-  | { type: "abilityCast"; casterId: string; abilityId: string }
-  | { type: "craft"; playerId: string; itemId: string; quantity: number }
-  | { type: "skillPoint"; playerId: string; abilityId: string; rank: number };
+  | { type: "damage"; targetId: string; amount: number; crit: boolean; sourceId: string; pos: Vec3; zoneId: string }
+  | { type: "heal"; targetId: string; amount: number; sourceId: string; pos: Vec3; zoneId: string }
+  | { type: "death"; entityId: string; isPlayer: boolean; zoneId: string }
+  | { type: "levelUp"; playerId: string; level: number; zoneId: string }
+  | { type: "loot"; playerId: string; itemId: string; quantity: number; rarity: string; zoneId: string }
+  | { type: "abilityCast"; casterId: string; abilityId: string; zoneId: string }
+  | { type: "craft"; playerId: string; itemId: string; quantity: number; zoneId: string }
+  | { type: "skillPoint"; playerId: string; abilityId: string; rank: number; zoneId: string }
+  | { type: "zoneChange"; playerId: string; toZoneId: string; zoneId: string };
 
 export interface SnapshotMessage {
   t: "snapshot";
