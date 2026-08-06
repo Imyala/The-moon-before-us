@@ -78,7 +78,7 @@ export class Hud {
     this.root.innerHTML = `
       <div class="hotkeys-hint">
         WASD move · Hold right-click to look · 1-6 abilities · Space dodge<br/>
-        E gather · I inventory · R crafting · C character
+        E gather · I inventory · R crafting · C character · M mount
       </div>
 
       <div class="zone-badge" id="zoneBadge"></div>

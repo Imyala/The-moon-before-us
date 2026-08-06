@@ -91,6 +91,18 @@ export function buildNpcAvatar(color: string): Avatar {
   return avatar;
 }
 
+/**
+ * Mounts (see docs/GDD.md): reuses the same low-poly quadruped body `moonlit_wolf` already
+ * renders with — no new geometry needed — just a distinct "steed" color, added as a child of the
+ * rider's avatar group (see Room's `mounted` state and main.ts's `setMounted`) so it inherits the
+ * rider's position/rotation for free instead of needing its own per-frame tracking.
+ */
+export function buildMountAvatar(): Avatar {
+  const avatar = buildQuadruped("#a9895f");
+  avatar.group.scale.setScalar(1.1);
+  return avatar;
+}
+
 export function buildEnemyAvatar(defId: string, color: string, scale: number): Avatar {
   let avatar: Avatar;
   if (defId === "moonlit_wolf") {

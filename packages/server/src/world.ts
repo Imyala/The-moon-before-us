@@ -30,6 +30,11 @@ export const WORLD_EVENT_COOLDOWN_MS = 180000; // 3-minute gap after it's slain 
 // travel points and interactions elsewhere already use.
 export const TRADE_RANGE = 8;
 
+// Mounts (see docs/GDD.md): a flat movement-speed multiplier while mounted. Combat and gathering
+// dismount automatically (see Room.tryUseAbility/damagePlayer/tryGather) — this is a traversal
+// tool, not a build-around mechanic.
+export const MOUNT_SPEED_MULTIPLIER = 1.8;
+
 export interface EnemySpawnPoint {
   defId: string;
   pos: Vec3;

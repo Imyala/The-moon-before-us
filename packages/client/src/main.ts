@@ -26,7 +26,7 @@ import {
   type Vec3
 } from "@moon/shared";
 import { createWorld } from "./scene/world.js";
-import { buildPlayerAvatar, buildEnemyAvatar, buildNpcAvatar, animateAvatar, type Avatar } from "./scene/avatars.js";
+import { buildPlayerAvatar, buildEnemyAvatar, buildNpcAvatar, buildMountAvatar, animateAvatar, type Avatar } from "./scene/avatars.js";
 import { buildNodeMesh } from "./scene/nodes.js";
 import { EffectsManager } from "./scene/effects.js";
 import { InputController } from "./controller.js";
@@ -149,6 +149,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
   controller.onToggleCrafting = () => panels.toggle("crafting");
   controller.onToggleCharacter = () => panels.toggle("character");
   controller.onToggleCompanions = () => panels.toggle("companions");
+  controller.onToggleMount = () => toggleMount();
 
   let character: CharacterState = initialCharacter;
   let selfPos: Vec3 = { ...initialCharacter.position };
@@ -157,6 +158,24 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
   let lastServerSelfPos: Vec3 = { ...selfPos };
   let selfState: string = "idle";
   let selfShield = 0;
+  let selfMounted = false;
+  const mounts = new Map<Avatar, Avatar>();
+
+  /** Lazily attaches a mount as a child of the rider's group (see buildMountAvatar) and toggles
+   *  its visibility — created once, then just shown/hidden, since it inherits the rider's own
+   *  position/rotation for free as a child transform. */
+  function setMounted(rider: Avatar, mounted: boolean, moving: boolean, t: number, now: number) {
+    let mount = mounts.get(rider);
+    if (mounted && !mount) {
+      mount = buildMountAvatar();
+      mount.group.position.set(0, 0, -0.9);
+      rider.group.add(mount.group);
+      mounts.set(rider, mount);
+    }
+    if (!mount) return;
+    mount.group.visible = mounted;
+    if (mounted) animateAvatar(mount, t, moving, now);
+  }
 
   const selfAvatar = buildPlayerAvatar(character.classId, CLASSES[character.classId].color);
   world.scene.add(selfAvatar.group);
@@ -290,6 +309,8 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
         character.maxResource = p.maxResource;
         selfState = p.state;
         selfShield = p.shield;
+        if (p.mounted !== selfMounted) hud.pushToast(p.mounted ? "Mounted up." : "Dismounted.", "info");
+        selfMounted = p.mounted;
         continue;
       }
       let vis = players.get(p.id);
@@ -305,6 +326,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
       (vis as any).maxHp = p.maxHp;
       (vis as any).name = p.name;
       (vis as any).state = p.state;
+      (vis as any).mounted = p.mounted;
     }
     for (const id of [...players.keys()]) {
       if (!seenPlayers.has(id)) {
@@ -480,6 +502,11 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
     return null;
   }
 
+  function toggleMount() {
+    if (panels.isOpen() || trade.isOpen() || hud.isChatFocused()) return;
+    net.send({ t: "toggleMount" });
+  }
+
   function sendDodge() {
     if (panels.isOpen() || trade.isOpen() || hud.isChatFocused()) return;
     const intent = controller.getMoveIntent();
@@ -580,6 +607,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
     selfAvatar.group.position.set(selfPos.x, 0, selfPos.z);
     selfAvatar.group.rotation.y = selfFacing;
     animateAvatar(selfAvatar, now / 1000, selfState === "run", now);
+    setMounted(selfAvatar, selfMounted, selfState === "run", now / 1000, now);
 
     for (const [id, vis] of players) {
       const target = (vis as any).targetPos as Vec3;
@@ -589,6 +617,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
       vis.avatar.group.rotation.y = vis.renderFacing;
       const moving = (vis as any).state === "run";
       animateAvatar(vis.avatar, now / 1000 + id.length, moving, now);
+      setMounted(vis.avatar, (vis as any).mounted === true, moving, now / 1000 + id.length, now);
       const hp = (vis as any).hp as number;
       const maxHp = (vis as any).maxHp as number;
       const name = (vis as any).name as string;

@@ -57,6 +57,7 @@ import {
   DODGE_COOLDOWN_MS,
   DODGE_DURATION_MS,
   DODGE_SPEED,
+  MOUNT_SPEED_MULTIPLIER,
   PLAYER_SPEED,
   TRADE_RANGE,
   TRAVEL_COOLDOWN_MS,
@@ -123,6 +124,7 @@ export interface PlayerEntity {
   umbralStacks: number; // Nightstalker: 0-5 stacking crit chance, built by landing crits
   umbralStacksUntil: number;
   forcedCritUntil: number; // Vanishing Strike: guarantees the next hit crits
+  mounted: boolean; // faster traversal; auto-dismounted by combat or gathering
 }
 
 interface EnemyEntity {
@@ -354,7 +356,8 @@ export class Room {
       damageReductionPct: 0,
       umbralStacks: 0,
       umbralStacksUntil: 0,
-      forcedCritUntil: 0
+      forcedCritUntil: 0,
+      mounted: false
     };
     if (character.hp <= 0) {
       entity.position = { ...zone.spawnPoint };
@@ -503,7 +506,19 @@ export class Room {
         this.cancelTrade(player.id, msg.tradeId);
         break;
       }
+      case "toggleMount": {
+        this.toggleMount(player);
+        break;
+      }
     }
+  }
+
+  /** Mounting/dismounting is otherwise free — the real gate is that combat (tryUseAbility,
+   *  damagePlayer) and gathering (tryGather) all force a dismount, so it's purely a traversal
+   *  tool, not something worth working into a build. */
+  private toggleMount(player: PlayerEntity) {
+    if (player.character.hp <= 0 || player.casting || player.gathering) return;
+    player.mounted = !player.mounted;
   }
 
   // ---------------- Ability / Combat ----------------
@@ -573,6 +588,7 @@ export class Room {
       return;
     }
 
+    player.mounted = false;
     player.character.resource -= ability.resourceCost;
     const rank = this.effectiveRank(player.character, abilityId);
     const rankMult = 1 + (rank - 1) * 0.18;
@@ -912,6 +928,7 @@ export class Room {
       remaining -= absorbed;
     }
     if (remaining <= 0) return;
+    player.mounted = false;
     player.character.hp = Math.max(0, player.character.hp - remaining);
     this.events.push({
       type: "damage",
@@ -937,6 +954,7 @@ export class Room {
     if (distance(player.position, node.position) > 3.5) return;
     const def = getResourceNode(node.defId);
     if (!def) return;
+    player.mounted = false;
     player.gathering = { nodeId, endAt: now + def.gatherTimeMs };
     player.state = "gather";
   }
@@ -1397,10 +1415,11 @@ export class Room {
     }
 
     const canMove = player.character.hp > 0 && !player.casting && !player.gathering;
+    const moveSpeed = player.mounted ? PLAYER_SPEED * MOUNT_SPEED_MULTIPLIER : PLAYER_SPEED;
     if (now < player.dodgeUntil) {
       player.position = clampToZone(add(player.position, scale(player.dodgeDir, DODGE_SPEED * dt)), player.character.zoneId);
     } else if (canMove && (player.moveIntent.x !== 0 || player.moveIntent.z !== 0)) {
-      player.position = clampToZone(add(player.position, scale(player.moveIntent, PLAYER_SPEED * dt)), player.character.zoneId);
+      player.position = clampToZone(add(player.position, scale(player.moveIntent, moveSpeed * dt)), player.character.zoneId);
       if (player.state !== "cast" && player.state !== "gather") player.state = "run";
     } else if (player.state === "run") {
       player.state = "idle";
@@ -1416,6 +1435,7 @@ export class Room {
         player.character.resource = player.character.maxResource;
         player.position = { ...getZone(player.character.zoneId).spawnPoint };
         player.state = "idle";
+        player.mounted = false;
         (player as any)._respawnAt = undefined;
         this.sendCharacterUpdate(player);
       }
@@ -1678,7 +1698,8 @@ export class Room {
           resource: p.character.resource,
           maxResource: p.character.maxResource,
           state: p.character.hp <= 0 ? "dead" : p.state,
-          shield: now < p.shieldUntil ? p.shield : 0
+          shield: now < p.shieldUntil ? p.shield : 0,
+          mounted: p.mounted
         }));
 
       const enemies: EnemySnapshot[] = [...this.enemies.values()]

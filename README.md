@@ -40,6 +40,7 @@ Run `npm run typecheck` to typecheck all three packages.
 | Inventory | `I` |
 | Crafting | `R` |
 | Character & skill tree | `C` |
+| Mount / dismount | `M` |
 | Chat | `Enter` |
 | Target an enemy | left-click it |
 

@@ -129,6 +129,11 @@ export interface CancelTradeMessage {
   tradeId: string;
 }
 
+/** Toggles mounted state (see Room.toggleMount) — faster movement, auto-dismounted by combat or gathering. */
+export interface ToggleMountMessage {
+  t: "toggleMount";
+}
+
 export type ClientMessage =
   | JoinMessage
   | InputMessage
@@ -151,7 +156,8 @@ export type ClientMessage =
   | RespondTradeMessage
   | SetTradeOfferMessage
   | ConfirmTradeMessage
-  | CancelTradeMessage;
+  | CancelTradeMessage
+  | ToggleMountMessage;
 
 // ---------------- Server -> Client ----------------
 
@@ -170,6 +176,7 @@ export interface PlayerSnapshot {
   maxResource: number;
   state: EntityState;
   shield: number;
+  mounted: boolean;
 }
 
 export interface EnemyTelegraph {
