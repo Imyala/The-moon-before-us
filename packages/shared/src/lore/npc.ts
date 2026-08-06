@@ -23,6 +23,18 @@ export interface SignatureChoice {
   options: DialogueOption[];
 }
 
+/**
+ * The relationship web (design bible section "NPC Influence Map" / "Web of Memory"): an NPC
+ * can react to a choice you made with a *different* NPC entirely, not just their own memory
+ * entry. Checked in order; the first match whose `npcId`+`tag` appears anywhere in the
+ * player's memory wins and is appended to the greeting.
+ */
+export interface CrossReference {
+  npcId: string;
+  tag: string;
+  line: string;
+}
+
 export interface NpcDef {
   id: string;
   name: string;
@@ -33,6 +45,7 @@ export interface NpcDef {
   loyaltyType: LoyaltyType;
   greetings: Record<RelationshipState, string>;
   signatureChoice?: SignatureChoice;
+  crossReferences?: CrossReference[];
 }
 
 export function gaugeKeyFor(npc: NpcDef): LoyaltyKey {
@@ -383,7 +396,19 @@ export const NPCS: NpcDef[] = [
           followUp: "\"That buys us days, not years,\" she says. \"But I'll take days.\""
         }
       ]
-    }
+    },
+    crossReferences: [
+      {
+        npcId: "aldric_vane",
+        tag: "aldric_exposed",
+        line: "I heard what you did to Aldric. The Order's still shaking from it — some of us needed the shake."
+      },
+      {
+        npcId: "aldric_vane",
+        tag: "aldric_concealed",
+        line: "Whatever you buried for Aldric's sake, I hope it stays buried. For both our sakes."
+      }
+    ]
   },
   {
     id: "magistrate_thorne",
@@ -598,7 +623,19 @@ export const NPCS: NpcDef[] = [
           followUp: "He studies you, surprised. \"...That's the first careful answer anyone's given me in years.\""
         }
       ]
-    }
+    },
+    crossReferences: [
+      {
+        npcId: "vesryn_duskborne",
+        tag: "vesryn_child_saved",
+        line: "Vesryn told me what you chose, at that village. I've already written the child's name. Yours too, if you'll give it."
+      },
+      {
+        npcId: "vesryn_duskborne",
+        tag: "vesryn_self_saved",
+        line: "Vesryn is alive because of you. I don't know if that was mercy or theft from the dead. I'm still deciding."
+      }
+    ]
   },
   {
     id: "thane_corvin",
@@ -641,7 +678,14 @@ export const NPCS: NpcDef[] = [
           followUp: "Something in him goes very quiet. \"Then it's done. I hope your safety was worth my name.\""
         }
       ]
-    }
+    },
+    crossReferences: [
+      {
+        npcId: "aldric_vane",
+        tag: "aldric_exposed",
+        line: "Word reached the highlands: you humbled the man who annexed my grandfather's land. My clan owes you a debt for that alone."
+      }
+    ]
   },
   {
     id: "archon_scribe_velis",
@@ -727,7 +771,19 @@ export const NPCS: NpcDef[] = [
           followUp: "His face goes utterly still. \"...Get out of my sanctuary. While you still can.\""
         }
       ]
-    }
+    },
+    crossReferences: [
+      {
+        npcId: "castellan_yora",
+        tag: "yora_defied",
+        line: "I heard a Chainwright Castellan defied her own Order to protect a refugee camp. Because of you, they say. I didn't believe it until now."
+      },
+      {
+        npcId: "castellan_yora",
+        tag: "yora_followed_order",
+        line: "I heard what happened to that refugee camp near the fortress. I won't ask if you could have stopped it. I already know the answer stings."
+      }
+    ]
   },
   {
     id: "the_cartographer",
@@ -771,6 +827,525 @@ export const NPCS: NpcDef[] = [
         }
       ]
     }
+  },
+  {
+    id: "pip",
+    name: "Pip",
+    title: "Child of Threadhold",
+    zoneId: "threadhold",
+    position: { x: 0, y: 0, z: 12 },
+    primaryFaction: null,
+    loyaltyType: "personal",
+    greetings: {
+      unknown: "You're the one who came back from the crater, aren't you? Everyone says you're not supposed to be alive. You don't look dead to me.",
+      met: "Elder Maeve says I can talk to you if I want. I want to.",
+      friendly: "You always come back. Nobody else always comes back.",
+      trusted: "You're basically family now. Don't tell Elder Maeve I said that. She'll get weepy.",
+      hostile: "You left. Everyone I count on leaves. I should've known."
+    },
+    signatureChoice: {
+      prompt: "Elder Maeve says I have to pick somewhere to belong — with her, with the Chainwrights, or with the Luminari researchers. What do you think I should do?",
+      resolvedTag: "pip_belonging_choice",
+      options: [
+        {
+          id: "stay_with_maeve",
+          label: "Stay with Elder Maeve, where you're safe.",
+          tag: "pip_stayed",
+          delta: { independent: 15 },
+          followUp: "She grins, relieved. \"Good. I didn't want to go anyway. I just wanted someone to say it out loud.\""
+        },
+        {
+          id: "chainwright_ward",
+          label: "The Chainwrights could give you training and structure.",
+          tag: "pip_warded_chainwright",
+          delta: { chainwrights: 15, independent: -10 },
+          followUp: "Her smile falters, but she nods. \"...Okay. If you think that's best.\""
+        },
+        {
+          id: "luminari_study",
+          label: "The Luminari could study your resonance, help you understand it.",
+          tag: "pip_warded_luminari",
+          delta: { luminari: 15, independent: -15 },
+          followUp: "She looks uncertain but curious. \"They said I could ask questions any time I wanted. I guess... okay.\""
+        }
+      ]
+    }
+  },
+  {
+    id: "sister_wren",
+    name: "Sister Wren",
+    title: "Healer of Threadhold",
+    zoneId: "threadhold",
+    position: { x: -6, y: 0, z: 10 },
+    primaryFaction: null,
+    loyaltyType: "personal",
+    greetings: {
+      unknown:
+        "Hold still — let me look at that wound. ...It's healing wrong. Too fast. Silver at the edges. You're Moon-Touched, aren't you? Don't worry. I won't tell.",
+      met: "How are you feeling? Truly, not politely.",
+      friendly: "I'm glad you keep coming back to check in. Not everyone does.",
+      trusted: "You've trusted me with more than most patients ever do. I don't take that lightly.",
+      hostile: "I trusted you with people's lives. I won't make that mistake twice."
+    },
+    signatureChoice: {
+      prompt: "I've been hiding Moon-Touched patients in my cellar for years. Houndmaster Vex is getting suspicious. Keep hiding them, move them somewhere safer, or should I stop before it's too late?",
+      resolvedTag: "wren_cellar_choice",
+      options: [
+        {
+          id: "keep_hiding",
+          label: "Keep hiding them here — moving them is riskier.",
+          tag: "wren_kept_hiding",
+          delta: { paleChoir: 10, independent: 5 },
+          followUp: "She nods, jaw tight. \"Then I'll keep the cellar stocked. And the door locked.\""
+        },
+        {
+          id: "move_them",
+          label: "Help her move them to the Frayedge sanctuary.",
+          tag: "wren_moved_patients",
+          delta: { independent: 20, paleChoir: 5 },
+          followUp: "Relief floods her face. \"Truly? I've been so afraid for them. Thank you.\""
+        },
+        {
+          id: "stop_hiding",
+          label: "Tell her to stop — it's too dangerous to keep hiding them.",
+          tag: "wren_stopped",
+          delta: { chainwrights: 15, paleChoir: -20, independent: -15 },
+          followUp: "Her expression hardens into something you haven't seen from her before. \"...Get out of my clinic.\""
+        }
+      ]
+    }
+  },
+  {
+    id: "slag",
+    name: "Slag",
+    title: "Forgemaster of Ashmire",
+    zoneId: "ashmire",
+    position: { x: 8, y: 0, z: 36 },
+    primaryFaction: null,
+    loyaltyType: "personal",
+    greetings: {
+      unknown: "New face at the forge. Mind the sparks — this pit's eaten more idiots than accidents. I'm Slag. What do you need forged?",
+      met: "Forge's hot today. Good day for real work.",
+      friendly: "Good customer. Come by the back — I keep the good stock for people who respect the craft.",
+      trusted: "Best client Ashmire's seen in years. Anything in this forge is yours at cost.",
+      hostile: "You stole from my forge. Don't come back."
+    },
+    signatureChoice: {
+      prompt: "Bring me a pure Moonshard and I can forge a weapon that can actually hurt the Hollowed. It's dangerous work. Bring it, or should I stick to safer steel?",
+      resolvedTag: "slag_shard_choice",
+      options: [
+        {
+          id: "bring_shard",
+          label: "Bring him the shard — the weapon's worth the risk.",
+          tag: "slag_shard_brought",
+          delta: { luminari: 5, independent: 10 },
+          followUp: "His eyes light up like a kid's. \"Now THAT'S a job worth doing. Give me three days.\""
+        },
+        {
+          id: "safer_steel",
+          label: "Stick to safer steel — not worth the corruption risk.",
+          tag: "slag_steel_only",
+          delta: { paleChoir: 10, independent: 5 },
+          followUp: "He grunts, a little disappointed but not unkind. \"Cautious. Fine. Ordinary steel it is.\""
+        },
+        {
+          id: "steal_tools",
+          label: "Take his tools instead — save the trip.",
+          tag: "slag_tools_stolen",
+          delta: { independent: -20 },
+          followUp: "His face goes red, then very still. \"Get. Out. Of my forge.\""
+        }
+      ]
+    }
+  },
+  {
+    id: "pyra_emberhand",
+    name: "Pyra Emberhand",
+    title: "Luminari Pyromancer",
+    zoneId: "ashmire",
+    position: { x: -8, y: 0, z: 34 },
+    primaryFaction: "luminari",
+    loyaltyType: "fanatic",
+    greetings: {
+      unknown: "You're standing awfully close to my test range. Either you're brave or you don't understand fire yet. I'm Pyra. I'll teach you either way.",
+      met: "Careful — the range is live today.",
+      friendly: "Good, someone who isn't afraid to get close to the real work.",
+      trusted: "You understand fire the way I do. That's rarer than you'd think.",
+      hostile: "You cost me my favorite test site. I don't forget that kind of thing."
+    },
+    signatureChoice: {
+      prompt: "I want to burn out a Hollowed nest in a Mourncrown forest — fast, effective, and it'll torch the whole treeline. Help me, stop me, or redirect the fire somewhere emptier?",
+      resolvedTag: "pyra_forest_choice",
+      options: [
+        {
+          id: "help_burn",
+          label: "Help her burn it — results matter more than trees.",
+          tag: "pyra_helped",
+          delta: { luminari: 15, paleChoir: -15 },
+          followUp: "She grins fiercely. \"Now you're thinking like a Luminari. Let's light it up.\""
+        },
+        {
+          id: "stop_pyra",
+          label: "Stop her — that forest matters to the people who live near it.",
+          tag: "pyra_stopped",
+          delta: { paleChoir: 10, luminari: -15, independent: 5 },
+          followUp: "She glares, furious, but backs off. \"...Fine. Your conscience, your problem when the nest grows back.\""
+        },
+        {
+          id: "redirect_fire",
+          label: "Redirect the burn to an empty stretch of ground instead.",
+          tag: "pyra_redirected",
+          delta: { independent: 15 },
+          followUp: "She considers it, surprised. \"...Efficient AND survivable. Fine. Show me where.\""
+        }
+      ]
+    }
+  },
+  {
+    id: "old_finn",
+    name: "Old Finn",
+    title: "Lighthouse Keeper",
+    zoneId: "sunken_llyr",
+    position: { x: 8, y: 0, z: 42 },
+    primaryFaction: null,
+    loyaltyType: "personal",
+    greetings: {
+      unknown: "Lighthouse keeper, name of Finn. This light's older than the Binding itself, or so I was told as a boy. Mind the rocks; the tide lies about them.",
+      met: "Light's burning steady tonight. That's a good sign, some nights.",
+      friendly: "Good to see a friendly face on the rocks. Not many bother anymore.",
+      trusted: "You've done more for this old light than anyone in years. Thank you, truly.",
+      hostile: "You had a hand in what happened to my light. I won't forget that."
+    },
+    signatureChoice: {
+      prompt: "A faction wants to convert my lighthouse — for wards, for reactors, doesn't matter which. Help me keep it neutral, or let it go to whoever offers the best terms?",
+      resolvedTag: "finn_lighthouse_choice",
+      options: [
+        {
+          id: "keep_neutral",
+          label: "Help him keep it neutral — the light belongs to everyone.",
+          tag: "finn_kept_neutral",
+          delta: { independent: 20 },
+          followUp: "His weathered face breaks into a real smile. \"Then it stays a light, not a weapon. Thank you, truly.\""
+        },
+        {
+          id: "convert_luminari",
+          label: "Convince him to let the Luminari convert it — bright minds, not blunt swords.",
+          tag: "finn_converted_luminari",
+          delta: { luminari: 15, independent: -10 },
+          followUp: "He sighs, resigned. \"If it must change hands, better that than the alternative, I suppose.\""
+        },
+        {
+          id: "let_it_go",
+          label: "Let it go to whoever pays best — it's just a building.",
+          tag: "finn_let_go",
+          delta: { independent: -15 },
+          followUp: "Something in him dims, quieter than the tide. \"...I suppose it was always going to end this way.\""
+        }
+      ]
+    }
+  },
+  {
+    id: "the_selenian",
+    name: "The Selenian",
+    title: "Hidden Survivor",
+    zoneId: "sunken_llyr",
+    position: { x: -8, y: 0, z: 42 },
+    primaryFaction: null,
+    loyaltyType: "personal",
+    greetings: {
+      unknown: "...You can see me clearly, don't you. Most people's eyes slide right past. I am called many things here. None of them my true name.",
+      met: "The tide still keeps my secret. For now.",
+      friendly: "You've kept my secret well. That means more than you know.",
+      trusted: "You are the first living Aethonian I have trusted with the whole truth in longer than you'd believe.",
+      hostile: "You gave my name to those who would cage me. I hope it was worth it."
+    },
+    signatureChoice: {
+      prompt: "You could expose what I am to the Chainwrights, protect my secret, or ask me to tell you the true history of the Binding. What would you have of me?",
+      resolvedTag: "selenian_secret_choice",
+      options: [
+        {
+          id: "protect_secret",
+          label: "Protect your secret. You've earned that much.",
+          tag: "selenian_protected",
+          delta: { paleChoir: 10, independent: 15 },
+          followUp: "Something in their ancient eyes eases, just slightly. \"Then perhaps Aethon is not entirely lost to kindness.\""
+        },
+        {
+          id: "expose_selenian",
+          label: "Expose you — the Chainwrights need to know what you are.",
+          tag: "selenian_exposed",
+          delta: { chainwrights: 20, paleChoir: -20, independent: -20 },
+          followUp: "They don't flinch, but something ancient and sad settles over their face. \"...Of course. It was always going to end this way.\""
+        },
+        {
+          id: "learn_history",
+          label: "Tell me the true history of the Binding.",
+          tag: "selenian_history_learned",
+          delta: { independent: 10 },
+          followUp: "They study you for a long moment. \"Very well. Sit. This will take longer than you expect, and change more than you're ready for.\""
+        }
+      ]
+    }
+  },
+  {
+    id: "skald_varn",
+    name: "Skald Varn",
+    title: "Singer of Dead Kings",
+    zoneId: "mourncrown",
+    position: { x: 6, y: 0, z: 44 },
+    primaryFaction: null,
+    loyaltyType: "ideological",
+    greetings: {
+      unknown:
+        "A new verse walks into my sight. I'm Skald Varn — I sing the deeds of heroes and villains alike, and I haven't decided which you'll be yet.",
+      met: "Still composing. You give me plenty to work with.",
+      friendly: "Your saga grows more interesting with every telling.",
+      trusted: "I've sung true songs about liars and lies about heroes. Yours, I intend to sing true.",
+      hostile: "I've sung your name already, sky-child. Not kindly."
+    },
+    signatureChoice: {
+      prompt: "I'm ready to sing your saga across every hall in Aethon. Should I sing it true, flatter you for the crowd, or leave your name out of it entirely?",
+      resolvedTag: "varn_saga_choice",
+      options: [
+        {
+          id: "sing_true",
+          label: "Sing it true, whatever the cost to my reputation.",
+          tag: "varn_sang_true",
+          delta: { independent: 15, paleChoir: 5 },
+          followUp: "He nods slowly, something like respect in his eyes. \"Truth is the hardest song to sing. I'll do it justice.\""
+        },
+        {
+          id: "sing_flattering",
+          label: "Flatter me a little — a hero needs a good story.",
+          tag: "varn_sang_flattering",
+          delta: { independent: 5 },
+          followUp: "He grins, already composing. \"Ah, a patron of the classics. Very well — legendary it is.\""
+        },
+        {
+          id: "forbid_song",
+          label: "Leave my name out of it. I don't want the attention.",
+          tag: "varn_song_forbidden",
+          delta: { independent: 10 },
+          followUp: "He looks almost disappointed, but bows his head. \"As you wish. Some legends prefer silence. Rare, but understandable.\""
+        }
+      ]
+    }
+  },
+  {
+    id: "lady_maren",
+    name: "Lady Maren",
+    title: "Noble of the Last House",
+    zoneId: "mourncrown",
+    position: { x: -6, y: 0, z: 44 },
+    primaryFaction: null,
+    loyaltyType: "institutional",
+    greetings: {
+      unknown: "Lady Maren, of the Last House — what remains of it. Forgive the ruin. The Chainwrights left little of my family's kingdom standing.",
+      met: "The manor still stands, for now. Barely.",
+      friendly: "It's rare to find someone who cares about what was, not just what's useful now.",
+      trusted: "You've done more to preserve my family's history than any of my own relations. Thank you.",
+      hostile: "You let my family's history burn. I won't forget who stood by while it did."
+    },
+    signatureChoice: {
+      prompt: "I want to restore my family's archive, but every faction wants to claim the manor for their own use. Help me keep it independent, let a faction have it, or burn it so no one can misuse it?",
+      resolvedTag: "maren_manor_choice",
+      options: [
+        {
+          id: "keep_independent",
+          label: "Help her keep it independent.",
+          tag: "maren_kept_independent",
+          delta: { independent: 20 },
+          followUp: "She exhales, visibly relieved. \"Then the truth stays mine to tell, not theirs to rewrite. Thank you.\""
+        },
+        {
+          id: "faction_claim",
+          label: "Let a faction take it — she needs the protection.",
+          tag: "maren_faction_claimed",
+          delta: { chainwrights: 10, independent: -10 },
+          followUp: "She nods stiffly. \"Protection with a price, as always. So be it.\""
+        },
+        {
+          id: "burn_manor",
+          label: "Burn it — better gone than misused.",
+          tag: "maren_manor_burned",
+          delta: { paleChoir: 5, independent: -15 },
+          followUp: "Something in her breaks quietly. \"...Then let it burn. At least the choice was mine.\""
+        }
+      ]
+    }
+  },
+  {
+    id: "chancellor_irin",
+    name: "Chancellor Irin",
+    title: "Ruler of the Spirechain Assembly",
+    zoneId: "spirechain",
+    position: { x: 6, y: 0, z: 36 },
+    primaryFaction: "chainwrights",
+    loyaltyType: "pragmatic",
+    greetings: {
+      unknown: "Chancellor Irin, of the Spirechain Assembly. Every visitor to my city is a variable I'd like to understand quickly. Humor me?",
+      met: "The Assembly's always in session, one way or another.",
+      friendly: "You've been a useful variable, I'll admit.",
+      trusted: "Few outsiders earn my genuine trust. You have it, for now.",
+      hostile: "You cost me control of my own city once. I don't forgive that lightly."
+    },
+    signatureChoice: {
+      prompt: "I can offer a secret pact — publicly denounce one faction, and I'll shift their territory to whichever you favor. Accept it, refuse, or expose the offer to force an open summit?",
+      resolvedTag: "irin_pact_choice",
+      options: [
+        {
+          id: "accept_irin_pact",
+          label: "Accept the pact.",
+          tag: "irin_pact_accepted",
+          delta: { chainwrights: 10, independent: -15 },
+          followUp: "She smiles thinly. \"Spirechain thanks you. Quietly, of course.\""
+        },
+        {
+          id: "refuse_irin_pact",
+          label: "Refuse — Spirechain deserves better than backroom deals.",
+          tag: "irin_pact_refused",
+          delta: { independent: 15 },
+          followUp: "She studies you, recalculating. \"...Noted. And oddly refreshing.\""
+        },
+        {
+          id: "force_summit",
+          label: "Expose the offer and force a summit between all three factions.",
+          tag: "irin_summit_forced",
+          delta: { independent: 25, chainwrights: -10 },
+          followUp: "For once, she looks genuinely startled. \"That is either very brave or very foolish. We'll see which.\""
+        }
+      ]
+    }
+  },
+  {
+    id: "novice_tarn",
+    name: "Novice Tarn",
+    title: "Student Who Discovered the Truth",
+    zoneId: "spirechain",
+    position: { x: -6, y: 0, z: 36 },
+    primaryFaction: null,
+    loyaltyType: "trueBeliever",
+    greetings: {
+      unknown: "Oh — oh, careful, don't let anyone see this. I'm Novice Tarn. I found something in the archive I don't think I was meant to find.",
+      met: "Still terrified. Still convinced I have to do something about it.",
+      friendly: "You're the only person I trust with this. Please don't make me regret that.",
+      trusted: "You've protected me more than anyone else in this city ever has. Thank you.",
+      hostile: "You let them silence me. I hope whatever you gained was worth it."
+    },
+    signatureChoice: {
+      prompt: "I have proof the Binding was a crime, not a rescue. Help me publish it, help me flee somewhere safe, or should I stay silent to protect myself?",
+      resolvedTag: "tarn_truth_choice",
+      options: [
+        {
+          id: "publish_truth",
+          label: "Publish it. The truth deserves to be known.",
+          tag: "tarn_truth_published",
+          delta: { paleChoir: 15, chainwrights: -20, independent: 15 },
+          followUp: "He looks terrified and resolved at once. \"Then let's go make history very uncomfortable.\""
+        },
+        {
+          id: "help_flee",
+          label: "Help him flee somewhere safe instead.",
+          tag: "tarn_helped_flee",
+          delta: { independent: 15 },
+          followUp: "Relief floods his face. \"Alive and unpublished beats dead and vindicated. Thank you.\""
+        },
+        {
+          id: "stay_silent",
+          label: "Tell him to stay silent — it's too dangerous.",
+          tag: "tarn_stayed_silent",
+          delta: { chainwrights: 10, independent: -10 },
+          followUp: "He nods slowly, something extinguished behind his eyes. \"...Maybe you're right. Maybe I was never brave enough for this.\""
+        }
+      ]
+    }
+  },
+  {
+    id: "hollow_singer",
+    name: "Hollow-Singer",
+    title: "Leader of the Hollowed Commune",
+    zoneId: "frayedge",
+    position: { x: 8, y: 0, z: 52 },
+    primaryFaction: null,
+    loyaltyType: "ideological",
+    greetings: {
+      unknown:
+        "You still hold your name so tightly. I remember holding mine that way too. I am called Hollow-Singer now. It fits better than the one I lost.",
+      met: "The commune sings tonight. You're welcome to listen, sky-child.",
+      friendly: "You return, again and again. Selen notices patience like yours.",
+      trusted: "You understand now, don't you. What we are. What we could all become.",
+      hostile: "You raised a blade against my commune. Selen remembers cruelty as clearly as kindness."
+    },
+    signatureChoice: {
+      prompt: "Join the commune and embrace what you're becoming, negotiate peaceful coexistence between us and the wary world, or refuse and walk away from the whispers entirely?",
+      resolvedTag: "hollowsinger_choice",
+      options: [
+        {
+          id: "join_commune",
+          label: "Join the commune. Embrace it.",
+          tag: "hollowsinger_joined",
+          delta: { independent: -10 },
+          followUp: "Something in their many-layered voice warms. \"Then welcome home, sky-child. The whispers will teach you the rest.\""
+        },
+        {
+          id: "negotiate_coexist",
+          label: "Negotiate coexistence between the commune and the wary world.",
+          tag: "hollowsinger_coexist",
+          delta: { independent: 20, paleChoir: 10 },
+          followUp: "They consider this a long moment. \"...A harder path than surrender. I respect it more for that.\""
+        },
+        {
+          id: "refuse_hollowsinger",
+          label: "Refuse. You won't lose yourself to the whispers.",
+          tag: "hollowsinger_refused",
+          delta: { chainwrights: 5, independent: 10 },
+          followUp: "Something almost like sorrow crosses their face. \"Then I hope your name stays yours long enough to matter.\""
+        }
+      ]
+    }
+  },
+  {
+    id: "the_falling_man",
+    name: "The Falling Man",
+    title: "Fading Between Memory and Self",
+    zoneId: "frayedge",
+    position: { x: -8, y: 0, z: 50 },
+    primaryFaction: null,
+    loyaltyType: "personal",
+    greetings: {
+      unknown: "...Am I still here? I can't always tell anymore. I was a person, once. I'm having trouble remembering the shape of that.",
+      met: "Still fading. Still here, for now, somehow.",
+      friendly: "You keep returning. That's more than most people give the almost-gone.",
+      trusted: "You've given me more of myself back than I thought possible. Thank you, whoever you are to me now.",
+      hostile: "You let me go when you could have stayed. I understand. I would have too."
+    },
+    signatureChoice: {
+      prompt: "I'm fading — becoming a memory instead of a person. Try to save me, let me go peacefully, or just record my last words before I'm gone?",
+      resolvedTag: "fallingman_choice",
+      options: [
+        {
+          id: "save_fallingman",
+          label: "Try to save him — there has to be a way back.",
+          tag: "fallingman_saved",
+          delta: { independent: 15 },
+          followUp: "For a moment, something solidifies in his eyes — real, present, grateful. \"...Thank you. I remember my name again. It's small. It's enough.\""
+        },
+        {
+          id: "let_go_fallingman",
+          label: "Let him go peacefully.",
+          tag: "fallingman_let_go",
+          delta: { paleChoir: 15, independent: 5 },
+          followUp: "He smiles, faint and fading. \"Thank you for not making me fight it. I was so tired of fighting it.\""
+        },
+        {
+          id: "record_words",
+          label: "Record his final words for the Book of Dusk.",
+          tag: "fallingman_recorded",
+          delta: { paleChoir: 10 },
+          followUp: "His voice steadies, just for a moment. \"Then let someone remember I was more than whispers. Write it down.\""
+        }
+      ]
+    }
   }
 ];
 
@@ -794,10 +1369,18 @@ export interface ResolvedDialogue {
 }
 
 /** Greeting (plus the signature-choice prompt, if it hasn't been resolved yet) for the current visit. */
+function crossReferenceLine(npc: NpcDef, memory: NpcMemoryState): string | undefined {
+  for (const ref of npc.crossReferences ?? []) {
+    if (memoryFor(memory, ref.npcId).tags.includes(ref.tag)) return ref.line;
+  }
+  return undefined;
+}
+
 export function resolveDialogue(npc: NpcDef, memory: NpcMemoryState, loyalty: LoyaltyScores): ResolvedDialogue {
   const entry = memoryFor(memory, npc.id);
   const relationship = computeRelationship(gaugeKeyFor(npc), npc.loyaltyType, entry, loyalty);
-  const greeting = npc.greetings[relationship];
+  const crossLine = crossReferenceLine(npc, memory);
+  const greeting = crossLine ? `${npc.greetings[relationship]} ${crossLine}` : npc.greetings[relationship];
 
   if (npc.signatureChoice && !entry.tags.includes(npc.signatureChoice.resolvedTag)) {
     return {
