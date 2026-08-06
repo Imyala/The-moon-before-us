@@ -162,7 +162,9 @@ const THEME_VISUALS: Record<ZoneDef["theme"], ThemeVisuals> = {
   arcane: { deadTrees: true, treeCount: 5, rockCount: 60, moteCount: 70, moteColor: "#9fd0ff", moteName: "arcane-motes", moteHeight: 3.2 },
   fractured: { deadTrees: true, treeCount: 15, rockCount: 160, moteCount: 45, moteColor: "#ff6b8f", moteName: "rift-motes", moteHeight: 4.8 },
   // The Moonthread itself: no trees at all, just stone and the moon's own light given form.
-  lunar: { deadTrees: true, treeCount: 0, rockCount: 90, moteCount: 90, moteColor: "#e8ecff", moteName: "moonlight", moteHeight: 5.5 }
+  lunar: { deadTrees: true, treeCount: 0, rockCount: 90, moteCount: 90, moteColor: "#e8ecff", moteName: "moonlight", moteHeight: 5.5 },
+  // The Hollow Vault: sealed stonework reclaimed by whatever the Hollowed leave growing in the dark.
+  hollow: { deadTrees: true, treeCount: 0, rockCount: 120, moteCount: 55, moteColor: "#8fd67a", moteName: "spore-glow", moteHeight: 2.8 }
 };
 
 function scatterScenery(target: THREE.Group, zone: ZoneDef) {

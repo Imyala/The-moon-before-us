@@ -136,7 +136,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
   dialogue.onChoose = (npcId, optionId) => net.send({ t: "chooseDialogueOption", npcId, optionId });
 
   hud.setRoomCode(roomCode === "solo" ? null : roomCode);
-  hud.setZoneName(getZone(currentZoneId).name);
+  hud.setZoneName(getZone(currentZoneId).isDungeon ? `${getZone(currentZoneId).name} ⚔️` : getZone(currentZoneId).name);
   hud.onChatSend = (msg) => net.send({ t: "chat", message: msg });
   controller.onAbility = (slot) => useAbility(slot);
   controller.onDodge = () => sendDodge();
@@ -244,8 +244,8 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
     world.loadZone(zone);
     selfPos = { ...character.position };
     lastServerSelfPos = { ...selfPos };
-    hud.setZoneName(zone.name);
-    hud.pushToast(`Entering ${zone.name}`, "info");
+    hud.setZoneName(zone.isDungeon ? `${zone.name} ⚔️` : zone.name);
+    hud.pushToast(`Entering ${zone.name}${zone.isDungeon ? " — a dungeon" : ""}`, "info");
   }
 
   function itemName(itemId: string): string {

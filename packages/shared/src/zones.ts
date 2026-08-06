@@ -15,9 +15,11 @@ export interface TravelPoint {
    * "trust_them" choice) rather than making it always-open. See Room.tryTravel.
    */
   requiresTag?: { npcId: string; tag: string; deniedMessage: string };
+  /** A dungeon's entrance: below this character level, Room.tryTravel denies travel with a message instead. */
+  requiresLevel?: number;
 }
 
-export type ZoneTheme = "verdant" | "ashen" | "coastal" | "highland" | "arcane" | "fractured" | "lunar";
+export type ZoneTheme = "verdant" | "ashen" | "coastal" | "highland" | "arcane" | "fractured" | "lunar" | "hollow";
 
 export interface ZoneDef {
   id: string;
@@ -30,6 +32,8 @@ export interface ZoneDef {
   fogColor: string;
   backgroundColor: string;
   travelPoints: TravelPoint[];
+  /** An instanced challenge zone (see docs/GDD.md's "Dungeons" section) — same solo/party instancing every zone already gets, just gated and boss-capped rather than open exploration. */
+  isDungeon?: boolean;
 }
 
 export const START_ZONE_ID = "threadhold";
@@ -108,6 +112,42 @@ export const ZONES: Record<string, ZoneDef> = {
         toZoneId: "threadhold",
         toPos: { x: 0, y: 0, z: -50 },
         label: "Threadhold"
+      },
+      // The Hollow Vault: a sealed Order stronghold, fallen to the Hollowed. Level-gated rather
+      // than story-gated, since a dungeon is repeatable challenge content, not a narrative beat.
+      {
+        id: "ashmire_to_hollow_vault",
+        pos: { x: -30, y: 0, z: -26 },
+        radius: 3,
+        toZoneId: "hollow_vault",
+        toPos: { x: 0, y: 0, z: 26 },
+        label: "The Hollow Vault",
+        requiresLevel: 6
+      }
+    ]
+  },
+  hollow_vault: {
+    id: "hollow_vault",
+    name: "The Hollow Vault",
+    radius: 34,
+    spawnPoint: { x: 0, y: 0, z: 26 },
+    theme: "hollow",
+    groundColor: "#2a2418",
+    groundHighlight: "#4a5c3a",
+    fogColor: "#0d0f08",
+    backgroundColor: "#080905",
+    isDungeon: true,
+    travelPoints: [
+      // Set back from the spawn point on purpose: walking in from Ashmire and heading toward
+      // the boss chamber (decreasing z) moves away from this immediately, rather than clipping
+      // it and bouncing straight back out.
+      {
+        id: "hollow_vault_to_ashmire",
+        pos: { x: 0, y: 0, z: 32 },
+        radius: 3,
+        toZoneId: "ashmire",
+        toPos: { x: -26, y: 0, z: -22 },
+        label: "Ashmire"
       }
     ]
   },

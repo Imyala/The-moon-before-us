@@ -240,6 +240,16 @@ export const ITEMS: ItemDef[] = [
     description: "Hand-forged plate only a Smith knows how to temper correctly.",
     statBonus: { vitality: 14, power: 3 }
   },
+  {
+    id: "armor_vault_plate",
+    name: "Vault-Sealed Plate",
+    kind: "armor",
+    slot: "armor",
+    rarity: "epic",
+    icon: "armor",
+    description: "Order plate, sealed away when the Vault fell and never worn since.",
+    statBonus: { vitality: 16, power: 6 }
+  },
 
   // ---- trinkets ----
   {
@@ -271,6 +281,16 @@ export const ITEMS: ItemDef[] = [
     icon: "charm",
     description: "Woven from glade-grown vines by a Naturalist's hand.",
     statBonus: { critChance: 0.04, haste: 0.04 }
+  },
+  {
+    id: "trinket_hollow_seal",
+    name: "Hollow Seal",
+    kind: "trinket",
+    slot: "trinket",
+    rarity: "epic",
+    icon: "charm",
+    description: "The Vault Warden's own seal of office. Still humming, somehow.",
+    statBonus: { power: 6, critChance: 0.05, haste: 0.03 }
   },
 
   // ---- materials ----

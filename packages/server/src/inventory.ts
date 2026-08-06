@@ -2,17 +2,23 @@ import { ITEMS, RECIPES, getSubclass, type CharacterState, type EquipmentSlot, t
 import { computeEffectiveStats } from "./character.js";
 import { maxHpForCharacter, maxResourceForCharacter } from "@moon/shared";
 
-export function addItem(character: CharacterState, itemId: string, quantity: number, rarity: ItemRarity = "common"): void {
+/**
+ * Grants an item at its own defined rarity (see ItemDef.rarity) unless a specific rarity is
+ * passed — used only to preserve a stack's existing rarity across an equip/unequip round trip,
+ * never to override what the item actually is.
+ */
+export function addItem(character: CharacterState, itemId: string, quantity: number, rarity?: ItemRarity): void {
   const def = ITEMS.find((i) => i.id === itemId);
   if (!def) return;
+  const resolvedRarity = rarity ?? def.rarity;
   if (def.stackable) {
-    const existing = character.inventory.find((s) => s.itemId === itemId && s.rarity === rarity);
+    const existing = character.inventory.find((s) => s.itemId === itemId && s.rarity === resolvedRarity);
     if (existing) {
       existing.quantity += quantity;
       return;
     }
   }
-  character.inventory.push({ itemId, quantity, rarity });
+  character.inventory.push({ itemId, quantity, rarity: resolvedRarity });
 }
 
 export function removeItemAt(character: CharacterState, index: number, quantity: number): boolean {
@@ -69,7 +75,7 @@ export function craft(character: CharacterState, recipeId: string): CraftResult 
   const resultDef = ITEMS.find((i) => i.id === recipe.resultItemId);
   const yieldBonus = resultDef?.kind === "consumable" ? subclass?.potionYieldBonus ?? 0 : 0;
   const finalQty = recipe.resultQuantity + yieldBonus;
-  addItem(character, recipe.resultItemId, finalQty, "common");
+  addItem(character, recipe.resultItemId, finalQty);
   return { ok: true, itemId: recipe.resultItemId, quantity: finalQty };
 }
 

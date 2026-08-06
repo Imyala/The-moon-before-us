@@ -129,6 +129,32 @@ export const ENEMIES: EnemyDef[] = [
     ],
     scale: 2.0,
     color: "#c9d6ff"
+  },
+  // The Hollow Vault's boss (see docs/GDD.md's "Dungeons" section): a corrupted Order construct
+  // guarding what the Vault sealed away. A real lockout, not just a hard fight — respawnMs is
+  // 10 minutes instead of the standard 20 seconds, so a party can't trivially re-farm it.
+  {
+    id: "vault_warden",
+    name: "The Vault Warden",
+    tier: "boss",
+    maxHp: 1400,
+    power: 30,
+    moveSpeed: 2.4,
+    aggroRadius: 18,
+    attackRange: 4,
+    attackDamage: 38,
+    attackCooldownMs: 2400,
+    attackTelegraphMs: 800,
+    xpReward: 450,
+    respawnMs: 600000,
+    loot: [
+      { itemId: "armor_vault_plate", chance: 0.35, minQty: 1, maxQty: 1 },
+      { itemId: "trinket_hollow_seal", chance: 0.35, minQty: 1, maxQty: 1 },
+      { itemId: "mat_starlight_essence", chance: 0.8, minQty: 3, maxQty: 5 },
+      { itemId: "mat_silver_ore", chance: 0.6, minQty: 3, maxQty: 6 }
+    ],
+    scale: 2.6,
+    color: "#5c6b3a"
   }
 ];
 

@@ -129,6 +129,18 @@ export const ZONE_ENEMY_SPAWNS: Record<string, EnemySpawnPoint[]> = {
     { defId: "selenian_remnant", pos: { x: 14, y: 0, z: -6 }, patrolRadius: 5 },
     { defId: "selenian_remnant", pos: { x: -16, y: 0, z: -10 }, patrolRadius: 5 },
     { defId: "wane_wraith", pos: { x: 0, y: 0, z: -22 }, patrolRadius: 5 }
+  ],
+  // The Hollow Vault (see docs/GDD.md's "Dungeons" section): entering at the south end (z=30),
+  // a gauntlet of Order constructs and Hollowed thins out toward the boss chamber at the north
+  // end, where the Vault Warden itself stands alone.
+  hollow_vault: [
+    { defId: "stone_sentinel", pos: { x: 6, y: 0, z: 20 }, patrolRadius: 3 },
+    { defId: "stone_sentinel", pos: { x: -6, y: 0, z: 14 }, patrolRadius: 3 },
+    { defId: "husk", pos: { x: 8, y: 0, z: 8 }, patrolRadius: 4 },
+    { defId: "husk", pos: { x: -8, y: 0, z: 4 }, patrolRadius: 4 },
+    { defId: "stone_sentinel", pos: { x: 0, y: 0, z: -4 }, patrolRadius: 3 },
+    { defId: "husk", pos: { x: 5, y: 0, z: -10 }, patrolRadius: 4 },
+    { defId: "vault_warden", pos: { x: 0, y: 0, z: -20 }, patrolRadius: 2 }
   ]
 };
 
@@ -209,6 +221,11 @@ export const ZONE_NODE_SPAWNS: Record<string, NodeSpawnPoint[]> = {
   moonthread: [
     { defId: "node_crystal", pos: { x: 10, y: 0, z: 4 } },
     { defId: "node_crystal", pos: { x: -12, y: 0, z: 14 } }
+  ],
+  // Sealed Order stockpiles, cracked open by the Hollowed.
+  hollow_vault: [
+    { defId: "node_ore_vein", pos: { x: 10, y: 0, z: 16 } },
+    { defId: "node_ore_vein", pos: { x: -10, y: 0, z: 10 } }
   ]
 };
 

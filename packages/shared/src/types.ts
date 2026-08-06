@@ -152,6 +152,8 @@ export interface EnemyDef {
   loot: EnemyLootEntry[];
   scale: number; // visual scale multiplier
   color: string; // hex color for stylized low-poly body
+  /** Overrides the server's default enemy respawn timer — used for dungeon bosses to create a real lockout. */
+  respawnMs?: number;
 }
 
 export type ResourceNodeType = "ore" | "tree" | "herb" | "crystal";

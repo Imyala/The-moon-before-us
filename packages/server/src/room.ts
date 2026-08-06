@@ -2,6 +2,7 @@ import type { WebSocket } from "ws";
 import {
   getAbility,
   getEnemy,
+  getItem,
   getResourceNode,
   getSpecialization,
   getSubclass,
@@ -747,11 +748,11 @@ export class Room {
   }
 
   private killEnemy(enemy: EnemyEntity, now: number) {
+    const def = getEnemy(enemy.defId)!;
     enemy.deadAt = now;
-    enemy.respawnAt = now + RESPAWN_ENEMY_MS;
+    enemy.respawnAt = now + (def.respawnMs ?? RESPAWN_ENEMY_MS);
     enemy.state = "dead";
     this.events.push({ type: "death", entityId: enemy.id, isPlayer: false, zoneId: enemy.zoneId });
-    const def = getEnemy(enemy.defId)!;
     for (const [playerId, ts] of enemy.damagers) {
       if (now - ts > DAMAGE_CONTRIBUTION_WINDOW_MS) continue;
       const player = this.players.get(playerId);
@@ -761,8 +762,9 @@ export class Room {
       for (const entry of def.loot) {
         if (Math.random() < entry.chance) {
           const qty = randInt(entry.minQty, entry.maxQty);
-          addItem(player.character, entry.itemId, qty, "common");
-          this.events.push({ type: "loot", playerId: player.id, itemId: entry.itemId, quantity: qty, rarity: "common", zoneId: player.character.zoneId });
+          addItem(player.character, entry.itemId, qty);
+          const rarity = getItem(entry.itemId)?.rarity ?? "common";
+          this.events.push({ type: "loot", playerId: player.id, itemId: entry.itemId, quantity: qty, rarity, zoneId: player.character.zoneId });
         }
       }
       this.sendCharacterUpdate(player);
@@ -830,8 +832,9 @@ export class Room {
     for (const entry of def.loot) {
       if (Math.random() < entry.chance) {
         const qty = randInt(entry.minQty, entry.maxQty) + gatherBonus;
-        addItem(player.character, entry.itemId, qty, "common");
-        this.events.push({ type: "loot", playerId: player.id, itemId: entry.itemId, quantity: qty, rarity: "common", zoneId: player.character.zoneId });
+        addItem(player.character, entry.itemId, qty);
+        const rarity = getItem(entry.itemId)?.rarity ?? "common";
+        this.events.push({ type: "loot", playerId: player.id, itemId: entry.itemId, quantity: qty, rarity, zoneId: player.character.zoneId });
       }
     }
     // Aether crystals are, narratively, fragments of Selen herself — handling them deepens the
@@ -907,6 +910,11 @@ export class Room {
       if (tp.requiresTag && !memoryFor(player.character.npcMemory, tp.requiresTag.npcId).tags.includes(tp.requiresTag.tag)) {
         this.send(player.ws, { t: "error", message: tp.requiresTag.deniedMessage });
         player.travelCooldownUntil = now + 3000; // avoid spamming the denial every tick while standing here
+        return;
+      }
+      if (tp.requiresLevel && player.character.level < tp.requiresLevel) {
+        this.send(player.ws, { t: "error", message: `${tp.label} requires level ${tp.requiresLevel}.` });
+        player.travelCooldownUntil = now + 3000;
         return;
       }
       this.travelPlayer(player, tp, now);
