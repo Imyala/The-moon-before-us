@@ -36,6 +36,7 @@ import { Panels } from "./ui/panels.js";
 import type { PanelKind } from "./ui/panels.js";
 import { NameplateManager } from "./ui/nameplates.js";
 import { DialoguePanel } from "./ui/dialogue.js";
+import { TradePanel } from "./ui/trade.js";
 import { renderLanding } from "./ui/landing.js";
 import { getOrCreateToken, getSavedProfile, saveProfile } from "./identity.js";
 
@@ -131,9 +132,11 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
   const hud = new Hud(uiRoot, initialCharacter.classId);
   const panels = new Panels(uiRoot, net, () => character);
   const dialogue = new DialoguePanel(uiRoot);
+  const trade = new TradePanel(uiRoot, net, () => character);
   const dmgContainer = uiRoot;
 
   dialogue.onChoose = (npcId, optionId) => net.send({ t: "chooseDialogueOption", npcId, optionId });
+  hud.onProposeTrade = (targetPlayerId) => net.send({ t: "proposeTrade", targetPlayerId });
 
   hud.setRoomCode(roomCode === "solo" ? null : roomCode);
   hud.setZoneName(getZone(currentZoneId).isDungeon ? `${getZone(currentZoneId).name} ⚔️` : getZone(currentZoneId).name);
@@ -200,6 +203,17 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
         break;
       case "error":
         hud.pushToast(msg.message, "info");
+        break;
+      case "tradeRequest":
+        trade.handleRequest(msg);
+        break;
+      case "tradeState":
+        trade.handleState(msg);
+        break;
+      case "tradeClosed":
+        trade.handleClosed(msg);
+        if (msg.reason === "completed") hud.pushToast("Trade completed.", "loot");
+        else if (msg.reason === "declined") hud.pushToast("Trade declined.", "info");
         break;
     }
   }
@@ -435,7 +449,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
   // ---------------- Input handling ----------------
 
   function useAbility(slot: number) {
-    if (panels.isOpen() || hud.isChatFocused()) return;
+    if (panels.isOpen() || trade.isOpen() || hud.isChatFocused()) return;
     const ability = activeAbilities(character).find((a) => a.slot === slot);
     if (!ability) return;
     const readyAt = cooldownReadyAt.get(ability.id) ?? 0;
@@ -467,7 +481,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
   }
 
   function sendDodge() {
-    if (panels.isOpen() || hud.isChatFocused()) return;
+    if (panels.isOpen() || trade.isOpen() || hud.isChatFocused()) return;
     const intent = controller.getMoveIntent();
     let dir = { x: intent.x, y: 0, z: intent.z };
     if (dir.x === 0 && dir.z === 0) {
@@ -477,7 +491,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
   }
 
   function tryInteract() {
-    if (panels.isOpen() || hud.isChatFocused()) return;
+    if (panels.isOpen() || trade.isOpen() || hud.isChatFocused()) return;
 
     const npcDist = nearestNpcId ? Math.hypot(npcs.get(nearestNpcId)!.position.x - selfPos.x, npcs.get(nearestNpcId)!.position.z - selfPos.z) : Infinity;
     const nodeDist = nearestNodeId ? Math.hypot(nodes.get(nearestNodeId)!.mesh.position.x - selfPos.x, nodes.get(nearestNodeId)!.mesh.position.z - selfPos.z) : Infinity;
@@ -496,7 +510,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
   }
 
   function tryTargetClick() {
-    if (panels.isOpen() || hud.isChatFocused()) return;
+    if (panels.isOpen() || trade.isOpen() || hud.isChatFocused()) return;
     raycaster.setFromCamera(controller.mouseNdc, world.camera);
     const meshes: { id: string; obj: THREE.Object3D }[] = [];
     for (const [id, vis] of enemies) {
@@ -533,7 +547,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
     const dt = Math.min(0.1, (now - lastFrame) / 1000);
     lastFrame = now;
 
-    if (!panels.isOpen() && !hud.isChatFocused()) {
+    if (!panels.isOpen() && !trade.isOpen() && !hud.isChatFocused()) {
       const intent = controller.getMoveIntent();
       const moving = intent.x !== 0 || intent.z !== 0;
       const canMove = character.hp > 0 && selfState !== "cast" && selfState !== "gather";

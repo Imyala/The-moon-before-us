@@ -68,6 +68,7 @@ export class Hud {
   private gatherFill: HTMLDivElement;
 
   onChatSend: ((msg: string) => void) | null = null;
+  onProposeTrade: ((targetPlayerId: string) => void) | null = null;
 
   constructor(root: HTMLElement, classId: PlayerClassId) {
     const cls = CLASSES[classId];
@@ -220,9 +221,13 @@ export class Hud {
       <div class="roster-item">
         <span class="dot" style="background:${CLASSES[m.classId].color}"></span>
         <span>${m.name === "" ? "Wanderer" : escapeHtml(m.name)}${m.id === selfId ? " (you)" : ""} · Lv${m.level}</span>
+        ${m.id === selfId ? "" : `<button class="roster-trade-btn interactive" data-trade="${m.id}">Trade</button>`}
       </div>`
       )
       .join("");
+    this.rosterEl.querySelectorAll<HTMLButtonElement>("[data-trade]").forEach((btn) => {
+      btn.addEventListener("click", () => this.onProposeTrade?.(btn.dataset.trade!));
+    });
   }
 
   setCompanionNames(names: string[]) {

@@ -33,16 +33,18 @@ import {
   type EnemySnapshot,
   type EntityState,
   type GameEvent,
+  type ItemRarity,
   type NodeSnapshot,
   type NpcSnapshot,
   type PlayerSnapshot,
   type ServerMessage,
+  type TradeOfferEntry,
   type TravelPoint,
   type Vec3
 } from "@moon/shared";
 import { randomUUID } from "node:crypto";
 import { grantXp } from "./character.js";
-import { addItem, craft as craftRecipe, equipItem, unequipItem, useConsumable } from "./inventory.js";
+import { addItem, countItemRarity, craft as craftRecipe, equipItem, removeItemsByIdAndRarity, unequipItem, useConsumable } from "./inventory.js";
 import {
   COMPANION_AGGRO_RADIUS,
   COMPANION_ATTACK_COOLDOWN_MS,
@@ -56,6 +58,7 @@ import {
   DODGE_DURATION_MS,
   DODGE_SPEED,
   PLAYER_SPEED,
+  TRADE_RANGE,
   TRAVEL_COOLDOWN_MS,
   WORLD_EVENT_COOLDOWN_MS,
   WORLD_EVENT_DURATION_MS,
@@ -204,6 +207,27 @@ function companionEntityId(ownerId: string, defId: string): string {
   return `${ownerId}:${defId}`;
 }
 
+function tradeOfferKey(itemId: string, rarity: ItemRarity): string {
+  return `${itemId}:${rarity}`;
+}
+
+/**
+ * A two-player trade window (see docs/GDD.md's "Player trading"). `accepted` gates everything
+ * past the initial request — no offers can be set, and no `tradeState` goes out, until the target
+ * accepts. Either side changing their offer clears BOTH confirmed flags (standard trade-window
+ * safety against "I changed what I'm giving you after you'd already agreed").
+ */
+interface TradeSession {
+  id: string;
+  aId: string;
+  bId: string;
+  accepted: boolean;
+  aOffer: Map<string, TradeOfferEntry>;
+  bOffer: Map<string, TradeOfferEntry>;
+  aConfirmed: boolean;
+  bConfirmed: boolean;
+}
+
 export class Room {
   readonly id = randomUUID();
   readonly code: string | undefined;
@@ -224,6 +248,8 @@ export class Room {
   private worldEventEnemyId: string | null = null;
   private worldEventExpiresAt = 0;
   private nextWorldEventAt = Date.now() + WORLD_EVENT_INITIAL_DELAY_MS;
+  private trades = new Map<string, TradeSession>();
+  private tradeIdByPlayer = new Map<string, string>();
 
   constructor(opts: {
     code?: string;
@@ -349,6 +375,8 @@ export class Room {
     for (const [id, companion] of this.companions) {
       if (companion.ownerId === playerId) this.companions.delete(id);
     }
+    const tradeId = this.tradeIdByPlayer.get(playerId);
+    if (tradeId) this.cancelTrade(playerId, tradeId);
     this.broadcastRoster();
     if (this.players.size === 0) {
       this.shutdown();
@@ -453,6 +481,26 @@ export class Room {
       }
       case "leave": {
         this.removePlayer(player.id);
+        break;
+      }
+      case "proposeTrade": {
+        this.proposeTrade(player, msg.targetPlayerId);
+        break;
+      }
+      case "respondTrade": {
+        this.respondTrade(player, msg.tradeId, msg.accept);
+        break;
+      }
+      case "setTradeOffer": {
+        this.setTradeOffer(player, msg.tradeId, msg.itemId, msg.rarity, msg.quantity);
+        break;
+      }
+      case "confirmTrade": {
+        this.confirmTradeSide(player, msg.tradeId);
+        break;
+      }
+      case "cancelTrade": {
+        this.cancelTrade(player.id, msg.tradeId);
         break;
       }
     }
@@ -981,6 +1029,156 @@ export class Room {
       this.send(player.ws, { t: "npcDialogue", npcId: npc.id, speaker: followUp.speaker, line: followUp.line });
     }
     this.sendCharacterUpdate(player);
+  }
+
+  // ---------------- Trading ----------------
+
+  private proposeTrade(player: PlayerEntity, targetPlayerId: string) {
+    if (this.tradeIdByPlayer.has(player.id)) {
+      this.send(player.ws, { t: "error", message: "You're already in a trade." });
+      return;
+    }
+    const target = this.players.get(targetPlayerId);
+    if (!target || target.id === player.id) return;
+    if (this.tradeIdByPlayer.has(target.id)) {
+      this.send(player.ws, { t: "error", message: `${target.character.name} is already trading with someone else.` });
+      return;
+    }
+    if (player.character.hp <= 0 || target.character.hp <= 0) {
+      this.send(player.ws, { t: "error", message: "Can't trade while either of you is down." });
+      return;
+    }
+    if (target.character.zoneId !== player.character.zoneId || distance(player.position, target.position) > TRADE_RANGE) {
+      this.send(player.ws, { t: "error", message: `Move closer to ${target.character.name} to trade.` });
+      return;
+    }
+
+    const id = randomUUID();
+    this.trades.set(id, { id, aId: player.id, bId: target.id, accepted: false, aOffer: new Map(), bOffer: new Map(), aConfirmed: false, bConfirmed: false });
+    this.tradeIdByPlayer.set(player.id, id);
+    this.tradeIdByPlayer.set(target.id, id);
+    this.send(target.ws, { t: "tradeRequest", tradeId: id, fromPlayerId: player.id, fromName: player.character.name });
+  }
+
+  private respondTrade(player: PlayerEntity, tradeId: string, accept: boolean) {
+    const session = this.trades.get(tradeId);
+    if (!session || session.bId !== player.id) return;
+    if (!accept) {
+      this.closeTrade(session, "declined");
+      return;
+    }
+    session.accepted = true;
+    this.sendTradeState(session);
+  }
+
+  private setTradeOffer(player: PlayerEntity, tradeId: string, itemId: string, rarity: ItemRarity, quantity: number) {
+    const session = this.trades.get(tradeId);
+    if (!session || !session.accepted) return;
+    const isA = session.aId === player.id;
+    if (!isA && session.bId !== player.id) return;
+    if (!getItem(itemId)) return;
+
+    const offer = isA ? session.aOffer : session.bOffer;
+    const key = tradeOfferKey(itemId, rarity);
+    const owned = countItemRarity(player.character, itemId, rarity);
+    const clamped = Math.max(0, Math.min(quantity, owned));
+    if (clamped <= 0) offer.delete(key);
+    else offer.set(key, { itemId, rarity, quantity: clamped });
+
+    // Either side changing their offer means the other side hasn't agreed to THIS offer yet.
+    session.aConfirmed = false;
+    session.bConfirmed = false;
+    this.sendTradeState(session);
+  }
+
+  private confirmTradeSide(player: PlayerEntity, tradeId: string) {
+    const session = this.trades.get(tradeId);
+    if (!session || !session.accepted) return;
+    if (session.aId === player.id) session.aConfirmed = true;
+    else if (session.bId === player.id) session.bConfirmed = true;
+    else return;
+
+    if (session.aConfirmed && session.bConfirmed) {
+      this.executeTrade(session);
+    } else {
+      this.sendTradeState(session);
+    }
+  }
+
+  private executeTrade(session: TradeSession) {
+    const playerA = this.players.get(session.aId);
+    const playerB = this.players.get(session.bId);
+    if (!playerA || !playerB) {
+      this.closeTrade(session, "cancelled");
+      return;
+    }
+    // Re-validated against current inventories, not trusted from when each offer was set — an
+    // item could have been crafted away, equipped, or spent on a consumable since then.
+    const stillValid = (side: PlayerEntity, offer: Map<string, TradeOfferEntry>) =>
+      [...offer.values()].every((entry) => countItemRarity(side.character, entry.itemId, entry.rarity) >= entry.quantity);
+    if (!stillValid(playerA, session.aOffer) || !stillValid(playerB, session.bOffer)) {
+      this.send(playerA.ws, { t: "error", message: "Trade cancelled — one of the offered items is no longer available." });
+      this.send(playerB.ws, { t: "error", message: "Trade cancelled — one of the offered items is no longer available." });
+      this.closeTrade(session, "cancelled");
+      return;
+    }
+
+    for (const entry of session.aOffer.values()) {
+      removeItemsByIdAndRarity(playerA.character, entry.itemId, entry.rarity, entry.quantity);
+      addItem(playerB.character, entry.itemId, entry.quantity, entry.rarity);
+    }
+    for (const entry of session.bOffer.values()) {
+      removeItemsByIdAndRarity(playerB.character, entry.itemId, entry.rarity, entry.quantity);
+      addItem(playerA.character, entry.itemId, entry.quantity, entry.rarity);
+    }
+    this.sendCharacterUpdate(playerA);
+    this.sendCharacterUpdate(playerB);
+    this.closeTrade(session, "completed");
+  }
+
+  private cancelTrade(playerId: string, tradeId: string) {
+    const session = this.trades.get(tradeId);
+    if (!session || (session.aId !== playerId && session.bId !== playerId)) return;
+    this.closeTrade(session, "cancelled");
+  }
+
+  private closeTrade(session: TradeSession, reason: "completed" | "cancelled" | "declined") {
+    this.trades.delete(session.id);
+    this.tradeIdByPlayer.delete(session.aId);
+    this.tradeIdByPlayer.delete(session.bId);
+    const a = this.players.get(session.aId);
+    const b = this.players.get(session.bId);
+    if (a) this.send(a.ws, { t: "tradeClosed", tradeId: session.id, reason });
+    if (b) this.send(b.ws, { t: "tradeClosed", tradeId: session.id, reason });
+  }
+
+  private sendTradeState(session: TradeSession) {
+    const a = this.players.get(session.aId);
+    const b = this.players.get(session.bId);
+    if (a) {
+      this.send(a.ws, {
+        t: "tradeState",
+        tradeId: session.id,
+        otherPlayerId: session.bId,
+        otherName: b?.character.name ?? "",
+        selfOffer: [...session.aOffer.values()],
+        otherOffer: [...session.bOffer.values()],
+        selfConfirmed: session.aConfirmed,
+        otherConfirmed: session.bConfirmed
+      });
+    }
+    if (b) {
+      this.send(b.ws, {
+        t: "tradeState",
+        tradeId: session.id,
+        otherPlayerId: session.aId,
+        otherName: a?.character.name ?? "",
+        selfOffer: [...session.bOffer.values()],
+        otherOffer: [...session.aOffer.values()],
+        selfConfirmed: session.bConfirmed,
+        otherConfirmed: session.aConfirmed
+      });
+    }
   }
 
   // ---------------- Travel ----------------

@@ -43,7 +43,11 @@ export function getOrCreateCharacter(token: string, name: string, classId: Playe
     stats,
     skillPoints: 0,
     abilityRanks: {},
-    inventory: [...STARTER_ITEMS, { itemId: cls.altWeaponItemId, quantity: 1, rarity: "common" }],
+    // Each stack is its own object (not the shared STARTER_ITEMS entries) — every new character
+    // otherwise starts out pointing at the very same ItemStack objects as every other character,
+    // so mutating one character's starter stack (gathering more, trading it away, crafting with
+    // it) silently corrupted every other character's identical starter stack too.
+    inventory: [...STARTER_ITEMS.map((item) => ({ ...item })), { itemId: cls.altWeaponItemId, quantity: 1, rarity: "common" }],
     equipment: { weapon: { itemId: cls.weaponItemId, quantity: 1, rarity: "common" } },
     position: { x: 0, y: 0, z: 0 },
     zoneId: START_ZONE_ID,

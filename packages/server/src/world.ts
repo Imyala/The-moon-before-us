@@ -25,6 +25,11 @@ export const WORLD_EVENT_INITIAL_DELAY_MS = 90000; // first spawn 90s after a ro
 export const WORLD_EVENT_DURATION_MS = 360000; // roams for 6 minutes before fading if unclaimed
 export const WORLD_EVENT_COOLDOWN_MS = 180000; // 3-minute gap after it's slain or fades
 
+// Player trading (see docs/GDD.md): how close two players must stand to open a trade window —
+// checked once, at proposal time, the same "handshake, not continuous re-validation" approach
+// travel points and interactions elsewhere already use.
+export const TRADE_RANGE = 8;
+
 export interface EnemySpawnPoint {
   defId: string;
   pos: Vec3;

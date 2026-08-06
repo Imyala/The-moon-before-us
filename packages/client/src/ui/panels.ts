@@ -22,7 +22,7 @@ import {
 } from "@moon/shared";
 import type { NetClient } from "../net.js";
 
-const ICONS: Record<string, string> = {
+export const ICONS: Record<string, string> = {
   sword: "⚔️",
   bow: "🏹",
   orb: "🔮",
@@ -359,7 +359,7 @@ function countItem(c: CharacterState, itemId: string): number {
   return c.inventory.filter((s) => s.itemId === itemId).reduce((sum, s) => sum + s.quantity, 0);
 }
 
-function rarityColor(rarity: string): string {
+export function rarityColor(rarity: string): string {
   switch (rarity) {
     case "uncommon":
       return "#5ea86b";

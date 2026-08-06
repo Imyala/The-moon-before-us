@@ -33,6 +33,27 @@ export function countItem(character: CharacterState, itemId: string): number {
   return character.inventory.filter((s) => s.itemId === itemId).reduce((sum, s) => sum + s.quantity, 0);
 }
 
+/** Rarity-specific count — unlike `countItem`, distinguishes e.g. a common vs. a rare drop of the
+ *  same weapon, which matters for trading (see Room's trade handlers) but not for crafting inputs. */
+export function countItemRarity(character: CharacterState, itemId: string, rarity: ItemRarity): number {
+  return character.inventory.filter((s) => s.itemId === itemId && s.rarity === rarity).reduce((sum, s) => sum + s.quantity, 0);
+}
+
+/** Rarity-specific removal, mirroring `removeItemsById` but never touching a stack of the wrong rarity. */
+export function removeItemsByIdAndRarity(character: CharacterState, itemId: string, rarity: ItemRarity, quantity: number): boolean {
+  if (countItemRarity(character, itemId, rarity) < quantity) return false;
+  let remaining = quantity;
+  for (let i = character.inventory.length - 1; i >= 0 && remaining > 0; i--) {
+    const stack = character.inventory[i];
+    if (stack.itemId !== itemId || stack.rarity !== rarity) continue;
+    const take = Math.min(stack.quantity, remaining);
+    stack.quantity -= take;
+    remaining -= take;
+    if (stack.quantity <= 0) character.inventory.splice(i, 1);
+  }
+  return remaining === 0;
+}
+
 export function removeItemsById(character: CharacterState, itemId: string, quantity: number): boolean {
   if (countItem(character, itemId) < quantity) return false;
   let remaining = quantity;

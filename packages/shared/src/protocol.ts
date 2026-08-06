@@ -1,4 +1,4 @@
-import type { CharacterState, EquipmentSlot, PlayerClassId } from "./types.js";
+import type { CharacterState, EquipmentSlot, ItemRarity, PlayerClassId } from "./types.js";
 import type { Vec3 } from "./vec.js";
 
 // ---------------- Client -> Server ----------------
@@ -96,6 +96,39 @@ export interface DismissCompanionMessage {
   npcId: string;
 }
 
+/** Opens a trade window with another player in the same zone and within range (see Room.proposeTrade). */
+export interface ProposeTradeMessage {
+  t: "proposeTrade";
+  targetPlayerId: string;
+}
+
+/** Accepts or declines an incoming TradeRequestMessage. */
+export interface RespondTradeMessage {
+  t: "respondTrade";
+  tradeId: string;
+  accept: boolean;
+}
+
+/** Sets (or, at quantity 0, clears) how much of one item/rarity you're offering in an active trade. */
+export interface SetTradeOfferMessage {
+  t: "setTradeOffer";
+  tradeId: string;
+  itemId: string;
+  rarity: ItemRarity;
+  quantity: number;
+}
+
+/** Locks in your current offer as ready. The trade completes once both sides have confirmed. */
+export interface ConfirmTradeMessage {
+  t: "confirmTrade";
+  tradeId: string;
+}
+
+export interface CancelTradeMessage {
+  t: "cancelTrade";
+  tradeId: string;
+}
+
 export type ClientMessage =
   | JoinMessage
   | InputMessage
@@ -113,7 +146,12 @@ export type ClientMessage =
   | LeaveMessage
   | TalkMessage
   | ChooseDialogueOptionMessage
-  | DismissCompanionMessage;
+  | DismissCompanionMessage
+  | ProposeTradeMessage
+  | RespondTradeMessage
+  | SetTradeOfferMessage
+  | ConfirmTradeMessage
+  | CancelTradeMessage;
 
 // ---------------- Server -> Client ----------------
 
@@ -246,6 +284,42 @@ export interface NpcDialogueMessage {
   choices?: DialogueChoiceOption[];
 }
 
+/** Sent to the target only, when another player proposes a trade — an accept/decline prompt. */
+export interface TradeRequestMessage {
+  t: "tradeRequest";
+  tradeId: string;
+  fromPlayerId: string;
+  fromName: string;
+}
+
+export interface TradeOfferEntry {
+  itemId: string;
+  rarity: ItemRarity;
+  quantity: number;
+}
+
+/**
+ * The full live state of an active trade, sent individually to each of the two participants
+ * (so "self"/"other" is always framed from that recipient's point of view) whenever either side's
+ * offer or confirmed flag changes.
+ */
+export interface TradeStateMessage {
+  t: "tradeState";
+  tradeId: string;
+  otherPlayerId: string;
+  otherName: string;
+  selfOffer: TradeOfferEntry[];
+  otherOffer: TradeOfferEntry[];
+  selfConfirmed: boolean;
+  otherConfirmed: boolean;
+}
+
+export interface TradeClosedMessage {
+  t: "tradeClosed";
+  tradeId: string;
+  reason: "completed" | "cancelled" | "declined";
+}
+
 export type ServerMessage =
   | SnapshotMessage
   | WelcomeMessage
@@ -253,4 +327,7 @@ export type ServerMessage =
   | PartyRosterMessage
   | ChatBroadcastMessage
   | ErrorMessage
-  | NpcDialogueMessage;
+  | NpcDialogueMessage
+  | TradeRequestMessage
+  | TradeStateMessage
+  | TradeClosedMessage;
