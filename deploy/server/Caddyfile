@@ -1,0 +1,13 @@
+# Replace with your real domain (e.g. moon.example.com). Caddy will
+# automatically obtain and renew a Let's Encrypt TLS certificate for it —
+# no manual certbot setup needed. This requires:
+#   - DNS A record for the domain pointing at your OCI instance's public IP
+#   - ports 80 and 443 reachable (see the runbook for OCI's two firewall
+#     layers: the Security List/NSG AND the instance's own iptables/nftables)
+your-domain.example.com {
+	reverse_proxy moon-server:8787
+}
+
+# The reverse_proxy directive above forwards every path, including the
+# game server's own /health endpoint, so once this is live you can check
+# it with:  curl https://your-domain.example.com/health

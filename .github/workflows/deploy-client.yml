@@ -1,0 +1,65 @@
+name: Deploy client to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/client/**"
+      - "packages/shared/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/deploy-client.yml"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build -w @moon/shared
+      - run: npm run typecheck -w @moon/client
+
+      # VITE_SERVER_URL: set this repo variable (Settings > Secrets and
+      # variables > Actions > Variables) to your Oracle Cloud server's
+      # public wss:// URL, e.g. wss://moon.example.com
+      #
+      # --base: GitHub Pages serves a project site at
+      # https://<owner>.github.io/<repo>/, so built asset paths must be
+      # rooted under /<repo>/, not /. Uses the actual repo name at build
+      # time so forks/renames don't need this file edited.
+      - name: Build client
+        working-directory: packages/client
+        env:
+          VITE_SERVER_URL: ${{ vars.VITE_SERVER_URL }}
+        run: npx vite build --base=/${{ github.event.repository.name }}/
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: packages/client/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

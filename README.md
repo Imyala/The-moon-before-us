@@ -47,6 +47,10 @@ Run `npm run typecheck` to typecheck all three packages.
 
 On the landing screen, choose **Start a Party** to get a shareable 5-character code, or **Join a Party** to enter a friend's code. Choose **Solo** to play the exact same world alone. Characters persist per-browser (via a local token) regardless of which mode you play — level, gear, and inventory carry over whether you're solo or in a party.
 
+## Deploying
+
+The client deploys to **GitHub Pages** automatically (`.github/workflows/deploy-client.yml`, on push to `main`); the server deploys to your own host using the files in `deploy/server/` (Docker + Caddy for automatic TLS). Full walkthrough, including Oracle Cloud instance setup: [`deploy/oracle-cloud/RUNBOOK.md`](deploy/oracle-cloud/RUNBOOK.md).
+
 ## Project layout
 
 ```
@@ -58,4 +62,9 @@ packages/
 docs/
   GDD.md                game design document (what's built, what's scoped, what's next)
   DESIGN_BRAINSTORM.md  the full unabridged narrative brainstorm, archived for reference
+deploy/
+  server/         Dockerfile, docker-compose.yml, Caddyfile for the game server
+  oracle-cloud/    RUNBOOK.md — step-by-step OCI + GitHub Pages deployment guide
+.github/workflows/
+  deploy-client.yml   builds the client and publishes it to GitHub Pages
 ```

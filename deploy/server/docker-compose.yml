@@ -1,0 +1,34 @@
+services:
+  moon-server:
+    build:
+      context: ../..
+      dockerfile: deploy/server/Dockerfile
+    image: moon-server:latest
+    restart: unless-stopped
+    # Not published to the public internet directly — Caddy terminates TLS
+    # and reverse-proxies to this container over the internal compose network.
+    expose:
+      - "8787"
+    volumes:
+      - moon-data:/data
+    environment:
+      - PORT=8787
+      - MOON_DB_PATH=/data/moon.sqlite
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - moon-server
+
+volumes:
+  moon-data:
+  caddy-data:
+  caddy-config:
