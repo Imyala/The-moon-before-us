@@ -4,12 +4,14 @@ import {
   MAJOR_ENDINGS,
   MAX_COMPANIONS,
   RECIPES,
+  SECRET_ENDINGS,
   SUBCLASSES,
   activeAbilities,
   dominantFaction,
   getItem,
   getNpc,
   getSubclass,
+  keyFateEpilogue,
   loyaltyState,
   moonTouchedStageFor,
   specializationsForClass,
@@ -264,9 +266,12 @@ export class Panels {
       .join("");
 
     const stage = moonTouchedStageFor(c.lunarResonance);
-    const lockedEnding = c.endingId ? MAJOR_ENDINGS.find((e) => e.id === c.endingId) : undefined;
+    const lockedEnding = c.endingId
+      ? MAJOR_ENDINGS.find((e) => e.id === c.endingId) ?? SECRET_ENDINGS.find((e) => e.id === c.endingId)
+      : undefined;
     const ending = lockedEnding ?? trendingEnding(c.factionLoyalty, stage.stage);
     const dominant = dominantFaction(c.factionLoyalty);
+    const fateLines = keyFateEpilogue(c.npcMemory);
     const loyaltyRows = (["chainwrights", "luminari", "paleChoir", "independent"] as LoyaltyKey[])
       .map((key) => {
         const score = c.factionLoyalty[key];
@@ -295,9 +300,19 @@ export class Panels {
       <div class="loyalty-list">${loyaltyRows}</div>
       <p style="color:#9aa3c9;font-size:12.5px;margin-top:10px">${
         lockedEnding
-          ? `Your ending: <strong style="color:#ffe9a8">${ending.name}</strong>. ${ending.tone}`
+          ? `Your ending: <strong style="color:#ffe9a8">${ending.name}</strong>${
+              lockedEnding.secret ? ' <span style="color:#a8ddff">(a secret ending)</span>' : ""
+            }. ${ending.tone}`
           : `Trending toward <strong style="color:#ffe9a8">${ending.name}</strong> (leaning ${dominant === "independent" ? "Independent" : FACTIONS[dominant].name}). ${ending.tone}`
       }</p>
+      ${
+        fateLines.length
+          ? `<p style="color:#9aa3c9;font-size:12.5px;margin-top:10px">Threads that shaped your story:</p>
+      <ul style="margin:4px 0 0;padding-left:18px;font-size:12px;color:#b8c2e0;line-height:1.5">${fateLines
+        .map((line) => `<li>${line}</li>`)
+        .join("")}</ul>`
+          : ""
+      }
     `;
     this.panel.querySelector(".close-btn")!.addEventListener("click", () => this.close());
     this.panel.querySelectorAll<HTMLButtonElement>("[data-ability]").forEach((btn) => {

@@ -4,3 +4,4 @@ export * from "./relationships.js";
 export * from "./npc.js";
 export * from "./moonTouched.js";
 export * from "./endings.js";
+export * from "./epilogue.js";

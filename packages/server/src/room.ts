@@ -24,6 +24,7 @@ import {
   withTag,
   moonTouchedStageFor,
   touchedAxisFor,
+  secretEndingFor,
   MAJOR_ENDINGS,
   MAX_COMPANIONS,
   type CharacterState,
@@ -944,6 +945,11 @@ export class Room {
     const option = choice.options.find((o) => o.id === optionId);
     if (!option) return;
 
+    // Snapshotted before this choice's own delta lands: a secret ending reads whether the
+    // character was already at that loyalty extreme walking in, not whether this one choice's
+    // (often faction-boosting) delta happens to push them there — which for a thread choice that
+    // itself raises a faction's standing would otherwise make some secret conditions unreachable.
+    const loyaltyBeforeChoice = player.character.factionLoyalty;
     player.character.factionLoyalty = applyLoyaltyDelta(player.character.factionLoyalty, option.delta);
     player.character.npcMemory = withTag(player.character.npcMemory, npc.id, option.tag);
     player.character.npcMemory = withTag(player.character.npcMemory, npc.id, choice.resolvedTag);
@@ -964,7 +970,9 @@ export class Room {
     if (option.locksEndingThread && !player.character.endingId) {
       const stage = moonTouchedStageFor(player.character.lunarResonance);
       const touched = touchedAxisFor(stage.stage);
-      const ending = MAJOR_ENDINGS.find((e) => e.thread === option.locksEndingThread && e.touched === touched);
+      const ending =
+        secretEndingFor(option.locksEndingThread, loyaltyBeforeChoice, stage.stage) ??
+        MAJOR_ENDINGS.find((e) => e.thread === option.locksEndingThread && e.touched === touched);
       if (ending) player.character.endingId = ending.id;
     }
 
