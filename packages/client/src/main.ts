@@ -15,6 +15,7 @@ import {
   clampToRadius,
   xpForLevel,
   type CharacterState,
+  type CompanionSnapshot,
   type EnemySnapshot,
   type GameEvent,
   type NodeSnapshot,
@@ -106,6 +107,16 @@ interface NpcVisual {
   position: Vec3;
 }
 
+interface CompanionVisual {
+  avatar: Avatar;
+  name: string;
+  renderPos: Vec3;
+  renderFacing: number;
+  targetFacing: number;
+  targetPos: Vec3;
+  state: string;
+}
+
 function runGame(net: NetClient, selfId: string, roomCode: string, initialCharacter: CharacterState) {
   const world = createWorld(canvas);
   let currentZoneId = initialCharacter.zoneId ?? START_ZONE_ID;
@@ -147,6 +158,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
   const enemies = new Map<string, EnemyVisual>();
   const nodes = new Map<string, NodeVisual>();
   const npcs = new Map<string, NpcVisual>();
+  const companions = new Map<string, CompanionVisual>();
   const cooldownReadyAt = new Map<string, number>();
   const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   const raycaster = new THREE.Raycaster();
@@ -164,7 +176,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
   function handleServerMessage(msg: ServerMessage) {
     switch (msg.t) {
       case "snapshot":
-        applySnapshot(msg.players, msg.enemies, msg.nodes, msg.npcs);
+        applySnapshot(msg.players, msg.enemies, msg.nodes, msg.npcs, msg.companions);
         for (const ev of msg.events) handleEvent(ev);
         break;
       case "npcDialogue":
@@ -241,7 +253,13 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
     shakeUntil = performance.now() + 160;
   }
 
-  function applySnapshot(playerSnaps: PlayerSnapshot[], enemySnaps: EnemySnapshot[], nodeSnaps: NodeSnapshot[], npcSnaps: NpcSnapshot[]) {
+  function applySnapshot(
+    playerSnaps: PlayerSnapshot[],
+    enemySnaps: EnemySnapshot[],
+    nodeSnaps: NodeSnapshot[],
+    npcSnaps: NpcSnapshot[],
+    companionSnaps: CompanionSnapshot[]
+  ) {
     const seenPlayers = new Set<string>();
     for (const p of playerSnaps) {
       seenPlayers.add(p.id);
@@ -350,6 +368,30 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
         world.scene.remove(npcs.get(id)!.avatar.group);
         npcs.delete(id);
         nameplates.remove(id);
+      }
+    }
+
+    const seenCompanions = new Set<string>();
+    for (const c of companionSnaps) {
+      seenCompanions.add(c.id);
+      let vis = companions.get(c.id);
+      if (!vis) {
+        const avatar = buildNpcAvatar("#d9a05b");
+        world.scene.add(avatar.group);
+        vis = { avatar, name: c.name, renderPos: { ...c.position }, renderFacing: c.facing, targetFacing: c.facing, targetPos: c.position, state: c.state };
+        companions.set(c.id, vis);
+        if (c.id === selfId) hud.setCompanionName(c.name);
+      }
+      vis.targetPos = c.position;
+      vis.targetFacing = c.facing;
+      vis.state = c.state;
+    }
+    for (const id of [...companions.keys()]) {
+      if (!seenCompanions.has(id)) {
+        world.scene.remove(companions.get(id)!.avatar.group);
+        companions.delete(id);
+        nameplates.remove(`companion:${id}`);
+        if (id === selfId) hud.setCompanionName(null);
       }
     }
 
@@ -563,6 +605,19 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
       animateAvatar(vis.avatar, now / 1000 + id.length, false, now);
       nameplates.ensure(id, vis.name, "npc", vis.title);
       nameplates.update(id, add(vis.position, { x: 0, y: 2.05, z: 0 }), 1, true);
+    }
+
+    for (const [id, vis] of companions) {
+      vis.renderPos = lerpVec(vis.renderPos, vis.targetPos, 1 - Math.pow(0.0005, dt));
+      vis.avatar.group.position.set(vis.renderPos.x, 0, vis.renderPos.z);
+      vis.renderFacing = lerpAngle(vis.renderFacing, vis.targetFacing, 1 - Math.pow(0.001, dt));
+      vis.avatar.group.rotation.y = vis.renderFacing;
+      const moving = vis.state === "run" || vis.state === "chase";
+      animateAvatar(vis.avatar, now / 1000 + id.length, moving, now);
+      if (vis.state === "attack") vis.avatar.attackPulse = Math.max(vis.avatar.attackPulse, 0.5);
+      const plateId = `companion:${id}`;
+      nameplates.ensure(plateId, vis.name, "ally");
+      nameplates.update(plateId, add(vis.renderPos, { x: 0, y: 2.05, z: 0 }), 1, true);
     }
 
     // camera

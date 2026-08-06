@@ -31,6 +31,7 @@ db.exec(`
     factionLoyaltyJson TEXT,
     npcMemoryJson TEXT,
     lunarResonance REAL,
+    companionId TEXT,
     updatedAt INTEGER NOT NULL
   );
 `);
@@ -38,7 +39,8 @@ for (const migration of [
   "ALTER TABLE characters ADD COLUMN zoneId TEXT",
   "ALTER TABLE characters ADD COLUMN factionLoyaltyJson TEXT",
   "ALTER TABLE characters ADD COLUMN npcMemoryJson TEXT",
-  "ALTER TABLE characters ADD COLUMN lunarResonance REAL"
+  "ALTER TABLE characters ADD COLUMN lunarResonance REAL",
+  "ALTER TABLE characters ADD COLUMN companionId TEXT"
 ]) {
   try {
     db.exec(migration);
@@ -49,15 +51,15 @@ for (const migration of [
 
 const getStmt = db.prepare("SELECT * FROM characters WHERE token = ?");
 const upsertStmt = db.prepare(`
-  INSERT INTO characters (token, id, name, classId, level, xp, hp, maxHp, resource, maxResource, statsJson, skillPoints, abilityRanksJson, inventoryJson, equipmentJson, positionJson, zoneId, factionLoyaltyJson, npcMemoryJson, lunarResonance, updatedAt)
-  VALUES (@token, @id, @name, @classId, @level, @xp, @hp, @maxHp, @resource, @maxResource, @statsJson, @skillPoints, @abilityRanksJson, @inventoryJson, @equipmentJson, @positionJson, @zoneId, @factionLoyaltyJson, @npcMemoryJson, @lunarResonance, @updatedAt)
+  INSERT INTO characters (token, id, name, classId, level, xp, hp, maxHp, resource, maxResource, statsJson, skillPoints, abilityRanksJson, inventoryJson, equipmentJson, positionJson, zoneId, factionLoyaltyJson, npcMemoryJson, lunarResonance, companionId, updatedAt)
+  VALUES (@token, @id, @name, @classId, @level, @xp, @hp, @maxHp, @resource, @maxResource, @statsJson, @skillPoints, @abilityRanksJson, @inventoryJson, @equipmentJson, @positionJson, @zoneId, @factionLoyaltyJson, @npcMemoryJson, @lunarResonance, @companionId, @updatedAt)
   ON CONFLICT(token) DO UPDATE SET
     name=excluded.name, classId=excluded.classId, level=excluded.level, xp=excluded.xp,
     hp=excluded.hp, maxHp=excluded.maxHp, resource=excluded.resource, maxResource=excluded.maxResource,
     statsJson=excluded.statsJson, skillPoints=excluded.skillPoints, abilityRanksJson=excluded.abilityRanksJson,
     inventoryJson=excluded.inventoryJson, equipmentJson=excluded.equipmentJson, positionJson=excluded.positionJson,
     zoneId=excluded.zoneId, factionLoyaltyJson=excluded.factionLoyaltyJson, npcMemoryJson=excluded.npcMemoryJson,
-    lunarResonance=excluded.lunarResonance, updatedAt=excluded.updatedAt;
+    lunarResonance=excluded.lunarResonance, companionId=excluded.companionId, updatedAt=excluded.updatedAt;
 `);
 
 interface Row {
@@ -81,6 +83,7 @@ interface Row {
   factionLoyaltyJson: string | null;
   npcMemoryJson: string | null;
   lunarResonance: number | null;
+  companionId: string | null;
   updatedAt: number;
 }
 
@@ -106,7 +109,8 @@ export function loadCharacter(token: string): CharacterState | null {
     zoneId: row.zoneId ?? START_ZONE_ID,
     factionLoyalty: row.factionLoyaltyJson ? JSON.parse(row.factionLoyaltyJson) : { ...DEFAULT_LOYALTY },
     npcMemory: row.npcMemoryJson ? JSON.parse(row.npcMemoryJson) : {},
-    lunarResonance: row.lunarResonance ?? 0
+    lunarResonance: row.lunarResonance ?? 0,
+    companionId: row.companionId ?? undefined
   };
 }
 
@@ -132,6 +136,7 @@ export function saveCharacter(token: string, c: CharacterState): void {
     factionLoyaltyJson: JSON.stringify(c.factionLoyalty ?? DEFAULT_LOYALTY),
     npcMemoryJson: JSON.stringify(c.npcMemory ?? {}),
     lunarResonance: c.lunarResonance ?? 0,
+    companionId: c.companionId ?? null,
     updatedAt: Date.now()
   });
 }

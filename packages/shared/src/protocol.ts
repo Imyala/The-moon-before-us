@@ -159,6 +159,18 @@ export interface NpcSnapshot {
   position: Vec3;
 }
 
+export interface CompanionSnapshot {
+  id: string;
+  defId: string;
+  name: string;
+  ownerId: string;
+  position: Vec3;
+  facing: number;
+  hp: number;
+  maxHp: number;
+  state: EntityState;
+}
+
 // Every event carries the zoneId it happened in, so a room hosting players split across
 // multiple zones can hand each player only the events relevant to the zone they're standing in
 // (see Room.broadcastSnapshot on the server) — the same "who can see what" boundary a zone copy
@@ -182,6 +194,7 @@ export interface SnapshotMessage {
   enemies: EnemySnapshot[];
   nodes: NodeSnapshot[];
   npcs: NpcSnapshot[];
+  companions: CompanionSnapshot[];
   events: GameEvent[];
 }
 

@@ -49,6 +49,7 @@ export class Hud {
   private rosterEl: HTMLDivElement;
   private roomCodeEl: HTMLDivElement;
   private zoneBadgeEl: HTMLDivElement;
+  private companionBadgeEl: HTMLDivElement;
   private toastsEl: HTMLDivElement;
   private chatLogEl: HTMLDivElement;
   private chatInput: HTMLInputElement;
@@ -70,6 +71,7 @@ export class Hud {
       </div>
 
       <div class="zone-badge" id="zoneBadge"></div>
+      <div class="companion-badge" id="companionBadge" style="display:none"></div>
 
       <div class="player-frame">
         <div class="bar-row">
@@ -128,6 +130,7 @@ export class Hud {
     this.rosterEl = this.root.querySelector("#rosterList")!;
     this.roomCodeEl = this.root.querySelector("#roomCodeBadge")!;
     this.zoneBadgeEl = this.root.querySelector("#zoneBadge")!;
+    this.companionBadgeEl = this.root.querySelector("#companionBadge")!;
     this.toastsEl = this.root.querySelector("#toasts")!;
     this.chatLogEl = this.root.querySelector("#chatLog")!;
     this.chatInput = this.root.querySelector("#chatInput")!;
@@ -210,6 +213,15 @@ export class Hud {
       </div>`
       )
       .join("");
+  }
+
+  setCompanionName(name: string | null) {
+    if (!name) {
+      this.companionBadgeEl.style.display = "none";
+      return;
+    }
+    this.companionBadgeEl.style.display = "block";
+    this.companionBadgeEl.textContent = `Traveling with ${name}`;
   }
 
   setZoneName(name: string) {

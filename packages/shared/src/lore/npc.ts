@@ -1,9 +1,11 @@
 /**
- * A first, fully-wired slice of the wider NPC roster from the design bible: each of these six
- * has memory-conditional greetings and one signature choice with real faction consequences,
+ * A first, fully-wired slice of the wider NPC roster from the design bible: each has
+ * memory-conditional greetings and one signature choice with real faction consequences,
  * demonstrating the pattern (see docs/GDD.md's "Playable conversations" section) that the rest
- * of the cast can be authored against. Not every named character from the bible is here yet —
- * this is the system proven out with real content, not a claim that the full roster is built.
+ * of the cast can be authored against. A handful (marked by a `recruits: true` option) can join
+ * the party as a companion — see CharacterState.companionId and Room's companion AI. Not every
+ * named character from the bible is here yet — this is the system proven out with real content,
+ * not a claim that the full roster is built.
  */
 import type { Vec3 } from "../vec.js";
 import type { FactionId, LoyaltyDelta, LoyaltyKey, LoyaltyScores } from "./factions.js";
@@ -15,6 +17,8 @@ export interface DialogueOption {
   tag: string;
   delta: LoyaltyDelta;
   followUp: string;
+  /** Choosing this option makes the NPC the player's companion (see CharacterState.companionId). */
+  recruits?: boolean;
 }
 
 export interface SignatureChoice {
@@ -1343,6 +1347,184 @@ export const NPCS: NpcDef[] = [
           tag: "fallingman_recorded",
           delta: { paleChoir: 10 },
           followUp: "His voice steadies, just for a moment. \"Then let someone remember I was more than whispers. Write it down.\""
+        }
+      ]
+    }
+  },
+  {
+    id: "bran_fieldhand",
+    name: "Bran Fieldhand",
+    title: "Farmer Who Became a Soldier",
+    zoneId: "threadhold",
+    position: { x: 8, y: 0, z: 8 },
+    primaryFaction: null,
+    loyaltyType: "personal",
+    greetings: {
+      unknown:
+        "Name's Bran. Farmer, mostly — until the wolves started needing killing more than the fields needed tending. You look like you could use a spare bow.",
+      met: "Fields are quiet today. I'll take quiet.",
+      friendly: "Good to see you. Come to lend a hand, or need one?",
+      trusted: "You've treated me like a person this whole time, not a spare bowstring. That's rarer than you'd think.",
+      hostile: "You left me to the wolves once. I don't forget that kind of thing."
+    },
+    signatureChoice: {
+      prompt: "I could use steadier work than farming right now — will you take me with you, or is this goodbye?",
+      resolvedTag: "bran_recruit_choice",
+      options: [
+        {
+          id: "recruit_bran",
+          label: "Come with me. I could use the company.",
+          tag: "bran_recruited",
+          delta: { independent: 15 },
+          recruits: true,
+          followUp: "He grins, slinging his bow over one shoulder. \"About time someone asked. Lead the way.\""
+        },
+        {
+          id: "decline_bran",
+          label: "Stay here — Threadhold needs you more.",
+          tag: "bran_declined",
+          delta: { independent: 5 },
+          followUp: "He nods, a little disappointed but understanding. \"Suppose someone's got to mind the fields. Good luck out there.\""
+        },
+        {
+          id: "dismiss_bran",
+          label: "You'd slow me down. Stay put.",
+          tag: "bran_dismissed",
+          delta: { independent: -15 },
+          followUp: "Something in his face closes off. \"...Right. Understood.\""
+        }
+      ]
+    }
+  },
+  {
+    id: "thorn_ash_debt",
+    name: "Thorn Ash-Debt",
+    title: "Mercenary of Ashmire",
+    zoneId: "ashmire",
+    position: { x: 0, y: 0, z: 36 },
+    primaryFaction: null,
+    loyaltyType: "mercenary",
+    greetings: {
+      unknown:
+        "Thorn. Sellsword, technically still owned by the Ashforged until I pay off a debt I didn't ask for. You hiring, or just passing through?",
+      met: "Still breathing, still in debt. Silver linings.",
+      friendly: "Good to see a face that isn't billing me by the hour.",
+      trusted: "You've done more for me than most people who actually like me. Strange world.",
+      hostile: "You used my debt against me once. I don't forget who profits off a man's bad luck."
+    },
+    signatureChoice: {
+      prompt: "I'll fight at your side for a fair cut of whatever we find — interested, or should I go back to selling my sword to whoever pays first?",
+      resolvedTag: "thorn_recruit_choice",
+      options: [
+        {
+          id: "recruit_thorn",
+          label: "You're hired. Welcome aboard.",
+          tag: "thorn_recruited",
+          delta: { independent: 10 },
+          recruits: true,
+          followUp: "He grins crookedly. \"Pleasure doing business. Try to keep me alive — habit of mine, staying that way.\""
+        },
+        {
+          id: "decline_thorn",
+          label: "Not right now — maybe another time.",
+          tag: "thorn_declined",
+          delta: { independent: 5 },
+          followUp: "He shrugs. \"Your loss. Offer doesn't come free twice, usually.\""
+        },
+        {
+          id: "exploit_thorn",
+          label: "Use his debt against him instead — cheaper labor.",
+          tag: "thorn_exploited",
+          delta: { independent: -20 },
+          followUp: "His jaw tightens. \"...Careful. Debts cut both ways, eventually.\""
+        }
+      ]
+    }
+  },
+  {
+    id: "solace_stillwater",
+    name: "Solace Stillwater",
+    title: "Pacifist Healer of the Pale Choir",
+    zoneId: "frayedge",
+    position: { x: 2, y: 0, z: 44 },
+    primaryFaction: "paleChoir",
+    loyaltyType: "ideological",
+    greetings: {
+      unknown: "Solace. I heal what I can and refuse to kill what I can't. If that's a problem for you, we won't get along.",
+      met: "Still healing. Still refusing. Some things don't change.",
+      friendly: "Good — someone who doesn't flinch at mercy. Rare, out here.",
+      trusted: "You've kept faith with the helpless every time I've watched. That's the only oath that matters to me.",
+      hostile: "You crossed a line I don't forgive. Don't ask me to heal you again."
+    },
+    signatureChoice: {
+      prompt: "I'll travel with you, on one condition: you don't make me watch you slaughter the helpless. Can you promise that?",
+      resolvedTag: "solace_recruit_choice",
+      options: [
+        {
+          id: "recruit_solace",
+          label: "I promise. Come with me.",
+          tag: "solace_recruited",
+          delta: { paleChoir: 15, independent: 5 },
+          recruits: true,
+          followUp: "She studies you a long moment, then nods. \"...Alright. I'll hold you to it.\""
+        },
+        {
+          id: "decline_solace",
+          label: "I can't promise that. Better you stay.",
+          tag: "solace_declined",
+          delta: { paleChoir: 5 },
+          followUp: "She looks almost relieved at your honesty. \"...Thank you for not lying to me about it.\""
+        },
+        {
+          id: "mock_solace",
+          label: "Mercy's a weakness out here.",
+          tag: "solace_mocked",
+          delta: { paleChoir: -20, independent: -10 },
+          followUp: "Something in her expression goes very cold. \"Then we have nothing further to discuss.\""
+        }
+      ]
+    }
+  },
+  {
+    id: "nix_fray",
+    name: "Nix Fray",
+    title: "Urchin of the Frayedge",
+    zoneId: "frayedge",
+    position: { x: -2, y: 0, z: 54 },
+    primaryFaction: null,
+    loyaltyType: "personal",
+    greetings: {
+      unknown: "Whoa — hey, I wasn't— okay, fine, I was totally going through your pack. Nix. Don't tell Warden Kael, please?",
+      met: "Didn't steal anything this time. Mostly.",
+      friendly: "Good to see you! I've actually been behaving. Mostly.",
+      trusted: "You're the first person who ever gave me a real chance instead of a real punishment. I won't forget that.",
+      hostile: "You turned me in once. I don't trust easy anymore. Guess I never should have."
+    },
+    signatureChoice: {
+      prompt: "I'm good at finding things — and staying alive. Let me travel with you and I'll make myself useful, promise.",
+      resolvedTag: "nix_recruit_choice",
+      options: [
+        {
+          id: "recruit_nix",
+          label: "Alright. Stick with me.",
+          tag: "nix_recruited",
+          delta: { independent: 20 },
+          recruits: true,
+          followUp: "Her whole face lights up. \"Really?! Okay. Okay! I won't steal from YOU. Probably.\""
+        },
+        {
+          id: "decline_nix",
+          label: "Not yet — prove yourself around the sanctuary first.",
+          tag: "nix_declined",
+          delta: { independent: 10 },
+          followUp: "She deflates a little but nods. \"...Fair. I'll be around.\""
+        },
+        {
+          id: "turn_in_nix",
+          label: "Turn her in to Warden Kael for the thieving.",
+          tag: "nix_turned_in",
+          delta: { chainwrights: 5, independent: -25, paleChoir: -10 },
+          followUp: "Her eyes go wide with betrayal before she bolts into the ruins. You don't see where she goes."
         }
       ]
     }

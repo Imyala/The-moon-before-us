@@ -7,6 +7,14 @@ export const DODGE_DURATION_MS = 260;
 export const DODGE_COOLDOWN_MS = 1000;
 export const TRAVEL_COOLDOWN_MS = 1200;
 
+export const COMPANION_SPEED = 5.6;
+export const COMPANION_FOLLOW_DISTANCE = 3;
+export const COMPANION_AGGRO_RADIUS = 10;
+export const COMPANION_ATTACK_RANGE = 3;
+export const COMPANION_ATTACK_COOLDOWN_MS = 1400;
+export const COMPANION_BASE_DAMAGE = 14;
+export const COMPANION_MAX_HP = 100;
+
 export interface EnemySpawnPoint {
   defId: string;
   pos: Vec3;

@@ -22,6 +22,7 @@ import {
   withTag,
   type CharacterState,
   type ClientMessage,
+  type CompanionSnapshot,
   type EnemySnapshot,
   type EntityState,
   type GameEvent,
@@ -36,6 +37,13 @@ import { randomUUID } from "node:crypto";
 import { grantXp } from "./character.js";
 import { addItem, craft as craftRecipe, equipItem, unequipItem, useConsumable } from "./inventory.js";
 import {
+  COMPANION_AGGRO_RADIUS,
+  COMPANION_ATTACK_COOLDOWN_MS,
+  COMPANION_ATTACK_RANGE,
+  COMPANION_BASE_DAMAGE,
+  COMPANION_FOLLOW_DISTANCE,
+  COMPANION_MAX_HP,
+  COMPANION_SPEED,
   DODGE_COOLDOWN_MS,
   DODGE_DURATION_MS,
   DODGE_SPEED,
@@ -152,6 +160,17 @@ interface NpcEntity {
   position: Vec3;
 }
 
+/** A recruited companion; keyed by and lives one-per-owner (see Room.companions). */
+interface CompanionEntity {
+  id: string; // == ownerId
+  defId: string; // NpcDef id
+  zoneId: string;
+  position: Vec3;
+  facing: number;
+  state: EntityState;
+  attackReadyAt: number;
+}
+
 export class Room {
   readonly id = randomUUID();
   readonly code: string | undefined;
@@ -161,6 +180,7 @@ export class Room {
   private nodes = new Map<string, NodeEntity>();
   private healZones = new Map<string, HealZoneEntity>();
   private npcs = new Map<string, NpcEntity>();
+  private companions = new Map<string, CompanionEntity>();
   private events: GameEvent[] = [];
   private tick = 0;
   private interval: ReturnType<typeof setInterval> | null = null;
@@ -287,6 +307,7 @@ export class Room {
     p.character.position = p.position;
     this.persist(p.token, p.character);
     this.players.delete(playerId);
+    this.companions.delete(playerId);
     this.broadcastRoster();
     if (this.players.size === 0) {
       this.shutdown();
@@ -790,6 +811,11 @@ export class Room {
     player.character.npcMemory = withTag(player.character.npcMemory, npc.id, option.tag);
     player.character.npcMemory = withTag(player.character.npcMemory, npc.id, choice.resolvedTag);
 
+    if (option.recruits) {
+      player.character.companionId = npc.id;
+      this.syncCompanion(player);
+    }
+
     const followUp = resolveFollowUp(npc, optionId);
     if (followUp) {
       this.send(player.ws, { t: "npcDialogue", npcId: npc.id, speaker: followUp.speaker, line: followUp.line });
@@ -823,6 +849,89 @@ export class Room {
     this.sendCharacterUpdate(player);
   }
 
+  // ---------------- Companion ----------------
+
+  /** Ensures the companion entity (if any) matches the owner's companionId and current zone. */
+  private syncCompanion(owner: PlayerEntity) {
+    const companionId = owner.character.companionId;
+    if (!companionId) {
+      this.companions.delete(owner.id);
+      return;
+    }
+    let companion = this.companions.get(owner.id);
+    if (!companion) {
+      companion = {
+        id: owner.id,
+        defId: companionId,
+        zoneId: owner.character.zoneId,
+        position: { ...owner.position },
+        facing: owner.facing,
+        state: "idle",
+        attackReadyAt: 0
+      };
+      this.companions.set(owner.id, companion);
+    } else if (companion.zoneId !== owner.character.zoneId) {
+      // The owner traveled; the companion follows instantly rather than being left behind.
+      companion.zoneId = owner.character.zoneId;
+      companion.position = { ...owner.position };
+    }
+  }
+
+  private tickCompanion(companion: CompanionEntity, owner: PlayerEntity, dt: number, now: number) {
+    if (owner.character.hp <= 0) return;
+
+    let target: EnemyEntity | undefined;
+    let bestDist = COMPANION_AGGRO_RADIUS;
+    for (const enemy of this.enemies.values()) {
+      if (enemy.hp <= 0 || enemy.zoneId !== companion.zoneId) continue;
+      const d = distance(companion.position, enemy.position);
+      if (d < bestDist) {
+        bestDist = d;
+        target = enemy;
+      }
+    }
+
+    if (target) {
+      const d = distance(companion.position, target.position);
+      companion.facing = Math.atan2(target.position.x - companion.position.x, target.position.z - companion.position.z);
+      if (d <= COMPANION_ATTACK_RANGE) {
+        companion.state = "attack";
+        if (now >= companion.attackReadyAt) {
+          this.companionAttack(companion, target, owner, now);
+          companion.attackReadyAt = now + COMPANION_ATTACK_COOLDOWN_MS;
+        }
+      } else {
+        companion.state = "chase";
+        const dir = normalize({ x: target.position.x - companion.position.x, y: 0, z: target.position.z - companion.position.z });
+        companion.position = clampToZone(add(companion.position, scale(dir, COMPANION_SPEED * dt)), companion.zoneId);
+      }
+      return;
+    }
+
+    const distToOwner = distance(companion.position, owner.position);
+    if (distToOwner > COMPANION_FOLLOW_DISTANCE) {
+      companion.state = "run";
+      const dir = normalize({ x: owner.position.x - companion.position.x, y: 0, z: owner.position.z - companion.position.z });
+      companion.position = clampToZone(add(companion.position, scale(dir, COMPANION_SPEED * dt)), companion.zoneId);
+      companion.facing = Math.atan2(dir.x, dir.z);
+    } else {
+      companion.state = "idle";
+    }
+  }
+
+  /** Simple, non-crit companion damage. Assists are credited to the owner for XP/loot, same as the owner's own hits. */
+  private companionAttack(companion: CompanionEntity, enemy: EnemyEntity, owner: PlayerEntity, now: number) {
+    const amount = COMPANION_BASE_DAMAGE;
+    enemy.hp = Math.max(0, enemy.hp - amount);
+    enemy.damagers.set(owner.id, now);
+    enemy.state = enemy.hp > 0 ? enemy.state : "dead";
+    if (!enemy.targetId) enemy.targetId = owner.id;
+    this.events.push({ type: "damage", targetId: enemy.id, amount, crit: false, sourceId: companion.id, pos: enemy.position, zoneId: enemy.zoneId });
+    if (enemy.hp <= 0 && enemy.deadAt === null) {
+      this.killEnemy(enemy, now);
+    }
+  }
+
   // ---------------- Tick loop ----------------
 
   private runTick() {
@@ -835,6 +944,16 @@ export class Room {
     for (const enemy of this.enemies.values()) this.tickEnemy(enemy, dt, now);
     for (const node of this.nodes.values()) this.tickNode(node, now);
     this.tickHealZones(now);
+
+    for (const player of this.players.values()) this.syncCompanion(player);
+    for (const companion of this.companions.values()) {
+      const owner = this.players.get(companion.id);
+      if (!owner) {
+        this.companions.delete(companion.id);
+        continue;
+      }
+      this.tickCompanion(companion, owner, dt, now);
+    }
 
     this.broadcastSnapshot(now);
     this.events = [];
@@ -1148,9 +1267,26 @@ export class Room {
           return { id: n.id, defId: n.id, name: def.name, title: def.title, position: n.position };
         });
 
+      const companions: CompanionSnapshot[] = [...this.companions.values()]
+        .filter((c) => c.zoneId === zoneId)
+        .map((c) => {
+          const def = getNpc(c.defId)!;
+          return {
+            id: c.id,
+            defId: c.defId,
+            name: def.name,
+            ownerId: c.id,
+            position: c.position,
+            facing: c.facing,
+            hp: COMPANION_MAX_HP,
+            maxHp: COMPANION_MAX_HP,
+            state: c.state
+          };
+        });
+
       const events = this.events.filter((e) => e.zoneId === zoneId);
 
-      this.send(recipient.ws, { t: "snapshot", tick: this.tick, serverTime: now, players, enemies, nodes, npcs, events });
+      this.send(recipient.ws, { t: "snapshot", tick: this.tick, serverTime: now, players, enemies, nodes, npcs, companions, events });
     }
   }
 }

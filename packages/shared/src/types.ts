@@ -187,6 +187,8 @@ export interface CharacterState extends CharacterSummary {
   npcMemory: NpcMemoryState;
   /** Aether-crystal exposure; see lore/moonTouched.ts for the stage thresholds it drives. */
   lunarResonance: number;
+  /** The NPC id currently traveling with and fighting for this character, if any. One at a time. */
+  companionId?: string;
 }
 
 export function xpForLevel(level: number): number {
