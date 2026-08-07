@@ -196,6 +196,9 @@ export interface CharacterState extends CharacterSummary {
   npcMemory: NpcMemoryState;
   /** Aether-crystal exposure; see lore/moonTouched.ts for the stage thresholds it drives. */
   lunarResonance: number;
+  /** Spendable currency — earned from enemy kill bounties and selling items to vendors, spent
+   *  buying from them (see vendors.ts and inventory.ts's buyFromVendor/sellToVendor). */
+  gold: number;
   /** NPC ids currently traveling with and fighting for this character, up to MAX_COMPANIONS. */
   companionIds: string[];
   /**

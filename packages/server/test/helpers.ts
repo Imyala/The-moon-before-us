@@ -37,6 +37,7 @@ export function makePlayer(opts: {
   npcMemory?: Record<string, any>;
   factionLoyalty?: Record<string, number>;
   lunarResonance?: number;
+  gold?: number;
 }): any {
   const id = opts.id ?? nextId("player");
   return {
@@ -62,7 +63,8 @@ export function makePlayer(opts: {
       factionLoyalty: opts.factionLoyalty ?? { chainwrights: 0, luminari: 0, paleChoir: 0, independent: 0 },
       lunarResonance: opts.lunarResonance ?? 0,
       companionIds: [],
-      endingId: undefined
+      endingId: undefined,
+      gold: opts.gold ?? 0
     },
     position: { ...(opts.position ?? { x: 0, y: 0, z: 0 }) },
     moveIntent: { x: 0, y: 0, z: 0 },

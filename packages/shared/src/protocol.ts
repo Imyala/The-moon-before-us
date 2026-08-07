@@ -134,6 +134,24 @@ export interface ToggleMountMessage {
   t: "toggleMount";
 }
 
+/** Buys `quantity` of one item off a nearby vendor's catalog (see Room.tryBuyItem). */
+export interface BuyItemMessage {
+  t: "buyItem";
+  vendorId: string;
+  itemId: string;
+  quantity: number;
+}
+
+/** Sells `quantity` of one inventory stack to any nearby vendor, at that item's formulaic
+ *  sellValue (see items.ts) — a vendor's catalog only governs what it *sells*, not what it'll buy. */
+export interface SellItemMessage {
+  t: "sellItem";
+  vendorId: string;
+  itemId: string;
+  rarity: ItemRarity;
+  quantity: number;
+}
+
 export type ClientMessage =
   | JoinMessage
   | InputMessage
@@ -157,7 +175,9 @@ export type ClientMessage =
   | SetTradeOfferMessage
   | ConfirmTradeMessage
   | CancelTradeMessage
-  | ToggleMountMessage;
+  | ToggleMountMessage
+  | BuyItemMessage
+  | SellItemMessage;
 
 // ---------------- Server -> Client ----------------
 
@@ -211,6 +231,16 @@ export interface NpcSnapshot {
   position: Vec3;
 }
 
+/** A stationary NPC merchant (see vendors.ts) — id and defId are always equal, one instance per
+ *  room per catalog entry, the same convention NpcSnapshot uses for the narrative roster. */
+export interface VendorSnapshot {
+  id: string;
+  defId: string;
+  name: string;
+  title: string;
+  position: Vec3;
+}
+
 export interface CompanionSnapshot {
   id: string;
   defId: string;
@@ -233,6 +263,7 @@ export type GameEvent =
   | { type: "death"; entityId: string; isPlayer: boolean; zoneId: string }
   | { type: "levelUp"; playerId: string; level: number; zoneId: string }
   | { type: "loot"; playerId: string; itemId: string; quantity: number; rarity: string; zoneId: string }
+  | { type: "gold"; playerId: string; amount: number; zoneId: string }
   | { type: "abilityCast"; casterId: string; abilityId: string; zoneId: string }
   | { type: "craft"; playerId: string; itemId: string; quantity: number; zoneId: string }
   | { type: "skillPoint"; playerId: string; abilityId: string; rank: number; zoneId: string }
@@ -246,6 +277,7 @@ export interface SnapshotMessage {
   enemies: EnemySnapshot[];
   nodes: NodeSnapshot[];
   npcs: NpcSnapshot[];
+  vendors: VendorSnapshot[];
   companions: CompanionSnapshot[];
   events: GameEvent[];
 }

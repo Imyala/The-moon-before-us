@@ -21,6 +21,10 @@ const STARTER_ITEMS: ItemStack[] = [
   { itemId: "mat_wood", quantity: 2, rarity: "common" }
 ];
 
+/** A new character's starting purse — enough for a couple of vendor potions, not enough to skip
+ *  gathering or looting (see vendors.ts and inventory.ts's buyFromVendor). */
+export const STARTER_GOLD = 40;
+
 export function getOrCreateCharacter(token: string, name: string, classId: PlayerClassId): CharacterState {
   const existing = loadCharacter(token);
   if (existing) return existing;
@@ -54,7 +58,8 @@ export function getOrCreateCharacter(token: string, name: string, classId: Playe
     factionLoyalty: { ...DEFAULT_LOYALTY },
     npcMemory: {},
     lunarResonance: 0,
-    companionIds: []
+    companionIds: [],
+    gold: STARTER_GOLD
   };
   saveCharacter(token, character);
   return character;

@@ -12,13 +12,13 @@ export class NameplateManager {
 
   constructor(private container: HTMLElement, private camera: THREE.PerspectiveCamera) {}
 
-  ensure(id: string, name: string, tone: "ally" | "enemy" | "boss" | "rare" | "npc", title?: string): Plate {
+  ensure(id: string, name: string, tone: "ally" | "enemy" | "boss" | "rare" | "npc" | "vendor", title?: string): Plate {
     let plate = this.plates.get(id);
     if (!plate) {
       const el = document.createElement("div");
       el.className = `nameplate nameplate--${tone}`;
       el.innerHTML =
-        tone === "npc"
+        tone === "npc" || tone === "vendor"
           ? `<div class="nameplate-name">${escapeHtml(name)}</div>${title ? `<div class="nameplate-title">${escapeHtml(title)}</div>` : ""}`
           : `<div class="nameplate-name">${escapeHtml(name)}</div><div class="nameplate-track"><div class="nameplate-fill"></div></div>`;
       this.container.appendChild(el);

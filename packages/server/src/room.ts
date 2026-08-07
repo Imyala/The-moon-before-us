@@ -16,6 +16,7 @@ import {
   scale,
   getNpc,
   npcsInZone,
+  getVendor,
   resolveDialogue,
   resolveFollowUp,
   applyLoyaltyDelta,
@@ -40,11 +41,22 @@ import {
   type ServerMessage,
   type TradeOfferEntry,
   type TravelPoint,
-  type Vec3
+  type Vec3,
+  type VendorSnapshot
 } from "@moon/shared";
 import { randomUUID } from "node:crypto";
 import { grantXp } from "./character.js";
-import { addItem, countItemRarity, craft as craftRecipe, equipItem, removeItemsByIdAndRarity, unequipItem, useConsumable } from "./inventory.js";
+import {
+  addItem,
+  buyFromVendor,
+  countItemRarity,
+  craft as craftRecipe,
+  equipItem,
+  removeItemsByIdAndRarity,
+  sellToVendor,
+  unequipItem,
+  useConsumable
+} from "./inventory.js";
 import {
   COMPANION_AGGRO_RADIUS,
   COMPANION_ATTACK_COOLDOWN_MS,
@@ -57,10 +69,12 @@ import {
   DODGE_COOLDOWN_MS,
   DODGE_DURATION_MS,
   DODGE_SPEED,
+  GOLD_PER_XP,
   MOUNT_SPEED_MULTIPLIER,
   PLAYER_SPEED,
   TRADE_RANGE,
   TRAVEL_COOLDOWN_MS,
+  VENDOR_RANGE,
   WORLD_EVENT_COOLDOWN_MS,
   WORLD_EVENT_DURATION_MS,
   WORLD_EVENT_ENEMY_ID,
@@ -68,6 +82,7 @@ import {
   WORLD_EVENT_ZONE_IDS,
   ZONE_ENEMY_SPAWNS,
   ZONE_NODE_SPAWNS,
+  ZONE_VENDOR_SPAWNS,
   allZoneIds
 } from "./world.js";
 
@@ -190,6 +205,14 @@ interface NpcEntity {
   position: Vec3;
 }
 
+/** A stationary merchant (see world.ts's ZONE_VENDOR_SPAWNS and vendors.ts). Keyed by defId, one
+ *  instance per catalog entry per room — the same convention NpcEntity uses. */
+interface VendorEntity {
+  id: string;
+  zoneId: string;
+  position: Vec3;
+}
+
 /**
  * A recruited companion. Keyed by a composite id (`${ownerId}:${defId}`, see Room.companions) so
  * one owner can have up to MAX_COMPANIONS active at once. Companions are full aggro targets:
@@ -245,6 +268,7 @@ export class Room {
   private nodes = new Map<string, NodeEntity>();
   private healZones = new Map<string, HealZoneEntity>();
   private npcs = new Map<string, NpcEntity>();
+  private vendors = new Map<string, VendorEntity>();
   private companions = new Map<string, CompanionEntity>();
   private events: GameEvent[] = [];
   private tick = 0;
@@ -319,6 +343,9 @@ export class Room {
       }
       for (const npc of npcsInZone(zoneId)) {
         this.npcs.set(npc.id, { id: npc.id, zoneId, position: { ...npc.position } });
+      }
+      for (const spawn of ZONE_VENDOR_SPAWNS[zoneId] ?? []) {
+        this.vendors.set(spawn.defId, { id: spawn.defId, zoneId, position: { ...spawn.pos } });
       }
     }
   }
@@ -516,6 +543,14 @@ export class Room {
       }
       case "toggleMount": {
         this.toggleMount(player);
+        break;
+      }
+      case "buyItem": {
+        this.tryBuyItem(player, msg.vendorId, msg.itemId, msg.quantity);
+        break;
+      }
+      case "sellItem": {
+        this.trySellItem(player, msg.vendorId, msg.itemId, msg.rarity, msg.quantity);
         break;
       }
     }
@@ -899,6 +934,11 @@ export class Room {
       if (!player || player.character.hp <= 0) continue;
       const levels = grantXp(player.character, def.xpReward);
       if (levels > 0) this.events.push({ type: "levelUp", playerId: player.id, level: player.character.level, zoneId: player.character.zoneId });
+      const goldReward = Math.round(def.xpReward * GOLD_PER_XP);
+      if (goldReward > 0) {
+        player.character.gold += goldReward;
+        this.events.push({ type: "gold", playerId: player.id, amount: goldReward, zoneId: player.character.zoneId });
+      }
       for (const entry of def.loot) {
         if (Math.random() < entry.chance) {
           const qty = randInt(entry.minQty, entry.maxQty);
@@ -1077,6 +1117,30 @@ export class Room {
     player.character.npcMemory = markMet(player.character.npcMemory, npc.id);
     this.send(player.ws, { t: "npcDialogue", npcId: npc.id, speaker: resolved.speaker, line: resolved.line, choices: resolved.choices });
     this.sendCharacterUpdate(player);
+  }
+
+  // ---------------- Vendors & currency ----------------
+
+  private nearVendor(player: PlayerEntity, vendorId: string): boolean {
+    const vendorEntity = this.vendors.get(vendorId);
+    if (!vendorEntity || player.character.hp <= 0) return false;
+    if (vendorEntity.zoneId !== player.character.zoneId) return false;
+    return distance(player.position, vendorEntity.position) <= VENDOR_RANGE;
+  }
+
+  private tryBuyItem(player: PlayerEntity, vendorId: string, itemId: string, quantity: number) {
+    const vendorDef = getVendor(vendorId);
+    if (!vendorDef || !this.nearVendor(player, vendorId)) return;
+    const result = buyFromVendor(player.character, vendorDef, itemId, quantity);
+    if (result.ok) this.sendCharacterUpdate(player);
+    else this.send(player.ws, { t: "error", message: result.reason });
+  }
+
+  private trySellItem(player: PlayerEntity, vendorId: string, itemId: string, rarity: ItemRarity, quantity: number) {
+    if (!this.nearVendor(player, vendorId)) return;
+    const result = sellToVendor(player.character, itemId, rarity, quantity);
+    if (result.ok) this.sendCharacterUpdate(player);
+    else this.send(player.ws, { t: "error", message: result.reason });
   }
 
   private handleDialogueChoice(player: PlayerEntity, npcId: string, optionId: string) {
@@ -1811,6 +1875,13 @@ export class Room {
           return { id: n.id, defId: n.id, name: def.name, title: def.title, position: n.position };
         });
 
+      const vendors: VendorSnapshot[] = [...this.vendors.values()]
+        .filter((v) => v.zoneId === zoneId)
+        .map((v) => {
+          const def = getVendor(v.id)!;
+          return { id: v.id, defId: v.id, name: def.name, title: def.title, position: v.position };
+        });
+
       const companions: CompanionSnapshot[] = [...this.companions.values()]
         .filter((c) => c.zoneId === zoneId)
         .map((c) => {
@@ -1830,7 +1901,7 @@ export class Room {
 
       const events = this.events.filter((e) => e.zoneId === zoneId);
 
-      this.send(recipient.ws, { t: "snapshot", tick: this.tick, serverTime: now, players, enemies, nodes, npcs, companions, events });
+      this.send(recipient.ws, { t: "snapshot", tick: this.tick, serverTime: now, players, enemies, nodes, npcs, vendors, companions, events });
     }
   }
 }

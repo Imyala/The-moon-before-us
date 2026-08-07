@@ -1,4 +1,4 @@
-import type { ItemDef } from "./types.js";
+import { RARITY_MULTIPLIER, type ItemDef, type ItemKind, type ItemRarity } from "./types.js";
 
 export const ITEMS: ItemDef[] = [
   // ---- class weapons (starting gear, kit A) ----
@@ -416,4 +416,21 @@ export const ITEMS: ItemDef[] = [
 
 export function getItem(id: string): ItemDef | undefined {
   return ITEMS.find((i) => i.id === id);
+}
+
+// A flat gold value per item kind at common rarity, scaled by the same RARITY_MULTIPLIER that
+// already scales statBonus — a rare drop is worth more to a vendor for the same reason it's worth
+// more on your character. Formula-driven rather than a hand-authored price per item (see
+// vendors.ts's curated buy-side catalog, which *is* hand-authored, for the contrast).
+const SELL_BASE_VALUE: Record<ItemKind, number> = {
+  material: 2,
+  consumable: 4,
+  weapon: 12,
+  armor: 12,
+  trinket: 12
+};
+
+/** What a vendor pays for one unit of this item at the given rarity (see Room.trySellItem). */
+export function sellValue(item: ItemDef, rarity: ItemRarity): number {
+  return Math.max(1, Math.round(SELL_BASE_VALUE[item.kind] * RARITY_MULTIPLIER[rarity]));
 }

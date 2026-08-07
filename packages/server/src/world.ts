@@ -35,6 +35,13 @@ export const TRADE_RANGE = 8;
 // tool, not a build-around mechanic.
 export const MOUNT_SPEED_MULTIPLIER = 1.8;
 
+// Vendors & currency (see docs/GDD.md): how close a player must stand to buy or sell, the same
+// "handshake, not continuous re-validation" range check gathering and talking already use.
+export const VENDOR_RANGE = 5;
+// Gold bounty per enemy kill, scaled off the enemy's own xpReward so tougher kills pay more
+// without a second per-enemy field to author and keep in sync.
+export const GOLD_PER_XP = 1 / 8;
+
 export interface EnemySpawnPoint {
   defId: string;
   pos: Vec3;
@@ -42,6 +49,11 @@ export interface EnemySpawnPoint {
 }
 
 export interface NodeSpawnPoint {
+  defId: string;
+  pos: Vec3;
+}
+
+export interface VendorSpawnPoint {
   defId: string;
   pos: Vec3;
 }
@@ -261,6 +273,18 @@ export const ZONE_NODE_SPAWNS: Record<string, NodeSpawnPoint[]> = {
     { defId: "node_crystal", pos: { x: 11, y: 0, z: 14 } },
     { defId: "node_crystal", pos: { x: -11, y: 0, z: 9 } }
   ]
+};
+
+// One vendor per hub zone (see docs/GDD.md's "Vendors & currency" section) — placed near each
+// zone's spawnPoint, like a stall at the town gate. Dungeons and the Moonthread deliberately have
+// none: they're challenge/story content, not places to shop.
+export const ZONE_VENDOR_SPAWNS: Record<string, VendorSpawnPoint[]> = {
+  threadhold: [{ defId: "wares_keeper_tomlin", pos: { x: 6, y: 0, z: 10 } }],
+  ashmire: [{ defId: "quartermaster_hesk", pos: { x: 6, y: 0, z: 34 } }],
+  sunken_llyr: [{ defId: "driftmonger_sael", pos: { x: 6, y: 0, z: 36 } }],
+  mourncrown: [{ defId: "cairntrader_yune", pos: { x: 6, y: 0, z: 38 } }],
+  spirechain: [{ defId: "provisioner_denna", pos: { x: 6, y: 0, z: 30 } }],
+  frayedge: [{ defId: "fringe_trader_oskar", pos: { x: 6, y: 0, z: 46 } }]
 };
 
 export function allZoneIds(): string[] {

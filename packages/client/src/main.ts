@@ -5,6 +5,7 @@ import {
   getAbility,
   getEnemy,
   getResourceNode,
+  getVendor,
   getZone,
   START_ZONE_ID,
   add,
@@ -23,7 +24,8 @@ import {
   type PlayerClassId,
   type PlayerSnapshot,
   type ServerMessage,
-  type Vec3
+  type Vec3,
+  type VendorSnapshot
 } from "@moon/shared";
 import { createWorld } from "./scene/world.js";
 import { buildPlayerAvatar, buildEnemyAvatar, buildNpcAvatar, buildMountAvatar, animateAvatar, type Avatar } from "./scene/avatars.js";
@@ -37,6 +39,7 @@ import type { PanelKind } from "./ui/panels.js";
 import { NameplateManager } from "./ui/nameplates.js";
 import { DialoguePanel } from "./ui/dialogue.js";
 import { TradePanel } from "./ui/trade.js";
+import { ShopPanel } from "./ui/shop.js";
 import { renderLanding } from "./ui/landing.js";
 import { AudioEngine } from "./audio.js";
 import { getOrCreateToken, getSavedProfile, saveProfile } from "./identity.js";
@@ -111,6 +114,13 @@ interface NpcVisual {
   position: Vec3;
 }
 
+interface VendorVisual {
+  avatar: Avatar;
+  name: string;
+  title: string;
+  position: Vec3;
+}
+
 interface CompanionVisual {
   avatar: Avatar;
   name: string;
@@ -137,6 +147,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
   const panels = new Panels(uiRoot, net, () => character);
   const dialogue = new DialoguePanel(uiRoot);
   const trade = new TradePanel(uiRoot, net, () => character);
+  const shop = new ShopPanel(uiRoot, net, () => character);
   const dmgContainer = uiRoot;
 
   dialogue.onChoose = (npcId, optionId) => net.send({ t: "chooseDialogueOption", npcId, optionId });
@@ -193,6 +204,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
   const enemies = new Map<string, EnemyVisual>();
   const nodes = new Map<string, NodeVisual>();
   const npcs = new Map<string, NpcVisual>();
+  const vendors = new Map<string, VendorVisual>();
   const companions = new Map<string, CompanionVisual>();
   const cooldownReadyAt = new Map<string, number>();
   const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
@@ -201,6 +213,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
   let selectedTargetId: string | null = null;
   let gathering: { nodeId: string; startedAt: number; durationMs: number } | null = null;
   let nearestNodeId: string | null = null;
+  let nearestVendorId: string | null = null;
   let nearestNpcId: string | null = null;
   let lastInputSentAt = 0;
   let lastSentMove: Vec3 = { x: 0, y: 0, z: 0 };
@@ -211,7 +224,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
   function handleServerMessage(msg: ServerMessage) {
     switch (msg.t) {
       case "snapshot":
-        applySnapshot(msg.players, msg.enemies, msg.nodes, msg.npcs, msg.companions);
+        applySnapshot(msg.players, msg.enemies, msg.nodes, msg.npcs, msg.vendors, msg.companions);
         for (const ev of msg.events) handleEvent(ev);
         break;
       case "npcDialogue":
@@ -221,6 +234,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
       case "characterUpdate":
         character = msg.character;
         panels.refresh();
+        shop.refresh();
         break;
       case "partyRoster":
         latestRoster = msg.members;
@@ -274,6 +288,10 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
         hud.pushToast(`+${ev.quantity} ${itemName(ev.itemId)}`, "loot");
         audio.playLoot();
       }
+    } else if (ev.type === "gold") {
+      if (ev.playerId === selfId) {
+        hud.pushToast(`+${ev.amount} gold`, "loot");
+      }
     } else if (ev.type === "craft") {
       if (ev.playerId === selfId) {
         hud.pushToast(`Crafted ${itemName(ev.itemId)} x${ev.quantity}`, "loot");
@@ -322,6 +340,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
     enemySnaps: EnemySnapshot[],
     nodeSnaps: NodeSnapshot[],
     npcSnaps: NpcSnapshot[],
+    vendorSnaps: VendorSnapshot[],
     companionSnaps: CompanionSnapshot[]
   ) {
     const seenPlayers = new Set<string>();
@@ -441,6 +460,27 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
       }
     }
 
+    const seenVendors = new Set<string>();
+    for (const v of vendorSnaps) {
+      seenVendors.add(v.id);
+      let vis = vendors.get(v.id);
+      if (!vis) {
+        const avatar = buildNpcAvatar("#6fcf8f");
+        world.scene.add(avatar.group);
+        vis = { avatar, name: v.name, title: v.title, position: { ...v.position } };
+        vendors.set(v.id, vis);
+      }
+      vis.position = v.position;
+      vis.avatar.group.position.set(v.position.x, 0, v.position.z);
+    }
+    for (const id of [...vendors.keys()]) {
+      if (!seenVendors.has(id)) {
+        world.scene.remove(vendors.get(id)!.avatar.group);
+        vendors.delete(id);
+        nameplates.remove(`vendor:${id}`);
+      }
+    }
+
     const seenCompanions = new Set<string>();
     for (const c of companionSnaps) {
       seenCompanions.add(c.id);
@@ -468,6 +508,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
 
     updateNearestNode();
     updateNearestNpc();
+    updateNearestVendor();
   }
 
   function updateNearestNode() {
@@ -497,10 +538,23 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
     nearestNpcId = best;
   }
 
+  function updateNearestVendor() {
+    let best: string | null = null;
+    let bestDist = 4;
+    for (const [id, vis] of vendors) {
+      const d = Math.hypot(vis.position.x - selfPos.x, vis.position.z - selfPos.z);
+      if (d < bestDist) {
+        bestDist = d;
+        best = id;
+      }
+    }
+    nearestVendorId = best;
+  }
+
   // ---------------- Input handling ----------------
 
   function useAbility(slot: number) {
-    if (panels.isOpen() || trade.isOpen() || hud.isChatFocused()) return;
+    if (panels.isOpen() || trade.isOpen() || shop.isOpen() || hud.isChatFocused()) return;
     const ability = activeAbilities(character).find((a) => a.slot === slot);
     if (!ability) return;
     const readyAt = cooldownReadyAt.get(ability.id) ?? 0;
@@ -532,12 +586,12 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
   }
 
   function toggleMount() {
-    if (panels.isOpen() || trade.isOpen() || hud.isChatFocused()) return;
+    if (panels.isOpen() || trade.isOpen() || shop.isOpen() || hud.isChatFocused()) return;
     net.send({ t: "toggleMount" });
   }
 
   function sendDodge() {
-    if (panels.isOpen() || trade.isOpen() || hud.isChatFocused()) return;
+    if (panels.isOpen() || trade.isOpen() || shop.isOpen() || hud.isChatFocused()) return;
     const intent = controller.getMoveIntent();
     let dir = { x: intent.x, y: 0, z: intent.z };
     if (dir.x === 0 && dir.z === 0) {
@@ -548,11 +602,17 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
   }
 
   function tryInteract() {
-    if (panels.isOpen() || trade.isOpen() || hud.isChatFocused()) return;
+    if (panels.isOpen() || trade.isOpen() || shop.isOpen() || hud.isChatFocused()) return;
 
     const npcDist = nearestNpcId ? Math.hypot(npcs.get(nearestNpcId)!.position.x - selfPos.x, npcs.get(nearestNpcId)!.position.z - selfPos.z) : Infinity;
     const nodeDist = nearestNodeId ? Math.hypot(nodes.get(nearestNodeId)!.mesh.position.x - selfPos.x, nodes.get(nearestNodeId)!.mesh.position.z - selfPos.z) : Infinity;
+    const vendorDist = nearestVendorId ? Math.hypot(vendors.get(nearestVendorId)!.position.x - selfPos.x, vendors.get(nearestVendorId)!.position.z - selfPos.z) : Infinity;
 
+    if (nearestVendorId && vendorDist <= npcDist && vendorDist <= nodeDist) {
+      const vendorDef = getVendor(nearestVendorId);
+      if (vendorDef) shop.open(nearestVendorId, vendorDef);
+      return;
+    }
     if (nearestNpcId && npcDist <= nodeDist) {
       net.send({ t: "talk", npcId: nearestNpcId });
       return;
@@ -568,7 +628,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
   }
 
   function tryTargetClick() {
-    if (panels.isOpen() || trade.isOpen() || hud.isChatFocused()) return;
+    if (panels.isOpen() || trade.isOpen() || shop.isOpen() || hud.isChatFocused()) return;
     raycaster.setFromCamera(controller.mouseNdc, world.camera);
     const meshes: { id: string; obj: THREE.Object3D }[] = [];
     for (const [id, vis] of enemies) {
@@ -685,6 +745,13 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
       animateAvatar(vis.avatar, now / 1000 + id.length, false, now);
       nameplates.ensure(id, vis.name, "npc", vis.title);
       nameplates.update(id, add(vis.position, { x: 0, y: 2.05, z: 0 }), 1, true);
+    }
+
+    for (const [id, vis] of vendors) {
+      animateAvatar(vis.avatar, now / 1000 + id.length, false, now);
+      const plateId = `vendor:${id}`;
+      nameplates.ensure(plateId, vis.name, "vendor", vis.title);
+      nameplates.update(plateId, add(vis.position, { x: 0, y: 2.05, z: 0 }), 1, true);
     }
 
     for (const [id, vis] of companions) {

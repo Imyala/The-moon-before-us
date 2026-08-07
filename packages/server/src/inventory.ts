@@ -1,4 +1,4 @@
-import { ITEMS, RECIPES, getSubclass, type CharacterState, type EquipmentSlot, type ItemRarity } from "@moon/shared";
+import { ITEMS, RECIPES, getSubclass, sellValue, type CharacterState, type EquipmentSlot, type ItemRarity, type VendorDef } from "@moon/shared";
 import { computeEffectiveStats } from "./character.js";
 import { maxHpForCharacter, maxResourceForCharacter } from "@moon/shared";
 
@@ -135,6 +135,33 @@ export function refreshDerivedStats(character: CharacterState): void {
   character.resource = Math.min(character.resource, newMaxResource);
   character.maxHp = newMaxHp;
   character.maxResource = newMaxResource;
+}
+
+export type VendorTradeResult = { ok: true } | { ok: false; reason: string };
+
+/** Buys `quantity` of one item off a vendor's own catalog (proximity is checked by the caller —
+ *  see Room.tryBuyItem). Gold-for-item only; never mutates the vendor. */
+export function buyFromVendor(character: CharacterState, vendor: VendorDef, itemId: string, quantity: number): VendorTradeResult {
+  if (!Number.isInteger(quantity) || quantity <= 0) return { ok: false, reason: "Invalid quantity." };
+  const listing = vendor.sells.find((l) => l.itemId === itemId);
+  if (!listing) return { ok: false, reason: `${vendor.name} doesn't sell that.` };
+  const cost = listing.price * quantity;
+  if (character.gold < cost) return { ok: false, reason: "Not enough gold." };
+  character.gold -= cost;
+  addItem(character, itemId, quantity);
+  return { ok: true };
+}
+
+/** Sells `quantity` of one inventory stack at its formulaic sellValue (see items.ts) — any vendor
+ *  buys anything, unlike buying, which is limited to that vendor's own curated catalog. Equipped
+ *  gear is untouched: this only ever removes from `inventory`, never `equipment`. */
+export function sellToVendor(character: CharacterState, itemId: string, rarity: ItemRarity, quantity: number): VendorTradeResult {
+  if (!Number.isInteger(quantity) || quantity <= 0) return { ok: false, reason: "Invalid quantity." };
+  const def = ITEMS.find((i) => i.id === itemId);
+  if (!def) return { ok: false, reason: "Unknown item." };
+  if (!removeItemsByIdAndRarity(character, itemId, rarity, quantity)) return { ok: false, reason: "You don't have that many." };
+  character.gold += sellValue(def, rarity) * quantity;
+  return { ok: true };
 }
 
 export type UseItemResult = { ok: true; heal?: number; restore?: number } | { ok: false; reason: string };

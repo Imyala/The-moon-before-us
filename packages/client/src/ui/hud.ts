@@ -56,6 +56,7 @@ export class Hud {
   private shieldFill: HTMLDivElement;
   private xpFill: HTMLDivElement;
   private levelBadge: HTMLSpanElement;
+  private goldBadge: HTMLSpanElement;
   private nameLabel: HTMLSpanElement;
   private abilityBarEl: HTMLDivElement;
   private abilitySlots = new Map<string, { root: HTMLDivElement; overlay: HTMLDivElement }>();
@@ -96,6 +97,7 @@ export class Hud {
         <div class="bar-row">
           <span class="bar-name" id="hudName"></span>
           <span class="level-badge" id="hudLevel"></span>
+          <span class="gold-badge" id="hudGold" title="Gold">💰 0</span>
         </div>
         <div class="bar-track">
           <div class="bar-fill hp" id="hpFill"></div>
@@ -144,6 +146,7 @@ export class Hud {
     this.shieldFill = this.root.querySelector("#shieldFill")!;
     this.xpFill = this.root.querySelector("#xpFill")!;
     this.levelBadge = this.root.querySelector("#hudLevel")!;
+    this.goldBadge = this.root.querySelector("#hudGold")!;
     this.nameLabel = this.root.querySelector("#hudName")!;
     this.abilityBarEl = this.root.querySelector("#abilityBar")!;
     this.rosterEl = this.root.querySelector("#rosterList")!;
@@ -213,6 +216,7 @@ export class Hud {
     this.resourceLabel.textContent = `${Math.ceil(c.resource)} / ${c.maxResource}`;
     this.nameLabel.textContent = `${c.name} — ${CLASSES[c.classId].name}`;
     this.levelBadge.textContent = `Lv ${c.level}`;
+    this.goldBadge.textContent = `💰 ${Math.floor(c.gold)}`;
     const need = xpForLevel(c.level + 1);
     const prev = xpForLevel(c.level);
     const pct = Math.max(0, Math.min(100, ((c.xp - prev) / (need - prev)) * 100));

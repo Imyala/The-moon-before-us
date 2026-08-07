@@ -9,4 +9,5 @@ export * from "./recipes.js";
 export * from "./enemies.js";
 export * from "./protocol.js";
 export * from "./zones.js";
+export * from "./vendors.js";
 export * from "./lore/index.js";
