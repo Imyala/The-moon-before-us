@@ -41,6 +41,7 @@ import {
   type EntityState,
   type FlirtType,
   type GameEvent,
+  type GuildAlignment,
   type ItemRarity,
   type NodeSnapshot,
   type NpcSnapshot,
@@ -55,6 +56,16 @@ import { randomUUID } from "node:crypto";
 import { grantXp } from "./character.js";
 import { buyAuction, cancelAuction, listAuction, auctionRowsForRecipient } from "./auctionHouse.js";
 import { listAuctions } from "./db.js";
+import {
+  createGuild,
+  donateToGuild,
+  inviteToGuild,
+  kickGuildMember,
+  leaveGuild,
+  respondToGuildInvite,
+  setMemberRank,
+  buildGuildStateFor
+} from "./guilds.js";
 import { registerPresence, unregisterPresence } from "./presence.js";
 import {
   addItem,
@@ -410,7 +421,7 @@ export class Room {
       character.hp = character.maxHp;
     }
     this.players.set(entity.id, entity);
-    registerPresence(token, character, () => this.sendCharacterUpdate(entity));
+    registerPresence(token, character, () => this.sendCharacterUpdate(entity), () => this.sendGuildState(entity));
     this.send(ws, { t: "welcome", selfId: entity.id, roomCode: this.code ?? "solo", character });
     this.broadcastRoster();
     return entity;
@@ -592,6 +603,38 @@ export class Room {
       }
       case "repairRomance": {
         this.tryRepairRomance(player, msg.npcId);
+        break;
+      }
+      case "createGuild": {
+        this.tryCreateGuild(player, msg.name, msg.tag, msg.alignment);
+        break;
+      }
+      case "inviteToGuild": {
+        this.tryInviteToGuild(player, msg.playerName);
+        break;
+      }
+      case "respondGuildInvite": {
+        this.tryRespondGuildInvite(player, msg.guildId, msg.accept);
+        break;
+      }
+      case "leaveGuild": {
+        this.tryLeaveGuild(player);
+        break;
+      }
+      case "kickGuildMember": {
+        this.tryKickGuildMember(player, msg.targetMemberId);
+        break;
+      }
+      case "setGuildMemberRank": {
+        this.trySetGuildMemberRank(player, msg.targetMemberId, msg.rank);
+        break;
+      }
+      case "donateToGuild": {
+        this.tryDonateToGuild(player, msg.amount);
+        break;
+      }
+      case "requestGuild": {
+        this.sendGuildState(player);
         break;
       }
     }
@@ -1270,6 +1313,66 @@ export class Room {
 
   private sendAuctionListings(player: PlayerEntity) {
     this.send(player.ws, { t: "auctionListings", listings: auctionRowsForRecipient(listAuctions(), player.token) });
+  }
+
+  // ---------------- Guilds ----------------
+  // Global and cross-room, same reasoning as the auction house above — a guild's membership must
+  // outlive any one member's session, so guilds.ts and db.ts do all the real work off tokens
+  // rather than Room-local state. See docs/GDD.md's "Guilds" section for what's actually built.
+
+  private tryCreateGuild(player: PlayerEntity, name: string, tag: string, alignment: GuildAlignment) {
+    const result = createGuild(player.character, player.token, name, tag, alignment);
+    if (result.ok) {
+      this.sendCharacterUpdate(player);
+      this.sendGuildState(player);
+    } else {
+      this.send(player.ws, { t: "error", message: result.reason });
+    }
+  }
+
+  private tryInviteToGuild(player: PlayerEntity, playerName: string) {
+    const result = inviteToGuild(player.character, player.token, playerName);
+    if (result.ok) this.send(player.ws, { t: "error", message: `Invited ${playerName}.` });
+    else this.send(player.ws, { t: "error", message: result.reason });
+  }
+
+  private tryRespondGuildInvite(player: PlayerEntity, guildId: string, accept: boolean) {
+    const result = respondToGuildInvite(player.character, player.token, guildId, accept);
+    if (result.ok) this.sendGuildState(player);
+    else this.send(player.ws, { t: "error", message: result.reason });
+  }
+
+  private tryLeaveGuild(player: PlayerEntity) {
+    const result = leaveGuild(player.token);
+    if (result.ok) this.sendGuildState(player);
+    else this.send(player.ws, { t: "error", message: result.reason });
+  }
+
+  private tryKickGuildMember(player: PlayerEntity, targetMemberId: string) {
+    const result = kickGuildMember(player.token, targetMemberId);
+    if (result.ok) this.sendGuildState(player);
+    else this.send(player.ws, { t: "error", message: result.reason });
+  }
+
+  private trySetGuildMemberRank(player: PlayerEntity, targetMemberId: string, rank: "officer" | "member") {
+    const result = setMemberRank(player.token, targetMemberId, rank);
+    if (result.ok) this.sendGuildState(player);
+    else this.send(player.ws, { t: "error", message: result.reason });
+  }
+
+  private tryDonateToGuild(player: PlayerEntity, amount: number) {
+    const result = donateToGuild(player.character, player.token, amount);
+    if (result.ok) {
+      this.sendCharacterUpdate(player);
+      this.sendGuildState(player);
+    } else {
+      this.send(player.ws, { t: "error", message: result.reason });
+    }
+  }
+
+  private sendGuildState(player: PlayerEntity) {
+    const { guild, invites } = buildGuildStateFor(player.character, player.token);
+    this.send(player.ws, { t: "guildState", guild, invites });
   }
 
   private handleDialogueChoice(player: PlayerEntity, npcId: string, optionId: string) {

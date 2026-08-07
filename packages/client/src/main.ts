@@ -42,6 +42,7 @@ import { DialoguePanel } from "./ui/dialogue.js";
 import { TradePanel } from "./ui/trade.js";
 import { ShopPanel } from "./ui/shop.js";
 import { AuctionPanel } from "./ui/auction.js";
+import { GuildPanel } from "./ui/guild.js";
 import { renderLanding } from "./ui/landing.js";
 import { AudioEngine } from "./audio.js";
 import { getOrCreateToken, getSavedProfile, saveProfile } from "./identity.js";
@@ -155,6 +156,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
   const trade = new TradePanel(uiRoot, net, () => character);
   const shop = new ShopPanel(uiRoot, net, () => character);
   const auction = new AuctionPanel(uiRoot, net, () => character);
+  const guild = new GuildPanel(uiRoot, net, () => character);
   panels.onOpenAuction = () => auction.toggle();
   const dmgContainer = uiRoot;
 
@@ -180,6 +182,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
   controller.onToggleCompanions = () => panels.toggle("companions");
   controller.onToggleMount = () => toggleMount();
   controller.onToggleAuction = () => auction.toggle();
+  controller.onToggleGuild = () => guild.toggle();
 
   let character: CharacterState = initialCharacter;
   let selfPos: Vec3 = { ...initialCharacter.position };
@@ -246,6 +249,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
         panels.refresh();
         shop.refresh();
         auction.refresh();
+        guild.refresh();
         break;
       case "partyRoster":
         latestRoster = msg.members;
@@ -274,6 +278,9 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
         break;
       case "auctionListings":
         auction.handleListings(msg.listings);
+        break;
+      case "guildState":
+        guild.handleGuildState(msg);
         break;
     }
   }

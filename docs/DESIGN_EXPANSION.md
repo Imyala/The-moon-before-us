@@ -451,62 +451,110 @@ Each player has a score with **3 majors + 9 minors = 12 factions**.
 
 ## 4. Cross-Faction Guilds and Double-Agent Mechanics
 
-### 4.1 Guild Faction Identity
+### 4.1 Guild System Philosophy
 
-When a guild is created, the guild leader chooses a **guild faction alignment**:
+**Core goals:**
 
-| Guild Alignment | Meaning |
+| # | Goal | How it's achieved |
+|---|---|---|
+| 1 | Factions are not social prisons | Players of any major or minor faction can join any guild. |
+| 2 | Guild alignment creates meaningful tension | A guild's chosen faction/minor affiliation generates story, conflict, and mechanical identity. |
+| 3 | Double agents are a real playstyle | Members of enemy factions can infiltrate, spy, or betray — or be loyal bridge-builders. |
+| 4 | Guilds shape the world | Guild activities contribute to faction power, world events, and territory control. |
+| 5 | Guilds are social homes, not just chat channels | Guild halls, shared crafting, group progression, communal identity. |
+| 6 | Betrayal has consequences | Espionage is risky; exposure can destroy guilds, reputations, and friendships. |
+
+**What this is NOT:** not a generic chat group (guilds have alignment, territory, missions, shared assets); not faction-locked (you are not forced into a guild matching your faction); not safe from conflict (guildmates may be enemies in the larger world); not a license to grief (espionage has rules, logs, and consequences).
+
+### 4.2 Guild Creation and Alignment
+
+| Requirement | Detail |
 |---|---|
-| **Neutral** | No faction restrictions; no faction story benefits |
-| **Chainwright-affiliated** | Chainwright members get guild perks; non-members can still join but are "suspect" |
-| **Luminari-affiliated** | Same for Luminari |
-| **Pale Choir-affiliated** | Same for Choir |
-| **Minor-faction affiliated** | Guild tied to one of the 9 minors |
-| **Independent/mercenary** | Guild takes contracts from all factions |
+| Cost | 10,000 Aethercoin or 100 Moonstones |
+| Minimum founders | 3 players |
+| Name rules | Unique across server; profanity filter; no faction-exclusive titles unless earned |
+| Tag | 2–4 character guild tag displayed under names |
+| Initial alignment | Chosen from a creation menu |
 
-### 4.2 Cross-Faction Membership
+At creation, the leader chooses one **primary alignment** from 14 options: Neutral, Chainwright Order, Luminari Covenant, Pale Choir, Ashforged Company, Tide-Callers, Emberwrights, Blacktide Armada, Silent College, Mournstride Clans, Frayedge Covenant, Shardsingers, Argent Vigil, or Independent — each with its own identity and best-fit playstyle (military/PvP, tech/crafting, lore/RP, naval, and so on).
 
-Players of **any faction** can join **any guild**, but the guild alignment creates story tension.
+A guild can later change alignment via a **Guild Vote** (75% of active members, 1-week cooldown; old faction rep drops, new faction rep gain begins), a **Story Event** questline (dramatic; may cause schism or exile), a **Leader Override** (spends Influence currency; unpopular, may trigger mutiny), or rarely being **Forced by World** events flipping guild territory.
 
-#### For Members Aligned with the Guild
+### 4.3 Cross-Faction Membership Rules
 
-- Full access to guild perks.
-- Guild missions contribute to their faction's power.
-- No story complications.
+Any player of any faction can apply to any guild; acceptance is up to the guild. Membership creates a **status** per player:
 
-#### For Members Opposed to the Guild
+| Member Faction | Guild Alignment | Status |
+|---|---|---|
+| Same faction | Same major/minor | **True Member** — full benefits, no suspicion |
+| Same major, different minor | Minor-aligned guild | **Aligned Member** — minor suspicion, mild tests |
+| Different major | Neutral/Minor/Independent | **Cross-Faction Member** — double-agent potential |
+| Different major | Enemy major guild | **Infiltrator** — high suspicion, espionage opportunity |
+| Independent | Any | **Free Agent** — judged by actions, not banner |
 
-- **Suspect status** within the guild.
-- Guild NPCs may ask you to spy, steal information, or sabotage your own faction.
-- Refusing makes you a **pariah** in the guild.
-- Accepting makes you a **double agent**.
+Each status carries different benefits/restrictions (a True Member gets full perks and faction missions with no restrictions; an Infiltrator can access the guild hall and missions but not top-tier storage, and all their actions are logged). The roster is visible to everyone, but a member's double-agent score and suspected-betrayal level are hidden — leaders see only a "trust metric," never definitive proof.
 
-### 4.3 Double-Agent Story System
+### 4.4 The Double-Agent System
 
-If you join a guild aligned with an enemy faction, the game offers a **double-agent questline**:
+The heart of cross-faction guilds. A player becomes a double agent by joining a guild aligned with an enemy faction, accepting a double-agent quest from their real faction, or beginning espionage on their own — and can even be a **triple agent**, appearing to spy for one faction while actually serving another.
 
-| Stage | What Happens |
-|---|---|
-| **Recruitment** | Guild leader asks you to prove loyalty by feeding them information. |
-| **First betrayal** | You steal documents, maps, or plans from your own faction. |
-| **Exposure risk** | Your own faction grows suspicious. Grudges accumulate. |
-| **Moral crisis** | A friend in your faction is endangered. Save them or sacrifice them for the guild? |
-| **Resolution** | Choose: become a true defector, expose the guild as a mole, or play both sides forever. |
+**Quest types:** Intelligence Theft, Sabotage, Recruitment (convincing guildmates to defect), False Flag (framing another faction for your own attack), Deep Cover (reshaping guild policy from trusted insider status — the "Architect of Nothing" ending path), Assassination, Supply Diversion, and Counter-Espionage (exposing another double agent).
 
-**Consequences:**
+**Espionage actions** (planting listening devices, copying guild logs, poisoning supplies, forging documents, opening secret doors, bribing guild NPCs, framing another member, leaking mission plans) each carry a **Detection Score**: `Detection Risk = Base Risk + Action Count Modifier + Member Suspicion − Stealth Skill − Guild Security`, mapped to five bands from Clean (0–20) through Watched, Suspected, Accused, to Exposed (81–100). Detection can be reduced by stealth skills, bribing scribes, using scapegoats, spacing actions out, or building genuine trust with the guild leader.
 
-- **True defector:** Switch factions with a bonus but become hunted by your old faction.
-- **Expose the guild:** Your faction trusts you; guild collapses or purges you.
-- **Double agent forever:** Highest risk; unique "The Architect of Nothing" ending path; one mistake turns both factions hostile.
+Reaching Suspected/Accused can trigger a **Confrontation Event**: prove innocence, confess and defect, confess as a triple agent, fail and be exiled/bountied, or kill the accuser (a dark path with its own guilt tags). Exposure means permanent guild blacklist, a bounty, and a faction reaction that depends on whether you delivered anything of value before being caught.
 
-### 4.4 Guild War and Espionage
+### 4.5 Guild Reputation and Influence
 
-- Guilds can declare **shadow wars** on enemy-aligned guilds.
-- **Espionage missions:** Infiltrate enemy guild hall instances to steal banners or intelligence.
-- **Guild bounties:** Place bounties on enemy players in open-world PvP zones.
-- **Faction contribution:** Guilds collectively contribute to their aligned faction's power in the world map.
+Guilds earn **Influence** (100–1,000 per source) from missions, world events, PvP/WvW victories, dungeon/raid completions, seasonal events, member donations, and hidden espionage successes. Influence is spent on guild hall upgrades, crafting stations, storage expansion, a portal network, vendor contracts, banner customization, a siege workshop, a memorial hall, or a spy network (which helps detect double agents).
 
-> **Engineering note:** there is no guild system of any kind in this codebase today — no persistent multi-character organization, no guild hall, no PvP. `Room` is a single solo-or-party instance; a guild is a cross-Room, cross-session social structure closer in shape to the auction house (global, DB-backed, outlives any one Room) than to anything else built so far, but with much more surface area: membership, ranks, invitations, chat, and (per this section) PvP bounties and shadow wars, which this game has no combat-between-players model for at all yet. This is a large, standalone system.
+Every alignment tracks a **Faction Contribution Score** — guild missions, PvP, and territory control feed the guild's aligned faction's regional power, weighted by which members actually complete the content, not just headcount.
+
+### 4.6 Guild Hall System
+
+Halls visually reflect alignment (a Chainwright hall is a white-gold cathedral-fortress with a lunar ward chapel; a Blacktide hall is a beached flagship with hidden docks; and so on for all 14 alignments). Each hall has public spaces (common hall, crafting stations, garden, memorial hall, basic storage) and restricted spaces (top storage tabs, the war room, the spy network room, faction shrines, a password-gated secret meeting room for double-agent confrontations). Cross-faction/infiltrator members can plant listening devices or sneak into restricted areas (at rising risk) but can never access the spy network room, vote on war declarations, promote members, or disband the guild.
+
+### 4.7 Guild Missions and PvP
+
+Weekly missions are generated per alignment (a Chainwright guild gets patrol/quarantine/inquisition missions; a Silent College guild gets book-recovery/archive-raid missions; and so on). A mixed-faction guild can find its own missions internally contentious — e.g. a Chainwright-aligned guild with a Pale Choir member receiving a "quarantine a Moon-Touched village" mission creates a real choice between completing it, sabotaging it, or splitting the guild. Guild-vs-guild PvP includes declared **Shadow Wars** (espionage and sabotage allowed), open bounties, guild hall raids during scheduled windows, WvW-style territory control, and honor duels for Mournstride/Argent Vigil guilds. Wars last 1–4 weeks and end by surrender, treaty, or exhaustion.
+
+### 4.8 Guild Story Integration
+
+Each alignment has a unique questline threaded across the 8 chapters (Chainwright: rise through the Order or confront Aldric; Luminari: build a shard-tech project and choose ethics vs. progress; and so on for all 14). Guild alignment can enable or complicate romance — bringing lovers together in a reformist guild, creating a forbidden romance, forcing a choice between a lover's faction and guild loyalty, or letting a neutral guild cover a secret affair. Guild-aligned NPCs (Castellan Yora for Argent Vigil, Captain Netta Blacktide, Warden Kael for the Frayedge Covenant, and others) can serve as honorary guild advisors, mission-givers, or companions.
+
+### 4.9 Anti-Griefing and Fairness Systems
+
+Espionage actions are cooldown-gated; guild leaders can investigate via action logs but never see definitive proof; guild security upgrades raise detection and audit trails; victims get bounty/counter-espionage quests to fight back; bound/legendary items can never be stolen; and guild hall damage from sabotage is cosmetic/economic only, never permanent. Anti-exploitation rules cover alt-account spying, join-and-steal, faction-power gaming via cross-faction headcount, leader power abuse (democratic removal vote), and audited guild-storage moves against real-money-trading laundering. Officers can open internal investigations (a mini-game/questline), and an exposed double agent can be exiled, temporarily jailed, cosmetically executed, or — rarely — forgiven.
+
+### 4.10 Economic Systems
+
+The guild treasury holds Aethercoin, Moonstones, Influence, materials, and special currencies. Members who donate earn reputation, an Influence share, hall tax benefits, and titles. Leaders can set optional weekly taxes (income tax, material tithe, mission tithe) — excessive taxes risk member unrest and mutiny. Guild-aligned vendors sell faction/mercenary/scholar/sea/forge goods at a discount to aligned members; cross-faction members pay full price or are barred from faction-specific stock.
+
+### 4.11 Technical Architecture
+
+The target design is a dedicated **Guild Service** microservice (membership DB, alignment/reputation, influence/treasury, mission generator, espionage tracking, hall instance manager, war declaration manager) sitting alongside the Character Service (faction scores, double-agent memory flags, reputation) and World State Service (regional faction power, guild territory, world-event participation) — with a full `Guild Record` JSON schema (members array with per-member faction/status/double-agent score/trust/contribution), an `Espionage Event Record`, a `Guild Mission Record`, a `GuildService` API surface (create/disband/invite/remove/realign, trust/suspicion, missions/influence, espionage actions, war declarations), persistent per-guild hall instances, and scaling notes (sharded guild lookup, server-authoritative permission checks, a time-series espionage audit log, capped weekly influence gains, on-demand hall instance loading).
+
+### 4.12 UI/UX Design
+
+A guild roster UI (name/tag, rank, faction, status, trust bar, contribution, last active, suspicion flag), an espionage UI for double agents (active missions, a detection meter, available actions, a faction contact NPC, a cover-story tracker), a guild war UI (active wars, raid schedule, territory map, bounty board, war score), and a guild hall editor (decoration placement, restricted-area configuration, security upgrade placement).
+
+### 4.13 Story and World Impact
+
+Guild activity feeds the regional faction-power map (aligned missions, PvP wins, territory control, successful espionage). A player's guild alignment and history shape which of the major endings they land in (Chainwright guilds become official Order chapters under the Silver Chain; Luminari guilds become corporate enclaves under the Gilded Cage; Frayedge/Shardsinger guilds lead the Becoming; and so on), and the epilogue names your guild's banner, its wars won/lost, its cross-faction betrayals, and its dead or defected members if you were a leader or officer.
+
+### 4.14 Implementation Roadmap (Target)
+
+**Phase 1 — Core:** guild creation, membership, ranks, basic chat/roster/calendar, storage and treasury, PvE guild missions. **Phase 2 — Guild Halls:** hall templates for all alignments, decoration, shared crafting/portals, faction vendor contracts. **Phase 3 — Cross-Faction and Espionage:** membership rules, the double-agent quest framework, detection/confrontation, hall espionage actions. **Phase 4 — Guild War and Territory:** shadow wars, hall raids, WvW integration, bounty/assassination systems. **Phase 5 — Story Integration:** per-alignment questlines, NPC honorary members, ending/epilogue integration, seasonal content.
+
+### 4.15 Summary
+
+The cross-faction guild system turns guilds into political entities: players can build bridges between factions, infiltrate enemy organizations, wage shadow wars, and shape the world's balance of power while maintaining friendships across ideological lines. It specifies 14 guild alignments (3 major + 9 minor + Neutral + Independent), cross-faction membership with meaningful status, deep double-agent gameplay, guild halls as social/strategic bases, guild wars/espionage/territory control, and integration with romance, story, and endings.
+
+**Engineering note — what's actually shipped vs. this target:** `packages/shared/src/lore/guilds.ts` and `packages/server/src/guilds.ts`/`db.ts` ship exactly the "Phase 1 — Core" slice above, scaled to systems that actually exist: guild creation (costs gold, not Aethercoin/Moonstones — this game has one currency), a leader/officer/member rank ladder, invite-by-name and accept/decline, leave with automatic leadership succession (or disbanding if the last member leaves), kick/promote/demote with real permission checks, and a shared gold treasury with per-member donation tracking. It's global and cross-room, built the same way the auction house is (`db.ts`'s `guilds`/`guild_members`/`guild_invites` tables, `presence.ts` for cross-room live updates), not tied to any one `Room` instance.
+
+Because there are no minor factions yet (§3 above is still target-only) and no PvP/combat-between-players model of any kind, alignment is scaled down to the 5 options that map onto systems that actually exist — **Neutral, Chainwrights, Luminari, Pale Choir, Independent** (`GuildAlignment` in `guilds.ts`, reusing `factions.ts`'s existing `LoyaltyKey`) — instead of the full 14. Membership status is similarly scaled down to **True Member / Cross-Faction Member / Free Agent** (`membershipStatus`, derived fresh from each member's current faction loyalty every time the roster is built, never stored), dropping the Aligned Member/Infiltrator distinction that depends on minor factions existing.
+
+**Not shipped, and substantial:** the entire double-agent/espionage/detection/confrontation system (§4.4); guild halls of any kind, including their restricted areas and decorations (§4.6); guild missions, PvE or PvP (§4.7); guild wars, territory control, and bounties (§4.7); the 9 minor-faction and PvP-heavy alignments (§4.2); alignment-change voting (§4.2); Influence as a separate currency, and everything it buys (§4.5); guild taxes and guild-aligned vendors (§4.10); guild chat as its own channel; and every ending/epilogue integration point (§4.13). The client UI is a single roster/invite/donate panel (`packages/client/src/ui/guild.ts`, toggled with `G`) — no espionage UI, war UI, or hall editor. A player can only belong to one guild at a time (no alt-guild multi-membership complexity to reason about yet).
 
 ---
 

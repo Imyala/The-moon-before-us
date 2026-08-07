@@ -1,5 +1,6 @@
 import type { CharacterState, EquipmentSlot, ItemRarity, PlayerClassId, PlayerRaceId } from "./types.js";
 import type { FlirtType } from "./lore/romance.js";
+import type { GuildAlignment, GuildMembershipStatus, GuildRank } from "./lore/guilds.js";
 import type { Vec3 } from "./vec.js";
 
 // ---------------- Client -> Server ----------------
@@ -207,6 +208,60 @@ export interface RepairRomanceMessage {
   npcId: string;
 }
 
+/** Cross-faction guilds (see Room's "Guilds" section / server/guilds.ts). Founds a new guild,
+ *  spending GUILD_CREATION_COST gold, with the caller as its leader. */
+export interface CreateGuildMessage {
+  t: "createGuild";
+  name: string;
+  tag: string;
+  alignment: GuildAlignment;
+}
+
+/** Invites an existing character, by exact name, into the caller's guild — leader/officer only. */
+export interface InviteToGuildMessage {
+  t: "inviteToGuild";
+  playerName: string;
+}
+
+/** Accepts or declines a pending invite (see RequestGuildMessage/GuildStateMessage). */
+export interface RespondGuildInviteMessage {
+  t: "respondGuildInvite";
+  guildId: string;
+  accept: boolean;
+}
+
+export interface LeaveGuildMessage {
+  t: "leaveGuild";
+}
+
+/** Removes a member from the caller's guild — leader can remove anyone but themself; an officer
+ *  can only remove plain members. `targetMemberId` is a CharacterState.id (see GuildMember),
+ *  never a token — tokens are never sent to a client other than their own owner. */
+export interface KickGuildMemberMessage {
+  t: "kickGuildMember";
+  targetMemberId: string;
+}
+
+/** Promotes a member to officer or demotes an officer back to member — leader only. */
+export interface SetGuildMemberRankMessage {
+  t: "setGuildMemberRank";
+  targetMemberId: string;
+  rank: "officer" | "member";
+}
+
+/** Donates gold from the caller's own purse into their guild's shared treasury. */
+export interface DonateToGuildMessage {
+  t: "donateToGuild";
+  amount: number;
+}
+
+/** Asks for the caller's current guild membership (with roster) and any pending invites — pulled
+ *  on demand rather than pushed, the same pattern RequestAuctionsMessage uses, since guild state
+ *  isn't part of the per-tick zone snapshot. */
+export interface RequestGuildMessage {
+  t: "requestGuild";
+}
+
 export type ClientMessage =
   | JoinMessage
   | InputMessage
@@ -239,7 +294,15 @@ export type ClientMessage =
   | RequestAuctionsMessage
   | FlirtMessage
   | GiveGiftMessage
-  | RepairRomanceMessage;
+  | RepairRomanceMessage
+  | CreateGuildMessage
+  | InviteToGuildMessage
+  | RespondGuildInviteMessage
+  | LeaveGuildMessage
+  | KickGuildMemberMessage
+  | SetGuildMemberRankMessage
+  | DonateToGuildMessage
+  | RequestGuildMessage;
 
 // ---------------- Server -> Client ----------------
 
@@ -440,6 +503,43 @@ export interface AuctionListingsMessage {
   listings: AuctionListing[];
 }
 
+/** One guild roster entry, as seen by a fellow member — `memberId` is the member's
+ *  CharacterState.id, never their token (see KickGuildMemberMessage). `status` is computed
+ *  server-side from that member's current faction loyalty vs. the guild's alignment. */
+export interface GuildMember {
+  memberId: string;
+  name: string;
+  rank: GuildRank;
+  status: GuildMembershipStatus;
+  contributionGold: number;
+}
+
+export interface GuildSnapshot {
+  id: string;
+  name: string;
+  tag: string;
+  alignment: GuildAlignment;
+  treasuryGold: number;
+  members: GuildMember[];
+}
+
+export interface GuildInvite {
+  guildId: string;
+  name: string;
+  tag: string;
+  alignment: GuildAlignment;
+  invitedByName: string;
+}
+
+/** The caller's full guild picture: the guild they belong to (with roster), if any, plus any
+ *  pending invites — mutually exclusive in practice, since accepting an invite joins a guild and
+ *  clears the rest (see server/guilds.ts's respondToGuildInvite). */
+export interface GuildStateMessage {
+  t: "guildState";
+  guild: GuildSnapshot | null;
+  invites: GuildInvite[];
+}
+
 export type ServerMessage =
   | SnapshotMessage
   | WelcomeMessage
@@ -451,4 +551,5 @@ export type ServerMessage =
   | TradeRequestMessage
   | TradeStateMessage
   | TradeClosedMessage
-  | AuctionListingsMessage;
+  | AuctionListingsMessage
+  | GuildStateMessage;

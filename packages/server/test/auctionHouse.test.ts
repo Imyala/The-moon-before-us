@@ -79,7 +79,7 @@ test("buying a listing from an online seller credits their live character immedi
   const room = makeRoom();
   const seller = makePlayer({ gold: 50, inventory: [{ itemId: "weapon_silver_blade", quantity: 1, rarity: "rare" }] });
   room.players.set(seller.id, seller);
-  registerPresence(seller.token, seller.character, () => {}); // notify isn't asserted on here, just needs to be callable
+  registerPresence(seller.token, seller.character, () => {}, () => {}); // notify isn't asserted on here, just needs to be callable
   (room as any).tryListAuction(seller, "weapon_silver_blade", "rare", 1, 40);
   const listMsg = seller.ws.sent.findLast((m: any) => m.t === "auctionListings");
   const listingId = listMsg.listings.find((l: any) => l.itemId === "weapon_silver_blade" && l.price === 40).id;

@@ -10,12 +10,13 @@ import { creditGoldOffline } from "./db.js";
 interface PresenceEntry {
   character: CharacterState;
   notify: () => void;
+  notifyGuild: () => void;
 }
 
 const online = new Map<string, PresenceEntry>();
 
-export function registerPresence(token: string, character: CharacterState, notify: () => void): void {
-  online.set(token, { character, notify });
+export function registerPresence(token: string, character: CharacterState, notify: () => void, notifyGuild: () => void): void {
+  online.set(token, { character, notify, notifyGuild });
 }
 
 /** Only clears the entry if it still points at this exact character object — guards against a
@@ -41,4 +42,32 @@ export function creditGold(token: string, amount: number): void {
   } else {
     creditGoldOffline(token, amount);
   }
+}
+
+/** Returns a currently-connected player's live character — used by the guild roster (see
+ *  server/guilds.ts) so a fellow member's faction-loyalty-derived status reflects their actual
+ *  in-memory state rather than a possibly-stale last-autosave row, the same reasoning creditGold
+ *  applies to gold. Null if they're not connected anywhere right now. */
+export function getOnlineCharacter(token: string): CharacterState | null {
+  return online.get(token)?.character ?? null;
+}
+
+/** Case-insensitive name lookup across everyone currently connected — a brand-new character (or
+ *  one that just changed something) may not have hit its first autosave yet, so a guild invite
+ *  (see server/guilds.ts's inviteToGuild) checks here before falling back to db.ts's
+ *  findTokenByName, the same online-first-then-database precedence creditGold uses for gold. */
+export function findOnlineTokenByName(name: string): string | null {
+  const lower = name.toLowerCase();
+  for (const [token, entry] of online) {
+    if (entry.character.name.toLowerCase() === lower) return token;
+  }
+  return null;
+}
+
+/** Pushes a fresh guild-state message to a player if they're currently connected, wherever that
+ *  is — used after a guild action changes something about them specifically (an invite arrives,
+ *  they're kicked, their rank changes, they inherit leadership). A no-op if they're offline; they
+ *  see the change next time they request their guild state. */
+export function notifyGuildChange(token: string): void {
+  online.get(token)?.notifyGuild();
 }

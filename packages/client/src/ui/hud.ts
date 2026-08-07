@@ -85,7 +85,7 @@ export class Hud {
     this.root.innerHTML = `
       <div class="hotkeys-hint">
         WASD move · Hold right-click to look · 1-6 abilities · Space dodge<br/>
-        E gather · I inventory · R crafting · C character · M mount · H auction
+        E gather · I inventory · R crafting · C character · M mount · H auction · G guild
       </div>
 
       <button class="mute-btn interactive" id="muteBtn" title="Mute/unmute audio">🔊</button>

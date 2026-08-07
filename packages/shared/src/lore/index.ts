@@ -6,3 +6,4 @@ export * from "./moonTouched.js";
 export * from "./endings.js";
 export * from "./epilogue.js";
 export * from "./romance.js";
+export * from "./guilds.js";

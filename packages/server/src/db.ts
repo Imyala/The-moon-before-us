@@ -76,6 +76,40 @@ db.exec(`
   );
 `);
 
+// Cross-faction guilds (see docs/GDD.md's "Guilds" section) — global and cross-room like the
+// auction house, since a guild's membership must outlive any one member's session and be visible
+// no matter which room a fellow member is currently in. Leadership isn't its own column: it's
+// derived as whichever guild_members row for a guild has rank='leader' (exactly one, enforced by
+// server/guilds.ts), the same "don't store what can be derived" discipline the lore layer uses.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS guilds (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    tag TEXT NOT NULL,
+    alignment TEXT NOT NULL,
+    treasuryGold INTEGER NOT NULL,
+    createdAt INTEGER NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS guild_members (
+    guildId TEXT NOT NULL,
+    playerToken TEXT NOT NULL,
+    playerCharacterId TEXT NOT NULL,
+    playerName TEXT NOT NULL,
+    rank TEXT NOT NULL,
+    contributionGold INTEGER NOT NULL,
+    joinedAt INTEGER NOT NULL,
+    PRIMARY KEY (guildId, playerToken)
+  );
+  CREATE TABLE IF NOT EXISTS guild_invites (
+    guildId TEXT NOT NULL,
+    inviteeToken TEXT NOT NULL,
+    inviteeName TEXT NOT NULL,
+    invitedByName TEXT NOT NULL,
+    createdAt INTEGER NOT NULL,
+    PRIMARY KEY (guildId, inviteeToken)
+  );
+`);
+
 const getStmt = db.prepare("SELECT * FROM characters WHERE token = ?");
 const upsertStmt = db.prepare(`
   INSERT INTO characters (token, id, name, classId, level, xp, hp, maxHp, resource, maxResource, statsJson, skillPoints, abilityRanksJson, inventoryJson, equipmentJson, positionJson, zoneId, factionLoyaltyJson, npcMemoryJson, lunarResonance, companionIdsJson, endingId, gold, raceId, romanceJson, updatedAt)
@@ -241,4 +275,157 @@ export function creditGoldOffline(token: string, amount: number): void {
   if (!character) return;
   character.gold += amount;
   saveCharacter(token, character);
+}
+
+const findTokenByNameStmt = db.prepare("SELECT token FROM characters WHERE lower(name) = lower(?)");
+
+/** Case-insensitive exact-name lookup, used by guild invites — character names never change after
+ *  creation, so the persisted row is never stale for this even if the player is currently online
+ *  and their latest gold/position hasn't autosaved yet. */
+export function findTokenByName(name: string): string | null {
+  const row = findTokenByNameStmt.get(name) as { token: string } | undefined;
+  return row?.token ?? null;
+}
+
+export interface GuildRow {
+  id: string;
+  name: string;
+  tag: string;
+  alignment: string;
+  treasuryGold: number;
+  createdAt: number;
+}
+
+export interface GuildMemberRow {
+  guildId: string;
+  playerToken: string;
+  playerCharacterId: string;
+  playerName: string;
+  rank: string;
+  contributionGold: number;
+  joinedAt: number;
+}
+
+export interface GuildInviteRow {
+  guildId: string;
+  inviteeToken: string;
+  inviteeName: string;
+  invitedByName: string;
+  createdAt: number;
+}
+
+const insertGuildStmt = db.prepare(`
+  INSERT INTO guilds (id, name, tag, alignment, treasuryGold, createdAt)
+  VALUES (@id, @name, @tag, @alignment, @treasuryGold, @createdAt)
+`);
+const getGuildByIdStmt = db.prepare("SELECT * FROM guilds WHERE id = ?");
+const getGuildByNameStmt = db.prepare("SELECT * FROM guilds WHERE lower(name) = lower(?)");
+const getGuildByTagStmt = db.prepare("SELECT * FROM guilds WHERE lower(tag) = lower(?)");
+const setGuildTreasuryStmt = db.prepare("UPDATE guilds SET treasuryGold = ? WHERE id = ?");
+const deleteGuildStmt = db.prepare("DELETE FROM guilds WHERE id = ?");
+
+export function insertGuild(row: GuildRow): void {
+  insertGuildStmt.run(row);
+}
+
+export function getGuildById(id: string): GuildRow | null {
+  return (getGuildByIdStmt.get(id) as GuildRow | undefined) ?? null;
+}
+
+export function getGuildByName(name: string): GuildRow | null {
+  return (getGuildByNameStmt.get(name) as GuildRow | undefined) ?? null;
+}
+
+export function getGuildByTag(tag: string): GuildRow | null {
+  return (getGuildByTagStmt.get(tag) as GuildRow | undefined) ?? null;
+}
+
+export function setGuildTreasury(guildId: string, treasuryGold: number): void {
+  setGuildTreasuryStmt.run(treasuryGold, guildId);
+}
+
+/** Deletes the guild plus every membership and pending invite that reference it — a guild
+ *  disbanding (its last member leaving) shouldn't leave orphaned rows behind. */
+export function deleteGuild(guildId: string): void {
+  db.prepare("DELETE FROM guild_members WHERE guildId = ?").run(guildId);
+  db.prepare("DELETE FROM guild_invites WHERE guildId = ?").run(guildId);
+  deleteGuildStmt.run(guildId);
+}
+
+const insertGuildMemberStmt = db.prepare(`
+  INSERT INTO guild_members (guildId, playerToken, playerCharacterId, playerName, rank, contributionGold, joinedAt)
+  VALUES (@guildId, @playerToken, @playerCharacterId, @playerName, @rank, @contributionGold, @joinedAt)
+`);
+const getGuildMembershipStmt = db.prepare("SELECT * FROM guild_members WHERE playerToken = ?");
+const listGuildMembersStmt = db.prepare("SELECT * FROM guild_members WHERE guildId = ? ORDER BY joinedAt ASC");
+const getGuildMemberByCharacterIdStmt = db.prepare("SELECT * FROM guild_members WHERE guildId = ? AND playerCharacterId = ?");
+const setGuildMemberRankStmt = db.prepare("UPDATE guild_members SET rank = ? WHERE guildId = ? AND playerToken = ?");
+const setGuildMemberContributionStmt = db.prepare("UPDATE guild_members SET contributionGold = ? WHERE guildId = ? AND playerToken = ?");
+const deleteGuildMemberStmt = db.prepare("DELETE FROM guild_members WHERE guildId = ? AND playerToken = ?");
+const countGuildMembersStmt = db.prepare("SELECT COUNT(*) AS n FROM guild_members WHERE guildId = ?");
+
+export function insertGuildMember(row: GuildMemberRow): void {
+  insertGuildMemberStmt.run(row);
+}
+
+/** A player can only ever belong to one guild at a time, so this is the single source of truth
+ *  for "am I in a guild, and which one" — keyed by token since a name isn't guaranteed unique
+ *  the instant a character exists (the uniqueness check happens at creation, not here). */
+export function getGuildMembership(token: string): GuildMemberRow | null {
+  return (getGuildMembershipStmt.get(token) as GuildMemberRow | undefined) ?? null;
+}
+
+export function listGuildMembers(guildId: string): GuildMemberRow[] {
+  return listGuildMembersStmt.all(guildId) as GuildMemberRow[];
+}
+
+export function getGuildMemberByCharacterId(guildId: string, characterId: string): GuildMemberRow | null {
+  return (getGuildMemberByCharacterIdStmt.get(guildId, characterId) as GuildMemberRow | undefined) ?? null;
+}
+
+export function setGuildMemberRank(guildId: string, token: string, rank: string): void {
+  setGuildMemberRankStmt.run(rank, guildId, token);
+}
+
+export function setGuildMemberContribution(guildId: string, token: string, contributionGold: number): void {
+  setGuildMemberContributionStmt.run(contributionGold, guildId, token);
+}
+
+export function deleteGuildMember(guildId: string, token: string): void {
+  deleteGuildMemberStmt.run(guildId, token);
+}
+
+export function countGuildMembers(guildId: string): number {
+  return (countGuildMembersStmt.get(guildId) as { n: number }).n;
+}
+
+const insertGuildInviteStmt = db.prepare(`
+  INSERT INTO guild_invites (guildId, inviteeToken, inviteeName, invitedByName, createdAt)
+  VALUES (@guildId, @inviteeToken, @inviteeName, @invitedByName, @createdAt)
+`);
+const getGuildInviteStmt = db.prepare("SELECT * FROM guild_invites WHERE guildId = ? AND inviteeToken = ?");
+const listGuildInvitesForTokenStmt = db.prepare("SELECT * FROM guild_invites WHERE inviteeToken = ? ORDER BY createdAt ASC");
+const deleteGuildInviteStmt = db.prepare("DELETE FROM guild_invites WHERE guildId = ? AND inviteeToken = ?");
+const deleteGuildInvitesForTokenStmt = db.prepare("DELETE FROM guild_invites WHERE inviteeToken = ?");
+
+export function insertGuildInvite(row: GuildInviteRow): void {
+  insertGuildInviteStmt.run(row);
+}
+
+export function getGuildInvite(guildId: string, inviteeToken: string): GuildInviteRow | null {
+  return (getGuildInviteStmt.get(guildId, inviteeToken) as GuildInviteRow | undefined) ?? null;
+}
+
+export function listGuildInvitesForToken(token: string): GuildInviteRow[] {
+  return listGuildInvitesForTokenStmt.all(token) as GuildInviteRow[];
+}
+
+export function deleteGuildInvite(guildId: string, inviteeToken: string): void {
+  deleteGuildInviteStmt.run(guildId, inviteeToken);
+}
+
+/** Clears every other pending invite once a player joins a guild — you can only be in one, so
+ *  invites from guilds you didn't pick would otherwise sit there stale forever. */
+export function deleteGuildInvitesForToken(token: string): void {
+  deleteGuildInvitesForTokenStmt.run(token);
 }
