@@ -79,3 +79,30 @@ export function applyLoyaltyDelta(scores: LoyaltyScores, delta: LoyaltyDelta): L
     independent: clampLoyalty(scores.independent + (delta.independent ?? 0))
   };
 }
+
+/** The faction (or "independent") a character's own loyalty scores lean toward — a strict
+ *  majority, not just the highest of possibly-tied zeros, so a brand-new character with the
+ *  default all-zero spread reads as independent rather than arbitrarily favoring whichever major
+ *  happens first. Originally written for guild membership status (see lore/guilds.ts); it belongs
+ *  here since it's pure faction-loyalty logic with no guild-specific meaning. */
+export function dominantLoyalty(loyalty: LoyaltyScores): LoyaltyKey {
+  let best: LoyaltyKey = "independent";
+  let bestScore = loyalty.independent;
+  for (const key of ["chainwrights", "luminari", "paleChoir"] as const) {
+    if (loyalty[key] > bestScore) {
+      best = key;
+      bestScore = loyalty[key];
+    }
+  }
+  return best;
+}
+
+/** A single accent color reflecting where a character's loyalties currently lean — the first
+ *  piece of `docs/DESIGN_EXPANSION.md`'s "Visual Identity & World Feel" bible's §6.5 "Faction UI
+ *  Variants" (a UI tint that shifts based on aligned faction). Independent (or a fresh, unaligned
+ *  character) gets a neutral parchment tone rather than any faction's own color. */
+export function factionAccentColor(loyalty: LoyaltyScores): string {
+  const key = dominantLoyalty(loyalty);
+  if (key === "independent") return "#9aa3c9";
+  return FACTIONS[key].color;
+}

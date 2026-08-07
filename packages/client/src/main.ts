@@ -15,6 +15,7 @@ import {
   distance,
   clampToRadius,
   xpForLevel,
+  factionAccentColor,
   type CharacterState,
   type CompanionSnapshot,
   type EnemySnapshot,
@@ -141,6 +142,13 @@ interface CompanionVisual {
   maxHp: number;
 }
 
+/** Faction-flavored UI (see docs/DESIGN_EXPANSION.md's Visual Identity bible, §6.5): sets a CSS
+ *  custom property from the player's current dominant faction loyalty, picked up by a few UI
+ *  accents in style.css. Cheap enough to call on every characterUpdate rather than diffing. */
+function applyFactionAccent(character: CharacterState) {
+  document.documentElement.style.setProperty("--faction-accent", factionAccentColor(character.factionLoyalty));
+}
+
 function runGame(net: NetClient, selfId: string, roomCode: string, initialCharacter: CharacterState) {
   const world = createWorld(canvas);
   let currentZoneId = initialCharacter.zoneId ?? START_ZONE_ID;
@@ -185,6 +193,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
   controller.onToggleGuild = () => guild.toggle();
 
   let character: CharacterState = initialCharacter;
+  applyFactionAccent(character);
   let selfPos: Vec3 = { ...initialCharacter.position };
   if (selfPos.x === 0 && selfPos.y === 0 && selfPos.z === 0) selfPos = { ...getZone(currentZoneId).spawnPoint };
   let selfFacing = 0;
@@ -246,6 +255,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
         break;
       case "characterUpdate":
         character = msg.character;
+        applyFactionAccent(character);
         panels.refresh();
         shop.refresh();
         auction.refresh();

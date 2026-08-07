@@ -8,7 +8,9 @@
  * membership, ranks, and a shared treasury. See room.ts's "Guilds" section and guilds.ts (server)
  * for the rest.
  */
-import type { LoyaltyKey, LoyaltyScores } from "./factions.js";
+import { dominantLoyalty, type LoyaltyKey, type LoyaltyScores } from "./factions.js";
+
+export { dominantLoyalty };
 
 export type GuildAlignment = "neutral" | LoyaltyKey;
 export type GuildRank = "leader" | "officer" | "member";
@@ -37,22 +39,6 @@ export const GUILD_TAG_MIN_LENGTH = 2;
 export const GUILD_TAG_MAX_LENGTH = 4;
 export const GUILD_NAME_MAX_LENGTH = 32;
 export const MAX_GUILD_MEMBERS = 30;
-
-/** The faction (or "independent") a character's own loyalty scores lean toward — a strict
- *  majority, not just the highest of possibly-tied zeros, so a brand-new character with the
- *  default all-zero spread reads as independent rather than arbitrarily favoring whichever major
- *  happens first. */
-export function dominantLoyalty(loyalty: LoyaltyScores): LoyaltyKey {
-  let best: LoyaltyKey = "independent";
-  let bestScore = loyalty.independent;
-  for (const key of ["chainwrights", "luminari", "paleChoir"] as const) {
-    if (loyalty[key] > bestScore) {
-      best = key;
-      bestScore = loyalty[key];
-    }
-  }
-  return best;
-}
 
 /** A neutral guild has no aligned faction to be "true" to, so every member is simply a free
  *  agent; otherwise membership reads as true (matches the guild's alignment) or cross-faction

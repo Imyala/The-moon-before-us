@@ -1,6 +1,6 @@
 # The Moon Above Our World — Design Expansion
 
-**Status: target design, not yet built.** This document is the forward-looking design spec for a major scope expansion — races, an expanded faction system (3 major + 9 minor), 30 mixable origins, universal romance, cross-faction guilds, a grimdark tonal revision, an 8-chapter campaign rewrite, and (§15) a far larger combat/progression system of 18 classes, levels to 255, structured PvP, and 16–24 player raids, that together thread through the whole game. It supersedes the earlier, narrower assumptions (few races, limited romance, 4 classes with no PvP) referenced elsewhere.
+**Status: target design, not yet built.** This document is the forward-looking design spec for a major scope expansion — races, an expanded faction system (3 major + 9 minor), 30 mixable origins, universal romance, cross-faction guilds, a grimdark tonal revision, an 8-chapter campaign rewrite, a far larger combat/progression system of 18 classes, levels to 255, structured PvP, and 16–24 player raids (§15), a 12-tier craft-driven gear economy (§16), and a full visual-identity art bible (§17), that together thread through the whole game. It supersedes the earlier, narrower assumptions (few races, limited romance, 4 classes with no PvP, no crafting economy, no art direction beyond procedural avatars) referenced elsewhere.
 
 It does **not** replace `docs/GDD.md`. The GDD documents what's actually built and verified in this codebase today — the core architecture it describes (the Moon-Touched condition, the three ending axes, the NPC memory/relationship graph, the companion system, per-Room world simulation) remains the foundation this expansion builds on. This document is the target; the GDD is the record of what's shipped. As pieces of this expansion are actually implemented, they should move into the GDD the same way every other feature in this project has: built, tested, verified, then documented there with the same rigor.
 
@@ -2038,3 +2038,129 @@ Balancing 54 subclasses relies on a role baseline (all DPS subclasses within 5% 
 **Engineering note — what's actually shipped vs. this target:** almost none of this exists yet, and what does was already built independently of this document, for a much smaller game than the one described here. The live game has **4 classes** (`packages/shared/src/classes.ts`: Warden, Ranger, Mystic, Duskblade — unrelated to and pre-dating several of the class names reused above, e.g. this section's "Warden," "Tidecaller," "Shardsinger," and "Ashforged" classes are new concepts distinct from the shipped weapon-class, minor-faction NPC role, and minor faction of the same names), each with 3 specializations (`packages/shared/src/specializations.ts`, 2 base + 1 elite = 12 total, not 54), a single fixed quickbar (no Sim Mode, no multiple bars, no equippable/toggleable passive skill system — specializations already have one signature mechanic each, e.g. Warden Sentinel's Ward stacks, which is the closest existing analog to "active passives" but isn't a separate slotted system), an effectively unbounded level curve with no era structure, stat cap, or PvP normalization (`xpForLevel` in `types.ts`; content gating tops out at the Sundered Cairn's level-16 requirement), and **no PvP of any kind** — no duels, arenas, battlegrounds, or the 16v16 Alliance War this section specifies, no combat-between-players model at all. The largest existing group content is a 3-boss dungeon rotation (5-player party cap, no 10/16/24-player strike or raid formats, no group-size HP/loot scaling).
 
 What did ship, as a first real step toward §15.6's gear-tier ladder: a fifth item rarity, **legendary**, sitting above the existing common/uncommon/rare/epic four (`ItemRarity` in `packages/shared/src/types.ts`), with its own `RARITY_MULTIPLIER` (3.2x, continuing the existing tier's ~1.33x-per-step progression) and four new legendary weapons — one per existing class, built on each class's *second* weapon kit (`packages/shared/src/items.ts`) so chasing one is also a genuine playstyle choice, not just a stat upgrade. They drop only from the Unburied Queen, the toughest existing boss, at a 3% chance each — rarer than the Sleeping Selenian's existing 5%-chance epic weapons. Everything else in this section — Sim Mode, active passive skills, 18 classes, 54 subclasses, levels past whatever the content naturally supports, PvP of any kind, strikes/raids beyond the existing 5-player dungeons, multi-classing, and the Ascended/Mythic/Relic/Artifact tiers above Legendary — remains entirely unbuilt.
+
+---
+
+## 16. Gear, Crafting, and Economy System
+
+Revises §15.6's gear ladder and builds the full economic machinery around it, under one rule: **Ascended and above are craft-only and Account-Bound-on-Equip.**
+
+### 16.1 Economic Philosophy
+
+| Pillar | Meaning |
+|---|---|
+| Crafting is endgame | Highest-tier gear cannot be obtained from drops alone; crafters are essential |
+| Account-Bound on Equip preserves value | Sell/trade freely until worn, then it's part of the account's legacy |
+| Everything tradeable until commitment | No Bind-on-Pickup anywhere; markets stay alive |
+| Horizontal chase at the top | Ascended+ offers convenience, prestige, and flexibility, not raw exponential power |
+| Strong economic sinks | Repairs, conversions, taxes, crafting failures, and cosmetics control inflation |
+| Crafters are heroes | Endgame crafting is difficult, prestigious, and profitable |
+
+**Not:** a drop-treadmill replaced every patch, a pay-to-win cash shop, an RNG loot-box casino, or a system where crafters stop mattering past early levels.
+
+### 16.2 Gear Tiers (Revised)
+
+| Tier | Color | Power vs. Exotic | Source | Binding | Tradeable |
+|---|---|---|---|---|---|
+| Common | White | −70% | Drops, vendors | None | Yes |
+| Uncommon | Green | −50% | Drops, crafting | None | Yes |
+| Fine | Light Blue | −35% | Drops, crafting | None | Yes |
+| Masterwork | Blue | −20% | Drops, crafting, events | None | Yes |
+| Rare | Purple | −10% | Dungeons, crafting, world bosses | Bind on Equip | Yes until equipped |
+| Epic | Orange-Gold | Baseline | Strikes, crafting, events | Bind on Equip | Yes until equipped |
+| Exotic | Gold | +5% | Dungeons, strikes, crafting, events | Bind on Equip | Yes until equipped |
+| **Ascended** | Cyan | +10% (infusions, prestige) | **Crafting only** | Account-Bound on Equip | Yes until equipped |
+| **Legendary** | Prismatic | +10% + free stat/appearance swaps | **Crafting only** | Account-Bound on Equip | Yes until equipped |
+| **Mythic** | Crimson | +15% + one random unique property | **Crafting only** | Account-Bound on Equip | Yes until equipped |
+| **Relic** | Ancient Gold | +20% + guaranteed unique property | **Crafting only** | Account-Bound on Equip | Yes until equipped |
+| **Artifact** | Rainbow | +25% + 2–3 customizable properties | **Crafting only** | Account-Bound on Equip | Yes until equipped |
+
+Exotic-to-Artifact is only ~20% power, kept horizontal on purpose — the real value climbs in infusion slots, free swapping, and unique properties, not raw stats.
+
+### 16.3 Binding & Tradeability
+
+| State | Meaning | Tradeable? |
+|---|---|---|
+| Unbound | Never equipped | Yes |
+| Bind on Equip (BoE) | Character-bound after first equip | Yes until equipped |
+| Account-Bound on Equip (ABoE) | Account-bound after first equip | Yes until equipped |
+| Account-Bound | Always account-bound | No |
+| Soulbound | Bound to one character | No |
+
+Common through Exotic are Bind-on-Equip; Ascended through Artifact are Account-Bound-on-Equip; cosmetics and legendary quest components are always account-bound. ABoE specifically: crafters can still sell their output, the buyer gets a permanent account asset once worn, gear passes freely between a player's own alts, nobody can wear best-in-slot and then resell it, and high-value items stay traceable and RMT-resistant.
+
+### 16.4 Crafting Disciplines
+
+12 disciplines (Weaponsmith, Armorsmith, Leatherworker, Tailor, Artificer, Jeweler, Huntsman, Chef, Scribe, Aetherwright, Runesmith, Legendary Smith), each gated through 7 skill tiers from Novice (0–50, common/uncommon recipes) up to Legendary Artisan (300+, secret/seasonal/Artifact-customization recipes). High-tier gear requires multi-discipline collaboration (e.g. an Ascended sword needs Weaponsmith + Runesmith + Scribe; an Artifact weapon needs Weaponsmith + Legendary Smith + Scribe + Aetherwright).
+
+### 16.5 Ascended+ Crafting Pipeline
+
+Ascended gear needs Ascended Inscriptions/Insignia, refined Ascended Materials, an infusion-slot base, and a weekly-capped Essence of the Forge (first piece: 1–2 weeks; a full set: 2–3 months). Legendary gear needs the classic "Gifts" structure (Gift of Aethon, Gift of Selen, Gift of the Factions, a precursor weapon/armor, Essence of the Moon, a laurel-purchased runestone-equivalent) and grants free stat/appearance swapping plus unique visual/audio effects. Mythic gear rolls one random unique property from a pool (proc damage, summon-on-kill, low-HP transformation, dodge-trail utility, economic kill bonus, social aura) from a Mythic Core, re-rollable at high cost. Relic gear guarantees a strong unique property plus an infusion slot, from hard-mode 16/24-player raid Relic Cores. Artifact gear gets 2–3 customizable properties within restricted pools, from secret-ending/collection/seasonal-culmination Artifact Cores, requiring Legendary Smith plus multiple Grandmaster disciplines.
+
+### 16.6 Material Economy
+
+Seven material tiers from Raw (copper ore, moon-iron) through Seasonal (harmonic crystal, void-touched bone), six gathering professions (Mining, Forestry, Herbalism, Salvaging, Pearl Diving, Spirit Harvesting) each with race/origin gathering bonuses, and a tiered conversion ladder (common→refined→rare→ascended, each step costing materials, laurels, and/or Aethercoin, with Ascended+ components account-bound or heavily taxed).
+
+### 16.7 Currency System
+
+**Aethercoin** is the primary tradeable currency (trading post, repairs, waypoints, vendors), sunk mainly through repairs/waypoints/tax/fees. Sixteen **account-bound currencies** (Karma, Lunar Resonance, Laurels, Dungeon/Strike Tokens, Raid Essence, WvW Marks, PvP League Points, Remembrance Tokens, Innovation Cores, Order Seals, Influence, Ascension Tokens, Mythic Fragments, Relic Cores, Artifact Shards) each map to a specific piece of content and a specific spend. **Moonstones** are the buy-to-play/cosmetic premium currency, convertible to Aethercoin via a player-driven exchange (10% tax) so free players can earn "premium" goods by grinding — explicitly cannot buy Ascended+ gear, power items, or crafting materials directly.
+
+### 16.8 The Trading Post
+
+A global, anonymous, mail-delivered market (5% listing fee, 10% transaction tax) covering materials, consumables, gear (common through Exotic freely, Ascended+ until equipped), components, recipes, runes/sigils/infusions, cosmetics, and housing decorations. **No direct player-to-player trading** — mail attachments and guild storage are taxed/logged instead, specifically to fight RMT and duping. High-value protections: listing caps, price-history graphs, anti-manipulation detection, transaction logs, and ABoE itself as an anti-flipping mechanism.
+
+### 16.9 Economic Sinks
+
+Aethercoin sinks: waypoint travel, gear repair (1–5% of value per death), trading-post tax, exchange tax, crafting fees, material conversion, storage upgrades, dyes, transmutation charges, housing rent, and scaling respec costs. Material sinks: crafting itself (especially Ascended+), guild upgrades, world-event donations, salvage, and failed Mythic re-rolls. Bound-currency sinks: Karma/Laurels/tokens/essence/Influence each feed their own vendor or upgrade track.
+
+### 16.10 Regional and Faction Economies
+
+Each of the 7 launch regions has an export/import profile (e.g. Ashmire exports weapons/cinder ore/siege parts, imports food/water/luxury goods); each major faction's dominance shifts regional prices (Chainwright stability taxes, Luminari volatile tech pricing, Choir slower-but-higher-quality production, Independent market freedom/smuggling); and every major and minor faction sells its own recipes/components/cosmetics (Order Seals, Innovation Cores, Remembrance Tokens, and nine more per the minor factions in §14).
+
+### 16.11 Legendary Chase Economy
+
+A concrete worked example: **The Last Lullaby**, an 8-step legendary weapon chain (collect 250 moon-pearls → complete a 30-song collection → defeat the Siren Mother world boss 10 times → obtain the "Lira of the Drowned Line" precursor → gather Gift of Aethon materials → complete 5 lunar events at the Moonthread → have an NPC perform a naming rite → combine at the Legendary Forge) — illustrating how legendary crafting is meant to drive demand for mid-tier materials and keep the Exotic/Epic precursor market alive.
+
+### 16.12 Consumables, Anti-RMT, Seasonal and Guild Economy
+
+Chef-crafted foods and utility potions provide meaningful-but-optional 30-minute-to-1-hour buffs. Anti-RMT measures mirror §16.8's no-direct-trade rule with behavioral bot/exploit detection, new-account trade restrictions, price-anomaly monitoring, and a defined exploit response plan (detect → freeze → investigate → rollback → hotfix → communicate). Each of 8 planned seasons introduces one new material tied to a specific crafting market. Guild economy reuses the guild treasury/tax/vendor rules already specified in §4.
+
+### 16.13 Engineering note — what's actually shipped vs. this target
+
+**Only the Legendary tier itself exists** (see §15's engineering note and `docs/GDD.md`'s "Gear tiers" section) — as a boss drop, not a crafted item, and freely tradeable exactly like every other rarity, not Account-Bound-on-Equip. Nothing else in this section is built: there is no binding-state concept anywhere in the data model (`ItemStack` has no binding field at all), no crafting discipline beyond the single flat `craft` recipe system already documented under "Crafting" in the GDD (which produces gear and consumables at a fixed rarity, not a skill-tiered multi-discipline pipeline), no Ascended/Mythic/Relic/Artifact tiers, no material-tier conversion ladder, no account-bound currencies beyond gold itself, no Moonstones or premium currency, no trading-post anonymity/mail-delivery model (the existing auction house is already anonymous and delivers by removing/crediting directly rather than mail, which happens to satisfy part of this section's spirit even though it predates this document), no economic-sink instrumentation beyond the existing listing fee and vendor prices, and no regional/seasonal economy of any kind.
+
+---
+
+## 17. Visual Identity & World Feel Bible
+
+The art direction target for the whole game: **"Every beautiful thing is also dangerous. Every wounded thing is also luminous."** Two pillars — **Grimdark Majesty** (scale, weight, decay, zealotry, body horror, cosmic dread) and **Luminous Beauty** (bioluminescence, stained glass, auroras, moon-crystal, sacred geometry) — deliberately overlapping in every region rather than segregated into "dark zones" and "pretty zones." Seven visual rules govern it: beauty must carry a cost, decay must carry dignity, light is not safe, order is not good, chaos is not evil, scale matters (players should feel small under the moon and the architecture), and readability comes first (combat telegraphs and silhouettes must always read clearly regardless of mood).
+
+### 17.1 Color Language
+
+The moon Selen tints the whole world depending on its state — Calm (deep blue-black, cool silver), Thread-Quake (fractured silver/purple, violent flashes), Shardfall (falling light trails, aurora-green, iridescent debris), Long Night (pitch black, blood-red corona, peak dread), Whisper Eclipse (grey-green, no stars, sickly), and the Drifting Moon of a Sever ending (distant, smaller, warm gold farewell light). Every faction (all 3 majors + 9 minors) gets a primary/secondary/accent triad tied to its philosophy (e.g. Chainwright white-gold/slate/deep-blue for divine cold order; Pale Choir pale-grey/ink-black/soft-silver for mourning). Each of the 7 launch regions gets its own dominant palette matching its wound (Ashmire's brass/rust/magma-orange industrial hellscape; Sunken Llyr's deep-blue/kelp-green/bioluminescent-white drowned fjords; and so on).
+
+### 17.2 Regional Visual Design (8 Zones)
+
+Full art-direction briefs for Threadhold (wounded farmland — glowing/mutated moon-apple orchards, thread-ward pylons, quarantine tents; landmark: Tomasin's Orchard), Verdant Reach (mutated grove — crystal-briar, druidic ruins, spirit-mist; landmark: The Briarwraith Heart), Ashmire (forge-hell — tiered brass forge-cities, slag rivers, war-machine graveyards; landmark: The Great Forge of Breca), Sunken Llyr (drowned coast — fjord cliffs, drowned Selenian spires, ghost fleets, tide-caves; landmark: The Drowned Choir Grotto), Mourncrown (haunted highlands — barrow-mazes, clan halls, cairn fields, glass-wraiths; landmark: Thane Corvin's Hall), Spirechain (sky-city — sky-towers, stained-glass telescopes, celestial maps, inquisition cells; landmark: The Argent Spire), Frayedge (wounded borderland — reality rifts, refugee camps, void-touched flora; landmark: The Frayedge Sanctuary), and The Moonthread (the road to Selen — thread-crystal road, falling moon-fragments, anchor-ruins, gravity anomalies; landmark: The Hollow Door). Each gets a one-line mood ("pastoral peace under siege," "awe and terror — you are walking toward a god's corpse").
+
+### 17.3 Character, Race, and Faction Visual Design
+
+Six shared rig families cover 16+ races without 16+ unique skeletons (Humanoid Standard, Compact Humanoid, Feline Humanoid, Amphibian Humanoid, Heavy Humanoid, Construct, Unbound Tall), each race gets a one-line silhouette hook and color identity (e.g. Khurruk: massive/tusked/armored, stone-grey/brass/rust; Lumineth: tragically beautiful/glowing veins, silver-white/black-hair/faint-glow), and every faction (all 12) gets a signature armor theme and visual tell (Chainwright thread-ward tabards and inquisitor masks; Luminari goggles and energy conduits; Blacktide tricorns and breath-masks; and so on).
+
+### 17.4 Enemy and Monster Visual Design
+
+The Hollowed are categorized by *what they forgot*, each with a distinct silhouette (Nameless: faceless, numbers carved by others; Kinless: hands fused as if holding someone absent; Placeless: body maps onto local architecture; Faithless: melted religious symbols weeping black ichor; Timeless: multiple ages on one body; Loveless: chest hollowed into a heart-shaped void). The Voidborn hierarchy scales from imperceptible (Whisper) through the campaign-ending Unnamed God (which cannot be perceived directly; the environment just warps around it). Each of 6 enemy factions gets a Basic/Elite/Boss unit visual progression.
+
+### 17.5 UI, VFX, Lighting, and Camera
+
+**UI philosophy:** a "celestial instrument" — readable in combat first, diegetic where possible (a star-chart map, a travel-pack inventory), faction-tinted, minimal-modal dialogue, fully accessible (scalable fonts, colorblind modes, reduced motion). A full HUD layout, menu-by-menu design language, and per-faction UI tint table (§6.5) are specified. **VFX philosophy:** readability first, lunar signature effects (Resonance activation, Echo Sight desaturation, Whisper distortion, Shardfall impact, Hollowed erasure, Voidborn presence) second, and a full enemy-telegraph shape language (cone/line/circle/donut/cleave/projectile/delayed-explosion/channeled-beam) third. **Lighting:** moonlight as the default key light everywhere, warm light reserved for safety beats, a full time-of-day table, and named environmental hazard visuals (lunar tide surge, thread-quake, shardstorm, void rift, Hollowed mist, forge smog). **Camera:** deliberately no traditional cutscenes — walk-and-talk dialogue, brief optional camera shifts, tableau (not cinematic) endings, and a per-situation camera-treatment table.
+
+### 17.6 Production Priorities, Technical Art, and Style References
+
+Three-tier concept-art priority order (core identity → region identity → class/combat), performance budgets (50–100 players open-world, 16–24 in instances; aggressive modular-kit texture reuse), modular architecture kits per faction/region, a customization-scope table (6 rig families, race-specific palettes, dye channels, story-gated scars), and a style reference matrix explicitly naming what to steal and what to avoid from Warhammer 40K, Dark Souls/Elden Ring, Guild Wars 2, FFXIV, EVE Online, Path of Exile, Black Desert Online, Smite, and Attack on Titan/Evangelion-style anime.
+
+### 17.7 Engineering note — what's actually shipped vs. this bible
+
+**One small, real piece: faction-flavored UI**, exactly matching §17.5's "UI tint shifts based on your aligned faction" principle (its own §6.5 in the source spec). `factionAccentColor` (`packages/shared/src/lore/factions.ts`) picks a single accent color from a character's current faction loyalty — reusing the exact `FactionDef.color` values the game's Fate/relationship systems already carry for the 3 shipped majors, falling back to a neutral parchment tone for an independent-leaning or freshly-created character — and the client applies it as a CSS custom property (`--faction-accent`) on every character update, currently used for a subtle zone-badge underline and panel-header divider (`packages/client/src/main.ts`, `style.css`). While implementing it, `dominantLoyalty` (previously living in `lore/guilds.ts`, written for guild membership status) moved to `lore/factions.ts` where it actually belongs as general-purpose faction logic, re-exported from `guilds.ts` for backward compatibility.
+
+Everything else in this bible is unbuilt and, given this project's explicit "zero hand-authored art assets, procedurally generated low-poly toon-shaded avatars" pillar (see "Races" in the GDD), most of it isn't buildable in this codebase's current form at all without a fundamental art-pipeline change: there are no region-specific visual kits, no per-race silhouettes or rigs beyond the single shared procedural body, no faction armor visual identity, no Hollowed/Voidborn visual spectrum, no lunar-state sky/color-tinting system, no combat VFX beyond simple particle bursts and damage numbers, no enemy telegraph shape language beyond the existing generic radius/cone indicators, no diegetic menus, and no camera-language system (dialogue is already handled via subtitle-style panels rather than modal cutscenes, which happens to already match §17.5's camera philosophy, but that predates this document too).
