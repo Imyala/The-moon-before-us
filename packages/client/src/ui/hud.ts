@@ -40,7 +40,11 @@ const ABILITY_GLYPHS: Record<string, string> = {
   duskblade_vanish: "🌫️",
   duskblade_umbralmend: "🩹",
   duskblade_vanishingstrike: "🌘",
-  duskblade_crimsoneclipse: "🌚"
+  duskblade_crimsoneclipse: "🌚",
+  warden_ironcladstand: "🛡️",
+  ranger_tempestvolley: "🌪️",
+  mystic_aegispulse: "💠",
+  duskblade_cinderreap: "🔥"
 };
 
 export class Hud {

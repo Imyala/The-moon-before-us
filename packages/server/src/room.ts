@@ -125,6 +125,12 @@ export interface PlayerEntity {
   umbralStacksUntil: number;
   forcedCritUntil: number; // Vanishing Strike: guarantees the next hit crits
   mounted: boolean; // faster traversal; auto-dismounted by combat or gathering
+  // Generic 0-5 stacking-buff pair shared by every "second tier" specialization (Sentinel,
+  // Windwalker, Wardweaver, Ashwalker — see docs/GDD.md). Safe to share one field across all
+  // four: specializationId is a single value per character, so at most one of them is ever
+  // actively reading or writing it.
+  specStacks: number;
+  specStacksUntil: number;
 }
 
 interface EnemyEntity {
@@ -357,7 +363,9 @@ export class Room {
       umbralStacks: 0,
       umbralStacksUntil: 0,
       forcedCritUntil: 0,
-      mounted: false
+      mounted: false,
+      specStacks: 0,
+      specStacksUntil: 0
     };
     if (character.hp <= 0) {
       entity.position = { ...zone.spawnPoint };
@@ -592,7 +600,9 @@ export class Room {
     player.character.resource -= ability.resourceCost;
     const rank = this.effectiveRank(player.character, abilityId);
     const rankMult = 1 + (rank - 1) * 0.18;
-    const cdMult = Math.max(0.55, 1 - player.character.stats.haste - (rank - 1) * 0.06);
+    const windwalkerHaste =
+      player.character.specializationId === "ranger_windwalker" && now < player.specStacksUntil ? player.specStacks * 0.02 : 0;
+    const cdMult = Math.max(0.55, 1 - player.character.stats.haste - (rank - 1) * 0.06 - windwalkerHaste);
     player.cooldowns.set(abilityId, now + ability.cooldownMs * cdMult);
 
     if (
@@ -602,6 +612,31 @@ export class Room {
     ) {
       player.voidStacks = Math.min(5, (now < player.voidStacksUntil ? player.voidStacks : 0) + 1);
       player.voidStacksUntil = now + 6000;
+    }
+
+    // The second-tier specs' shared build-a-stack passive (see PlayerEntity.specStacks): weapon
+    // damage builds it for Windwalker/Ashwalker, casting a heal builds it for Wardweaver.
+    // Sentinel is the fourth — it builds from taking a hit instead, handled in damagePlayer.
+    if (
+      (player.character.specializationId === "ranger_windwalker" || player.character.specializationId === "duskblade_ashwalker") &&
+      ability.tier === "weapon" &&
+      (ability.effect === "damage" || ability.effect === "aoe_damage")
+    ) {
+      player.specStacks = Math.min(5, (now < player.specStacksUntil ? player.specStacks : 0) + 1);
+      player.specStacksUntil = now + 6000;
+      if (player.character.specializationId === "duskblade_ashwalker") {
+        // Ashwalker's lifesteal rides the same generic lifestealPct/Until pair Bloodmoon uses —
+        // damageEnemy's existing lifesteal check needs no changes to pick this up.
+        player.lifestealPct = player.specStacks * 0.02;
+        player.lifestealUntil = player.specStacksUntil;
+      }
+    } else if (
+      player.character.specializationId === "mystic_wardweaver" &&
+      ability.tier !== "elite" &&
+      (ability.effect === "heal" || ability.effect === "aoe_heal")
+    ) {
+      player.specStacks = Math.min(5, (now < player.specStacksUntil ? player.specStacks : 0) + 1);
+      player.specStacksUntil = now + 8000;
     }
 
     const cast: Casting = { abilityId, endAt: now + ability.castTimeMs, targetPos, targetEntityId };
@@ -647,11 +682,22 @@ export class Room {
         if (!enemy || enemy.hp <= 0 || enemy.zoneId !== zoneId) return;
         if (distance(player.position, enemy.position) > ability.range + 1.5) return;
         if (ability.special === "duskblade_vanishingstrike") player.forcedCritUntil = now + 50;
+        const stacksAtCast = now < player.specStacksUntil ? player.specStacks : 0;
+        if (ability.special === "ranger_tempestvolley") {
+          rawAmount *= 1 + stacksAtCast * 0.15;
+          player.specStacks = 0;
+        }
         const dealt = this.damageEnemy(enemy, rawAmount, player, now);
         if (ability.special === "mystic_reap" && dealt > 0) {
           const healAmt = Math.round(dealt * 0.4);
           player.character.hp = Math.min(player.character.maxHp, player.character.hp + healAmt);
           this.events.push({ type: "heal", targetId: player.id, amount: healAmt, sourceId: player.id, pos: player.position, zoneId });
+        }
+        if (ability.special === "duskblade_cinderreap" && stacksAtCast > 0) {
+          const healAmt = 15 * stacksAtCast;
+          player.character.hp = Math.min(player.character.maxHp, player.character.hp + healAmt);
+          this.events.push({ type: "heal", targetId: player.id, amount: healAmt, sourceId: player.id, pos: player.position, zoneId });
+          player.specStacks = 0;
         }
         break;
       }
@@ -716,6 +762,20 @@ export class Room {
           });
           break;
         }
+        if (ability.special === "mystic_aegispulse") {
+          const stacks = now < player.specStacksUntil ? player.specStacks : 0;
+          const shieldAmt = 15 + 10 * stacks;
+          const shieldUntil = now + (ability.ccDurationMs ?? 6000);
+          for (const other of this.players.values()) {
+            if (other.character.hp <= 0 || other.character.zoneId !== zoneId) continue;
+            if (distance(player.position, other.position) <= ability.radius) {
+              other.shield = Math.max(other.shield, shieldAmt);
+              other.shieldUntil = shieldUntil;
+            }
+          }
+          player.specStacks = 0;
+          break;
+        }
         for (const other of this.players.values()) {
           if (other.character.hp <= 0 || other.character.zoneId !== zoneId) continue;
           if (distance(player.position, other.position) <= ability.radius) {
@@ -745,6 +805,11 @@ export class Room {
         } else if (ability.special === "duskblade_vanish") {
           player.damageReductionUntil = now + (ability.ccDurationMs ?? 2500);
           player.damageReductionPct = ability.basePower;
+        } else if (ability.special === "warden_ironcladstand") {
+          const stacks = now < player.specStacksUntil ? player.specStacks : 0;
+          player.shield = Math.max(player.shield, 20 + 15 * stacks);
+          player.shieldUntil = now + (ability.ccDurationMs ?? 6000);
+          player.specStacks = 0;
         } else {
           player.shield = rawAmount;
           player.shieldUntil = now + (ability.ccDurationMs ?? 5000);
@@ -919,6 +984,12 @@ export class Room {
       const dr = Math.min(0.3, Math.floor(player.character.resource / 25) * 0.08);
       remaining *= 1 - dr;
     }
+    if (player.character.specializationId === "warden_sentinel" && now < player.specStacksUntil) {
+      remaining *= 1 - Math.min(0.15, player.specStacks * 0.03);
+    }
+    if (player.character.specializationId === "mystic_wardweaver" && now < player.specStacksUntil) {
+      remaining *= 1 - Math.min(0.1, player.specStacks * 0.02);
+    }
     if (player.damageReductionUntil > now) {
       remaining *= 1 - player.damageReductionPct;
     }
@@ -929,6 +1000,12 @@ export class Room {
     }
     if (remaining <= 0) return;
     player.mounted = false;
+    if (player.character.specializationId === "warden_sentinel") {
+      // Sentinel's own stack-building trigger: taking a real hit, unlike the weapon-hit/heal-cast
+      // triggers the other three second-tier specs use (see tryUseAbility).
+      player.specStacks = Math.min(5, (now < player.specStacksUntil ? player.specStacks : 0) + 1);
+      player.specStacksUntil = now + 6000;
+    }
     player.character.hp = Math.max(0, player.character.hp - remaining);
     this.events.push({
       type: "damage",

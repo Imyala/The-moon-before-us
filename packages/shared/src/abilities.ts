@@ -208,6 +208,27 @@ export const ABILITIES: AbilityDef[] = [
     ccDurationMs: 5000,
     maxRanks: 3
   },
+  {
+    id: "warden_ironcladstand",
+    classId: "warden",
+    tier: "elite",
+    specializationId: "warden_sentinel",
+    special: "warden_ironcladstand",
+    slot: 6,
+    name: "Ironclad Stand",
+    description: "Cash in every hit you've weathered for a heavy shield, all at once.",
+    resource: "resolve",
+    resourceCost: 30,
+    cooldownMs: 16000,
+    castTimeMs: 0,
+    range: 0,
+    radius: 0,
+    effect: "buff",
+    basePower: 0,
+    powerScale: 0,
+    ccDurationMs: 6000,
+    maxRanks: 3
+  },
 
   // =========================================================================
   // RANGER — ranged, Focus
@@ -412,6 +433,26 @@ export const ABILITIES: AbilityDef[] = [
     basePower: 0,
     powerScale: 0,
     ccDurationMs: 8000,
+    maxRanks: 3
+  },
+  {
+    id: "ranger_tempestvolley",
+    classId: "ranger",
+    tier: "elite",
+    specializationId: "ranger_windwalker",
+    special: "ranger_tempestvolley",
+    slot: 6,
+    name: "Tempest Volley",
+    description: "Spend every stack of Windrush on one devastating, piercing shot.",
+    resource: "focus",
+    resourceCost: 30,
+    cooldownMs: 14000,
+    castTimeMs: 0,
+    range: 12,
+    radius: 0,
+    effect: "damage",
+    basePower: 10,
+    powerScale: 0.8,
     maxRanks: 3
   },
 
@@ -619,6 +660,27 @@ export const ABILITIES: AbilityDef[] = [
     powerScale: 0.9,
     maxRanks: 3
   },
+  {
+    id: "mystic_aegispulse",
+    classId: "mystic",
+    tier: "elite",
+    specializationId: "mystic_wardweaver",
+    special: "mystic_aegispulse",
+    slot: 6,
+    name: "Aegis Pulse",
+    description: "Spend your built-up Aegis on a shield for yourself and every ally nearby.",
+    resource: "aether",
+    resourceCost: 35,
+    cooldownMs: 18000,
+    castTimeMs: 300,
+    range: 0,
+    radius: 6,
+    effect: "aoe_heal",
+    basePower: 0,
+    powerScale: 0,
+    ccDurationMs: 6000,
+    maxRanks: 3
+  },
 
   // =========================================================================
   // DUSKBLADE — burst melee, Umbra
@@ -822,6 +884,26 @@ export const ABILITIES: AbilityDef[] = [
     effect: "aoe_damage",
     basePower: 12,
     powerScale: 0.8,
+    maxRanks: 3
+  },
+  {
+    id: "duskblade_cinderreap",
+    classId: "duskblade",
+    tier: "elite",
+    specializationId: "duskblade_ashwalker",
+    special: "duskblade_cinderreap",
+    slot: 6,
+    name: "Cinder Reap",
+    description: "Strike your target and spend every stack of Ashfeed on a burst of healing.",
+    resource: "umbra",
+    resourceCost: 32,
+    cooldownMs: 15000,
+    castTimeMs: 0,
+    range: 3.5,
+    radius: 0,
+    effect: "damage",
+    basePower: 14,
+    powerScale: 1.0,
     maxRanks: 3
   }
 ];
