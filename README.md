@@ -26,7 +26,7 @@ npm run dev:client
 
 Open `http://localhost:5173` in a browser. To play with friends on the same network, share `http://<your-lan-ip>:5173` — the client auto-connects to the server on the same host.
 
-Run `npm run typecheck` to typecheck all three packages.
+Run `npm run typecheck` to typecheck all three packages, and `npm run test` to run the automated test suite (server game logic + shared lore/ending logic) — see `packages/server/test/` and `packages/shared/test/`.
 
 ## Controls
 

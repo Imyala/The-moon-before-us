@@ -12,7 +12,8 @@
     "dev:server": "npm run dev -w @moon/server",
     "dev:client": "npm run dev -w @moon/client",
     "build": "npm run build -w @moon/shared && npm run build -w @moon/server && npm run build -w @moon/client",
-    "typecheck": "npm run typecheck -w @moon/shared && npm run typecheck -w @moon/server && npm run typecheck -w @moon/client"
+    "typecheck": "npm run typecheck -w @moon/shared && npm run typecheck -w @moon/server && npm run typecheck -w @moon/client",
+    "test": "npm run test -w @moon/shared && npm run test -w @moon/server"
   },
   "engines": {
     "node": ">=20"
