@@ -159,6 +159,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
   const dmgContainer = uiRoot;
 
   dialogue.onChoose = (npcId, optionId) => net.send({ t: "chooseDialogueOption", npcId, optionId });
+  dialogue.onFlirt = (npcId, flirtType) => net.send({ t: "flirt", npcId, flirtType });
   hud.onProposeTrade = (targetPlayerId) => net.send({ t: "proposeTrade", targetPlayerId });
   hud.onToggleMute = () => {
     audio.toggleMuted();

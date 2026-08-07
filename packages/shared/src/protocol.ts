@@ -1,4 +1,5 @@
 import type { CharacterState, EquipmentSlot, ItemRarity, PlayerClassId, PlayerRaceId } from "./types.js";
+import type { FlirtType } from "./lore/romance.js";
 import type { Vec3 } from "./vec.js";
 
 // ---------------- Client -> Server ----------------
@@ -184,6 +185,28 @@ export interface RequestAuctionsMessage {
   t: "requestAuctions";
 }
 
+/** Universal romance (see Room.tryFlirt / lore/romance.ts). Sent while talking to an NPC that has
+ *  a RomanceDef — the reaction line comes back as an ordinary npcDialogue message. */
+export interface FlirtMessage {
+  t: "flirt";
+  npcId: string;
+  flirtType: FlirtType;
+}
+
+/** Gives one unit of an inventory stack as a gift to a romanceable NPC (see Room.tryGiveGift). */
+export interface GiveGiftMessage {
+  t: "giveGift";
+  npcId: string;
+  itemIndex: number;
+}
+
+/** A deliberate attempt to repair an Estranged romance (see Room.tryRepairRomance) — only does
+ *  anything while that romance is actually Estranged. */
+export interface RepairRomanceMessage {
+  t: "repairRomance";
+  npcId: string;
+}
+
 export type ClientMessage =
   | JoinMessage
   | InputMessage
@@ -213,7 +236,10 @@ export type ClientMessage =
   | ListAuctionMessage
   | CancelAuctionMessage
   | BuyAuctionMessage
-  | RequestAuctionsMessage;
+  | RequestAuctionsMessage
+  | FlirtMessage
+  | GiveGiftMessage
+  | RepairRomanceMessage;
 
 // ---------------- Server -> Client ----------------
 

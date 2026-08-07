@@ -146,6 +146,9 @@ body {
 .dialogue-choices { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
 .dialogue-choice { text-align: left; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14); border-radius: 8px; padding: 8px 12px; color: #f0f0f6; font-size: 13px; cursor: pointer; }
 .dialogue-choice:hover { background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.3); }
+.dialogue-flirt-row { display: none; flex-wrap: wrap; gap: 6px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed rgba(255,255,255,0.12); }
+.dialogue-flirt-btn { background: rgba(233,138,178,0.12); border: 1px solid rgba(233,138,178,0.35); border-radius: 7px; padding: 5px 10px; color: #f5c9dd; font-size: 11.5px; cursor: pointer; }
+.dialogue-flirt-btn:hover { background: rgba(233,138,178,0.25); border-color: rgba(233,138,178,0.6); }
 
 .floatnum { position: fixed; top: 0; left: 0; font-weight: 700; font-size: 15px; text-shadow: 0 1px 3px rgba(0,0,0,0.9); pointer-events: none; }
 .floatnum--damage { color: #ff8a7a; }

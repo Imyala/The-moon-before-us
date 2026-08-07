@@ -28,11 +28,18 @@ import {
   secretEndingFor,
   MAJOR_ENDINGS,
   MAX_COMPANIONS,
+  getRomanceDef,
+  romanceFor,
+  syncRomanceWithMemory,
+  applyFlirt,
+  applyGift,
+  attemptRepair,
   type CharacterState,
   type ClientMessage,
   type CompanionSnapshot,
   type EnemySnapshot,
   type EntityState,
+  type FlirtType,
   type GameEvent,
   type ItemRarity,
   type NodeSnapshot,
@@ -55,6 +62,7 @@ import {
   countItemRarity,
   craft as craftRecipe,
   equipItem,
+  removeItemAt,
   removeItemsByIdAndRarity,
   sellToVendor,
   unequipItem,
@@ -572,6 +580,18 @@ export class Room {
       }
       case "requestAuctions": {
         this.sendAuctionListings(player);
+        break;
+      }
+      case "flirt": {
+        this.tryFlirt(player, msg.npcId, msg.flirtType);
+        break;
+      }
+      case "giveGift": {
+        this.tryGiveGift(player, msg.npcId, msg.itemIndex);
+        break;
+      }
+      case "repairRomance": {
+        this.tryRepairRomance(player, msg.npcId);
         break;
       }
     }
@@ -1140,6 +1160,56 @@ export class Room {
     this.sendCharacterUpdate(player);
   }
 
+  // ---------------- Universal romance ----------------
+  // See lore/romance.ts. Gated by the same proximity check tryTalk already uses — flirting and
+  // gift-giving are things you do face to face, not remotely.
+
+  private nearNpc(player: PlayerEntity, npcId: string): boolean {
+    const npcEntity = this.npcs.get(npcId);
+    if (!npcEntity || player.character.hp <= 0) return false;
+    if (npcEntity.zoneId !== player.character.zoneId) return false;
+    return distance(player.position, npcEntity.position) <= 4;
+  }
+
+  private tryFlirt(player: PlayerEntity, npcId: string, flirtType: FlirtType) {
+    const npc = getNpc(npcId);
+    const def = getRomanceDef(npcId);
+    if (!npc || !def || !this.nearNpc(player, npcId)) return;
+
+    const before = romanceFor(player.character.romance, npcId);
+    const result = applyFlirt(before, def, flirtType, Date.now());
+    player.character.romance = { ...player.character.romance, [npcId]: result.state };
+    this.send(player.ws, { t: "npcDialogue", npcId, speaker: npc.name, line: result.line });
+    this.sendCharacterUpdate(player);
+  }
+
+  private tryGiveGift(player: PlayerEntity, npcId: string, itemIndex: number) {
+    const npc = getNpc(npcId);
+    const def = getRomanceDef(npcId);
+    if (!npc || !def || !this.nearNpc(player, npcId)) return;
+    const stack = player.character.inventory[itemIndex];
+    if (!stack) return;
+
+    const before = romanceFor(player.character.romance, npcId);
+    const result = applyGift(before, def, stack.itemId);
+    if (!removeItemAt(player.character, itemIndex, 1)) return;
+    player.character.romance = { ...player.character.romance, [npcId]: result.state };
+    this.send(player.ws, { t: "npcDialogue", npcId, speaker: npc.name, line: result.line });
+    this.sendCharacterUpdate(player);
+  }
+
+  private tryRepairRomance(player: PlayerEntity, npcId: string) {
+    const npc = getNpc(npcId);
+    const def = getRomanceDef(npcId);
+    if (!npc || !def || !this.nearNpc(player, npcId)) return;
+
+    const before = romanceFor(player.character.romance, npcId);
+    const result = attemptRepair(before, 25);
+    player.character.romance = { ...player.character.romance, [npcId]: result.state };
+    this.send(player.ws, { t: "npcDialogue", npcId, speaker: npc.name, line: result.line });
+    this.sendCharacterUpdate(player);
+  }
+
   // ---------------- Vendors & currency ----------------
 
   private nearVendor(player: PlayerEntity, vendorId: string): boolean {
@@ -1219,6 +1289,19 @@ export class Room {
     player.character.factionLoyalty = applyLoyaltyDelta(player.character.factionLoyalty, option.delta);
     player.character.npcMemory = withTag(player.character.npcMemory, npc.id, option.tag);
     player.character.npcMemory = withTag(player.character.npcMemory, npc.id, choice.resolvedTag);
+
+    // Universal romance (see lore/romance.ts): reads back whatever tag this choice just wrote,
+    // the same "derive at the moment memory changes" discipline death cascades and epilogue lines
+    // already use — no new dialogue content, just new meaning read from a choice already made.
+    const romanceDef = getRomanceDef(npc.id);
+    if (romanceDef) {
+      const tags = memoryFor(player.character.npcMemory, npc.id).tags;
+      const beforeRomance = romanceFor(player.character.romance, npc.id);
+      const afterRomance = syncRomanceWithMemory(beforeRomance, romanceDef, tags);
+      if (afterRomance !== beforeRomance) {
+        player.character.romance = { ...player.character.romance, [npc.id]: afterRomance };
+      }
+    }
 
     if (option.recruits) {
       if (!player.character.companionIds.includes(npc.id)) {

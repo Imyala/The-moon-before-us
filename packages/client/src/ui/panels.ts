@@ -296,6 +296,28 @@ export class Panels {
       })
       .join("");
 
+    const romanceEntries = Object.entries(c.romance ?? {}).filter(([, state]) => state.status !== "indifferent" || state.score !== 0);
+    const romanceRows = romanceEntries
+      .map(([npcId, state]) => {
+        const npc = getNpc(npcId);
+        if (!npc) return "";
+        const statusColor =
+          state.status === "betrayed" || state.status === "lost"
+            ? "#e07d7d"
+            : state.status === "estranged"
+              ? "#e0b97d"
+              : state.status === "devoted" || state.status === "committed"
+                ? "#e98ab2"
+                : "#cfe0ff";
+        return `
+        <div class="loyalty-row">
+          <div class="loyalty-label">${npc.name}<span class="loyalty-state" style="color:${statusColor}">${state.status}</span></div>
+          <div class="bar-track"><div class="bar-fill loyalty" style="width:${Math.round(((state.score + 100) / 200) * 100)}%;background:${statusColor}"></div></div>
+          ${state.status === "estranged" ? `<button class="interactive" data-repair="${npcId}" style="margin-top:6px;background:#7c6bd6;border:none;color:#fff;border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer">Try to make amends</button>` : ""}
+        </div>`;
+      })
+      .join("");
+
     this.panel.innerHTML = `
       <button class="close-btn">✕</button>
       <h2 class="title-font">${c.name}</h2>
@@ -324,8 +346,17 @@ export class Panels {
         .join("")}</ul>`
           : ""
       }
+      ${
+        romanceEntries.length
+          ? `<h3 style="margin-top:20px;font-size:15px">Romance</h3>
+      <div class="loyalty-list">${romanceRows}</div>`
+          : ""
+      }
     `;
     this.panel.querySelector(".close-btn")!.addEventListener("click", () => this.close());
+    this.panel.querySelectorAll<HTMLButtonElement>("[data-repair]").forEach((btn) => {
+      btn.addEventListener("click", () => this.net.send({ t: "repairRomance", npcId: btn.dataset.repair! }));
+    });
     this.panel.querySelectorAll<HTMLButtonElement>("[data-ability]").forEach((btn) => {
       btn.addEventListener("click", () => this.net.send({ t: "allocateSkillPoint", abilityId: btn.dataset.ability! }));
     });

@@ -66,6 +66,7 @@ export function getOrCreateCharacter(token: string, name: string, classId: Playe
     zoneId: START_ZONE_ID,
     factionLoyalty: { ...DEFAULT_LOYALTY },
     npcMemory: {},
+    romance: {},
     lunarResonance: 0,
     companionIds: [],
     gold: STARTER_GOLD

@@ -1,6 +1,7 @@
 import type { Vec3 } from "./vec.js";
 import type { LoyaltyScores } from "./lore/factions.js";
 import type { NpcMemoryState } from "./lore/memory.js";
+import type { RomanceRecord } from "./lore/romance.js";
 
 export type PlayerClassId = "warden" | "ranger" | "mystic" | "duskblade";
 
@@ -223,6 +224,9 @@ export interface CharacterState extends CharacterSummary {
   zoneId: string;
   factionLoyalty: LoyaltyScores;
   npcMemory: NpcMemoryState;
+  /** Per-NPC Romance Score + sub-metrics, separate from Bond — see lore/romance.ts. Keyed by npcId,
+   *  same convention npcMemory uses; entries only exist once a romance interaction has happened. */
+  romance: RomanceRecord;
   /** Aether-crystal exposure; see lore/moonTouched.ts for the stage thresholds it drives. */
   lunarResonance: number;
   /** Spendable currency — earned from enemy kill bounties and selling items to vendors, spent

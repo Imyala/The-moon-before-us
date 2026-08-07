@@ -36,6 +36,7 @@ db.exec(`
     endingId TEXT,
     gold REAL,
     raceId TEXT,
+    romanceJson TEXT,
     updatedAt INTEGER NOT NULL
   );
 `);
@@ -48,7 +49,8 @@ for (const migration of [
   "ALTER TABLE characters ADD COLUMN companionIdsJson TEXT",
   "ALTER TABLE characters ADD COLUMN endingId TEXT",
   "ALTER TABLE characters ADD COLUMN gold REAL",
-  "ALTER TABLE characters ADD COLUMN raceId TEXT"
+  "ALTER TABLE characters ADD COLUMN raceId TEXT",
+  "ALTER TABLE characters ADD COLUMN romanceJson TEXT"
 ]) {
   try {
     db.exec(migration);
@@ -76,8 +78,8 @@ db.exec(`
 
 const getStmt = db.prepare("SELECT * FROM characters WHERE token = ?");
 const upsertStmt = db.prepare(`
-  INSERT INTO characters (token, id, name, classId, level, xp, hp, maxHp, resource, maxResource, statsJson, skillPoints, abilityRanksJson, inventoryJson, equipmentJson, positionJson, zoneId, factionLoyaltyJson, npcMemoryJson, lunarResonance, companionIdsJson, endingId, gold, raceId, updatedAt)
-  VALUES (@token, @id, @name, @classId, @level, @xp, @hp, @maxHp, @resource, @maxResource, @statsJson, @skillPoints, @abilityRanksJson, @inventoryJson, @equipmentJson, @positionJson, @zoneId, @factionLoyaltyJson, @npcMemoryJson, @lunarResonance, @companionIdsJson, @endingId, @gold, @raceId, @updatedAt)
+  INSERT INTO characters (token, id, name, classId, level, xp, hp, maxHp, resource, maxResource, statsJson, skillPoints, abilityRanksJson, inventoryJson, equipmentJson, positionJson, zoneId, factionLoyaltyJson, npcMemoryJson, lunarResonance, companionIdsJson, endingId, gold, raceId, romanceJson, updatedAt)
+  VALUES (@token, @id, @name, @classId, @level, @xp, @hp, @maxHp, @resource, @maxResource, @statsJson, @skillPoints, @abilityRanksJson, @inventoryJson, @equipmentJson, @positionJson, @zoneId, @factionLoyaltyJson, @npcMemoryJson, @lunarResonance, @companionIdsJson, @endingId, @gold, @raceId, @romanceJson, @updatedAt)
   ON CONFLICT(token) DO UPDATE SET
     name=excluded.name, classId=excluded.classId, level=excluded.level, xp=excluded.xp,
     hp=excluded.hp, maxHp=excluded.maxHp, resource=excluded.resource, maxResource=excluded.maxResource,
@@ -85,7 +87,7 @@ const upsertStmt = db.prepare(`
     inventoryJson=excluded.inventoryJson, equipmentJson=excluded.equipmentJson, positionJson=excluded.positionJson,
     zoneId=excluded.zoneId, factionLoyaltyJson=excluded.factionLoyaltyJson, npcMemoryJson=excluded.npcMemoryJson,
     lunarResonance=excluded.lunarResonance, companionIdsJson=excluded.companionIdsJson, endingId=excluded.endingId,
-    gold=excluded.gold, raceId=excluded.raceId, updatedAt=excluded.updatedAt;
+    gold=excluded.gold, raceId=excluded.raceId, romanceJson=excluded.romanceJson, updatedAt=excluded.updatedAt;
 `);
 
 interface Row {
@@ -114,6 +116,7 @@ interface Row {
   endingId: string | null;
   gold: number | null;
   raceId: string | null;
+  romanceJson: string | null;
   updatedAt: number;
 }
 
@@ -149,7 +152,8 @@ export function loadCharacter(token: string): CharacterState | null {
     gold: row.gold ?? 0,
     // Characters saved before races existed fall back to the baseline generalist race, the same
     // default character.ts's resolveRaceId gives a missing/unrecognized raceId at creation time.
-    raceId: (getRace(row.raceId ?? "") ? row.raceId : "vaelari") as PlayerRaceId
+    raceId: (getRace(row.raceId ?? "") ? row.raceId : "vaelari") as PlayerRaceId,
+    romance: row.romanceJson ? JSON.parse(row.romanceJson) : {}
   };
 }
 
@@ -179,6 +183,7 @@ export function saveCharacter(token: string, c: CharacterState): void {
     endingId: c.endingId ?? null,
     gold: c.gold ?? 0,
     raceId: c.raceId ?? "vaelari",
+    romanceJson: JSON.stringify(c.romance ?? {}),
     updatedAt: Date.now()
   });
 }

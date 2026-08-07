@@ -232,87 +232,583 @@ If you join a guild aligned with an enemy faction, the game offers a **double-ag
 
 ## 5. Universal Romance System
 
-### 5.1 Romance Availability
+Lets players pursue romance with any named NPC — companions, faction leaders, regional figures, merchants, antagonists, even some spirits and constructs — while keeping romance conditional, fragile, and meaningful across the memory graph.
 
-**Any named NPC with a relationship graph can be romanced**, including:
+> **Status:** a real first slice of this system is built — see the GDD's Design Expansion status table and its "Universal romance" section for what's actually shipped (six real NPCs, a Romance Score with five sub-metrics, flirting, gifting, loss/repair) versus what below is still just target design (the full 80-120 NPC roster, jealousy/polyamory, intimacy scenes, faction/guild political consequences, Moon-Touched-path interaction, campaign-chapter gating).
 
-- The 12 core companions
-- The 60+ Tier 1 NPCs
-- Tier 2 recurring NPCs
-- Some Tier 3 procedural NPCs with enough interaction
+### 5.1 Romance Philosophy
 
-**Exceptions:**
-- Children (Pip remains adoptable, not romanceable)
-- Certain spirit/construct entities with no romantic capacity
-- NPCs already in committed relationships unless the story allows change
+**Core Tenets**
 
-### 5.2 Romance Mechanics
+| # | Tenet | Meaning |
+|---|---|---|
+| 1 | **Anyone can be loved** | Any named NPC with a relationship graph can be romanced. No hard locks by race, class, origin, or faction. |
+| 2 | **Love must be earned** | Romance requires consistent action, aligned values, completed personal quests, and emotional honesty. |
+| 3 | **Love can be lost** | Romance is not a permanent achievement flag. Betrayal, cruelty, ideological betrayal, or abandonment can destroy it. |
+| 4 | **Love has consequences** | Romance affects faction standing, companion dynamics, ending options, and post-game epilogue. |
+| 5 | **Love is not always happy** | Grimdark tone means romances can be tragic, doomed, toxic, or transformed by the war over Selen. |
+| 6 | **Consent and agency** | NPCs can reject the player, break up, or choose someone/something else. Player actions matter. |
 
-Romance is based on a **Romance Score** separate from Bond:
+**What Romance Is NOT**
+- Not a checklist of gift-giving.
+- Not a guaranteed reward for being nice.
+- Not isolated from the world; romances react to war, politics, and death.
+- Not a substitute for the main story; it enhances it.
+- Not explicit; intimacy is fade-to-black or emotionally evocative.
+
+### 5.2 The Romance Score System
+
+Every named NPC has a hidden **Romance Score** that exists alongside Bond, Disgust, and Trust.
+
+**Romance Metrics**
+
+| Metric | Range | Meaning |
+|---|---|---|
+| **Romance Score (RS)** | -100 to +100 | Overall romantic interest and commitment |
+| **Attraction** | 0–100 | Physical/emotional pull |
+| **Respect** | 0–100 | Admiration for your actions and character |
+| **Vulnerability** | 0–100 | How much the NPC has opened up to you |
+| **Fear** | 0–100 | How much the NPC fears you or the relationship |
+| **Hope** | 0–100 | Belief the relationship can survive the world |
+
+**Romance States** (based on RS and other metrics)
+
+| State | RS Range | Meaning |
+|---|---|---|
+| **Indifferent** | -20 to +10 | No romantic awareness yet |
+| **Curious** | +11 to +25 | They have noticed you; may flirt back |
+| **Interested** | +26 to +40 | Reciprocated interest; courtship can begin |
+| **Courtship** | +41 to +60 | Active romance; personal quest unlocks |
+| **Committed** | +61 to +80 | Romance locked; significant relationship content |
+| **Devoted** | +81 to +100 | Deepest bond; ending variants, sacrifice triggers |
+| **Estranged** | -10 to +30 after a crisis | Romance damaged but recoverable |
+| **Lost** | -40 to -10 | Romance ended; usually irreversible |
+| **Betrayed** | -100 to -41 | Romance turned to hatred; may become enemy |
+
+**How RS Differs from Bond**
+
+| Bond | Romance |
+|---|---|
+| Friendship, loyalty, combat trust | Romantic and emotional intimacy |
+| Can be high without romance | Can exist alongside high or low bond |
+| Gained through shared danger and help | Gained through emotional vulnerability and value alignment |
+| Lost through cruelty or betrayal | Lost through romantic-specific betrayals (e.g., killing their sibling, choosing their enemy) |
+
+**Example:** You can have Bond 90 with Bran Fieldhand and never romance him — he becomes a brother. You can have Bond 30 with Ilsa Marche but Romance 70 — she is drawn to your danger despite not trusting you.
+
+### 5.3 Romance Archetypes
+
+Not every NPC romance plays out the same way. We define romance archetypes that writers use.
+
+**Companion Romances**
+
+| Tier | NPCs (from earlier decisions) | Depth |
+|---|---|---|
+| **Deep romances** | Veyra, Lira, Cael, Nix, Sylvie, Spark Coil | Full courtship, multiple scenes, ending variants, companion room sharing |
+| **Platonic deep bonds** | Thorn, Unit 7, Echo, Bran, Dren, Solace | No romance; family/loyalty arcs with unique intimacy |
+
+**NPC Romance Archetypes**
+
+| Archetype | Description | Examples | Depth |
+|---|---|---|---|
+| **The Beloved Leader** | Faction/region leader; romance is political and personal | Aldric, Ilsa, Vesryn, Breca, Kael | Full arc |
+| **The Tragic Beauty** | Doomed or damaged; romance is bittersweet | Lumineth, Ashren, Hollowed-adjacent NPCs | Full arc |
+| **The Rival** | Starts as enemy or competitor; romance through conflict | Netta Blacktide, Viceroy Korr, Rowan | Medium arc |
+| **The Common Soul** | Ordinary person; quiet, domestic romance | Tomasin, Mara, Miller Tarn | Short/medium arc |
+| **The Inhuman** | Spirit, machine, or altered being; romance explores definition of love | Brine, Unit 7, Astrolabe, The Selenian | Variable |
+| **The Corruptible** | Romance can push them toward good or evil | Thorne, Pyra, Hollow-Singer | Full arc |
+| **The Forbidden** | Romance violates faction/rank/taboo | Aldric (Chainwright), student-teacher, enemy faction | Full arc |
+| **The Mercenary** | Romance is transactional until it isn't | Dren, Korr, Netta | Medium arc |
+| **The Brief Flame** | Intense but short; may end in death or departure | Some Tier 2 NPCs | Short arc |
+
+**Procedural NPC Romances**
+
+| Category | How It Works |
+|---|---|
+| **Refugees you save** | Can become grateful, then attached |
+| **Faction soldiers** | Repeated encounters on missions can build romance |
+| **Merchants** | Long trading relationship can become intimate |
+| **Hollowed you restore** | Name-recovery can create unique bonds |
+
+These are shorter, less scripted, but still tracked through the memory graph.
+
+### 5.4 Starting Conditions and Compatibility
+
+**No Hard Locks.** There are no race, class, origin, or faction locks on romance. However, starting conditions affect difficulty:
 
 | Factor | Effect |
 |---|---|
-| **Bond** | Base requirement; high Bond enables romance |
-| **Disgust** | Must be low; certain actions permanently close romance |
-| **Trust** | Keeping promises, not betraying them |
-| **Alignment** | Faction and moral choices matching their values |
-| **Personal quests** | Completing their unique questline |
-| **Gifts** | Meaningful items, not generic currency |
-| **Flirtation** | Dialogue tone choices across multiple encounters |
-| **Race/origin** | Some NPCs have initial preferences; all can be overcome |
+| **Race** | Some NPCs have racial preferences or prejudices that must be overcome through action. |
+| **Origin** | Shared background creates easier opening; opposed background creates tension. |
+| **Faction** | Cross-faction romance is possible but creates political danger. |
+| **Class** | Some classes have natural dialogue with certain NPCs (e.g., Mourner with Mira). |
+| **Moon-Touched Path** | Some paths attract or repel specific NPCs. |
+| **Romance Archetype** | The NPC's type determines what they respond to. |
 
-### 5.3 Romance States
+**Attraction Modifiers** (starting bonuses/penalties, not gates)
 
-| State | Meaning |
+| NPC | Attracted To | Repelled By |
+|---|---|---|
+| **Mira Hollowbell** | Mourners, gentle souls, those who save children | Those who sacrifice the innocent |
+| **Ilsa Marche** | Ambition, brilliance, survivors | Weakness, hesitation, moralists |
+| **Aldric Vane** | Discipline, suffering endured, order | Chaos, pity, defiance |
+| **Vesryn the Duskborne** | Those who remember the dead, gentleness | Cruelty, exploitation, denial of grief |
+| **Forge-Mother Breca** | Strength, pragmatism, workers | Idealists who break tools |
+| **Magistrate Thorne** | Intelligence, power games, secrets | Honesty, idealism, weakness |
+| **Houndmaster Vex** | Cruelty, obedience, shared hatred | Mercy, defiance, softness |
+| **Captain Netta Blacktide** | Ruthlessness, freedom, sea-skill | Naivety, lawfulness, loyalty to chains |
+| **The Selenian** | Those who protect their kind, lunar resonance | Those who would dissect or expose them |
+| **Brine** | Those who listen to the drowned, patience | Those who exploit the sea |
+| **Astrolabe** | Curiosity, freedom, philosophical depth | Those who reset or enslave constructs |
+
+### 5.5 Building Romance: Actions and Dialogue
+
+**Flirtation System.** Players can choose a Flirtatious dialogue tone when speaking to NPCs. This opens romance tracking.
+
+| Flirt Type | Effect | Risk |
+|---|---|---|
+| **Friendly flirt** | +Attraction, +Bond | None if appropriate |
+| **Bold flirt** | +Attraction, +Respect if confident; -Attraction if wrong context | Can cause Disgust if NPC uninterested |
+| **Intellectual flirt** | +Respect, +Attraction with scholars/thinkers | Flat with non-intellectuals |
+| **Protective flirt** | +Vulnerability, +Attraction with guarded NPCs | Can feel patronizing |
+| **Vulnerable flirt** | +Vulnerability, +Hope | Risk of being seen as weak |
+| **Dark flirt** | +Attraction with ruthless NPCs; +Fear with others | Can accelerate toxic romances |
+
+Flirtation rules: each NPC has a flirt cooldown — too many flirts too fast raises Fear; some NPCs are flirt-blind initially and require friendship first; some NPCs flirt back in their ambient dialogue, signaling interest; failed flirts are remembered and can make future romance harder.
+
+**Romantic Actions**
+
+| Action | RS Gain | Conditions |
+|---|---|---|
+| Complete their personal quest | +20–40 | Varies by NPC |
+| Save their life | +15–25 | One-time per NPC |
+| Keep a promise to them | +10–20 | Repeatable |
+| Defend their faction/values | +10–20 | Varies |
+| Give a meaningful gift | +5–15 | Gift must match their taste |
+| Visit them in your home | +5–10 | Repeatable, caps daily |
+| Write/sing/perform for them | +10–20 | Creative NPCs |
+| Stand by them in a crisis | +15–25 | Major story moments |
+| Choose them over another | +10–20 | Jealousy system |
+| Publicly declare affection | +20–30 | Risky; some NPCs hate publicity |
+
+**Romantic Failures**
+
+| Action | RS Loss | Conditions |
+|---|---|---|
+| Break a promise | -15–25 | Especially if promised romantically |
+| Kill someone they love | -40–60 | Often ends romance |
+| Betray their faction | -20–40 | Unless they were already disillusioned |
+| Publicly humiliate them | -20–30 | Can end romance |
+| Choose their enemy/rival | -15–30 | Jealousy and politics |
+| Exploit the vulnerable they protect | -25–40 | Moral rupture |
+| Lie about a major choice | -15–25 | Trust crash |
+| Ignore their crisis | -10–20 | "You weren't there" |
+| Embrace a path they fear | -15–30 | E.g., Hollowed path with Solace |
+
+### 5.6 Jealousy, Rivalry, and Polyamory
+
+**Multiple Romances.** Players can pursue multiple romances simultaneously, but the system tracks awareness.
+
+| Awareness State | Effect |
 |---|---|
-| **Indifferent** | No romantic interest yet |
-| **Curious** | They noticed you; romance unlocked if you pursue |
-| **Interested** | Flirtation reciprocated |
-| **Courtship** | Active romance; dates/side quests |
-| **Committed** | Romance locked; companion room shared if applicable |
-| **Estranged** | Romance in danger due to your actions |
-| **Lost** | Romance ended; cannot be recovered |
-| **Betrayed** | Romance turned to hatred; may become enemy |
+| **Secret** | Romances don't know about each other; maintaining requires lies |
+| **Known** | Romances are aware; may accept, tolerate, or demand choice |
+| **Open** | NPCs with compatible values may accept polyamory |
+| **Confronted** | Jealousy triggers; player must choose or repair |
 
-### 5.4 Romance Can Be Lost
+**Jealousy Triggers**
 
-Unlike many games where romance is a permanent flag, romance in *The Moon Above Our World* is **conditional and fragile.**
+| Trigger | Response |
+|---|---|
+| Player publicly romances two NPCs | Both may confront player |
+| Romanced NPC sees player flirting with another | Jealousy event |
+| Player gives a "romance gift" to another | Jealousy event |
+| Player chooses one over another in a crisis | Rivalry or breakup |
+| Two NPCs are natural enemies | Polyamory impossible without major convincing |
 
-Actions that can destroy romance:
+**Polyamory Possibilities** — some NPCs can be convinced to share:
+
+| NPC Combination | Possible? | Condition |
+|---|---|---|
+| Veyra + Lira | Possible | Both value trust and honesty; must be open |
+| Mira + Solace | Possible | Both are gentle; mourn together |
+| Ilsa + Netta | Possible | Both ruthless; respect power |
+| Aldric + Thorne | Difficult | Political rivals; only if Aldric exposed/reformed |
+| Cael + Mira | Very possible | Spiritual siblings; grief bonds them |
+| Kael + Nix | Possible | Found-family dynamic; protective of each other |
+| Aldric + Vesryn | Impossible | Ideological enemies unless world ends |
+
+**Rivalry Events.** If two romanced NPCs are rivals, a rivalry event triggers.
+
+**Example:** You are romancing both Ilsa Marche and Vesryn the Duskborne. In Chapter 7, Ilsa demands you help her overcharge the Moonthread; Vesryn demands you let him cut it. They confront each other in your presence. You must choose, lie, or broker a temporary truce.
+
+Outcomes: choose one (other romance enters Estranged or Lost); lie successfully (both stay for now, Fear increases, exposure risk later); broker truce (requires high stats, both impressed, temporary); refuse to choose (both may leave).
+
+### 5.7 Romance Loss and Repair
+
+**The Estranged State.** When a major romantic betrayal happens, romance enters Estranged rather than immediately Lost.
+
+| Estranged Phase | What Happens |
+|---|---|
+| **Confrontation** | NPC demands explanation or apology |
+| **Cooling** | NPC avoids player; ambient dialogue is cold |
+| **Test** | NPC may offer a chance to make amends |
+| **Repair or Break** | Player succeeds → return to Courtship/Committed; fails → Lost |
+
+**Repair Actions**
 
 | Action | Effect |
 |---|---|
-| Betray their faction | Estranged; must make amends |
-| Kill someone they love | Lost; may become enemy |
-| Exploit the vulnerable they protect | Lost |
-| Lie about a major choice | Trust crash; Estranged |
-| Publicly humiliate them | Lost |
-| Choose a conflicting ending | Romance ends or transforms |
-| Abandon them in a crisis | Estranged |
+| Apologize sincerely | +RS, -Fear |
+| Make a meaningful sacrifice for them | +RS, +Hope |
+| Change course on the issue that caused rupture | +RS, +Respect |
+| Complete a personal redemption quest | +RS |
+| Give a deeply personal gift | +RS |
+| Publicly choose them | +RS, clears jealousy |
 
-**Example:** You romance Solace Stillwater. Later, you join the Luminari and support experiments on Moon-Touched. Solace confronts you. If you refuse to change course, she leaves and the romance becomes **Lost.** If you leave the Luminari and work against the experiments, the romance can be **Repaired** to Committed.
+**Unrecoverable Losses** — some actions permanently end romance:
 
-### 5.5 Companion Romance Tiers
+| Action | Result |
+|---|---|
+| Kill their child/romantic rival/sibling | Lost; may become Betrayed |
+| Erase their name from the Book of Dusk | Lost; spiritual murder |
+| Experiment on or hollow them | Lost; often becomes enemy |
+| Betray them to the faction that tortures them | Lost; Betrayed state |
+| Choose genocide/extermination they oppose | Lost; moral unrecoverable |
+| Sell them as a specimen | Lost; Betrayed state |
 
-| Tier | NPCs | Romance Depth |
+**Lost But Not Forgotten.** Even Lost romances leave traces: their room in your home becomes empty or memorialized; their letters remain in your codex; they may appear in the epilogue, referencing what was lost; in some endings, Lost romances become haunting presences.
+
+### 5.8 Romance and Faction/Politics
+
+**Cross-Faction Romance** creates political complications:
+
+| Complication | Effect |
+|---|---|
+| **Faction disapproval** | Your own faction may lower your standing |
+| **NPC endangerment** | Their faction may suspect them of treason |
+| **Assassination attempts** | Rival factions may target you or your lover |
+| **Secret meetings** | Romance scenes happen in hidden locations |
+| **Defection pressure** | Both factions demand you prove loyalty |
+| **Public revelation** | If exposed, both factions punish you |
+
+**Faction-Specific Romance Consequences**
+
+| Your Faction | Lover's Faction | Consequence |
 |---|---|---|
-| **Deep romances** | Veyra, Lira, Cael, Nix, Sylvie, Spark Coil | Full courtship, unique scenes, ending variants |
-| **Platonic deep bonds** | Thorn, Unit 7, Echo, Bran, Dren, Solace | No romance, but unique familial/loyal arcs |
-| **NPC romances** | Any Tier 1–2 NPC | Variable depth; some have full arcs, some have brief flings |
+| Chainwright | Pale Choir | Both factions hostile; Vigil may shelter you |
+| Chainwright | Luminari | Tolerated if you support tech; Aldric suspicious |
+| Luminari | Pale Choir | Ilsa disgusted; Choir wary |
+| Luminari | Chainwright | Luminari questions your commitment |
+| Pale Choir | Chainwright | Choir sees you as corrupted unless Aldric exposed |
+| Independent | Any | No faction penalty; lovers may pressure you to join them |
 
-### 5.6 NPC Romance Examples
+**Guild Alignment and Romance.** If your guild is aligned with your lover's faction, romance is easier. If your guild is aligned with an enemy faction, romance becomes a double-agent opportunity: you can feed information to your lover, use guild resources to protect them, but exposure risks both the romance and your guild standing.
 
-| NPC | Romance Arc | Breaking Point |
+### 5.9 Romance and the Moon-Touched Path
+
+| Path | Romance Effect |
+|---|---|
+| **Warden** | Stable, protective partner; some NPCs feel safe, others feel distanced |
+| **Vessel** | Deeply empathetic; can sense lovers' emotions; risk of losing self |
+| **Bridge** | Mediator between lovers and the world; romances often become symbolic |
+| **Hollowed** | Love becomes possessive or erasing; NPCs may fear you |
+| **Weaver** | Can alter memories of romance; ethically dangerous |
+
+**Example:** A Vessel player romancing Brine can hear their memories more clearly. A Hollowed player romancing Solace will trigger a confrontation where Solace demands you stop erasing yourself.
+
+### 5.10 Intimacy System
+
+Intimacy is fade-to-black and emotionally focused, not explicit.
+
+**Intimacy Levels**
+
+| Level | What Happens | Trigger |
 |---|---|---|
-| **Elder Maeve** | Slow, maternal-turned-partner; requires saving Threadhold and years of visits | Abandoning the village, harming Pip |
-| **Magistrate Thorne** | Political romance; blackmail and power games | Exposing his crimes publicly without warning |
-| **Aldric Vane** | Forbidden, austere; only possible on Chainwright path if you redeem him | Exposing his war crimes; joining Choir |
-| **Ilsa Marche** | Intense, reckless, self-destructive; she admires your ambition | Stopping her from sacrificing a village |
-| **Vesryn the Duskborne** | Sacred, gentle, tragic; he outlives everyone | Desecrating a rite; refusing to grieve |
-| **Forge-Mother Breca** | Blunt, transactional, unexpectedly tender | Destroying her forges |
-| **Houndmaster Vex** | Dark romance; only possible if you embrace cruelty | Showing mercy to his enemies |
+| **Affection** | Hand-holding, leaning close, shared warmth | Committed state |
+| **Intimacy** | Embrace, kiss, implied closeness | Devoted state, private moment |
+| **Bonding** | Shared bed, waking together, implied sex | Committed + private home/room |
+| **Sacred Union** | Formal marriage/union rite | Faction/religion-specific ceremony |
 
-> **Engineering note:** this needs a new per-NPC Romance Score (distinct from the existing faction-loyalty-derived `RelationshipState`), a new state machine (8 states above) with both forward *and backward* transitions (romance can regress — nothing else in the memory/relationship layer today models decay, only accumulation), and dozens of NPC-specific "breaking point" triggers layered on top of the existing signature-choice/memory-tag system. The `memory.ts`/`relationships.ts` "derive, don't store redundantly" discipline this project has followed throughout should extend naturally to Romance Score (a derived value from tagged interactions), but the state machine and its regression logic are new.
+**Intimacy Scenes.** Triggered in private spaces: your home, lover's room, hidden campsite, sanctuary. Player and NPC exchange dialogue about fears, hopes, scars. Camera focuses on hands, eyes, moonlight, weather. Fade to black before explicit content. After fade, ambient scene: waking together, clothing, shared breakfast, battlefield aftermath.
+
+**Faction-Specific Unions**
+
+| Faction/Culture | Union Ritual |
+|---|---|
+| Chainwright | Thread-binding ceremony; two wrists wrapped in silver cord |
+| Luminari | Resonance-link; share a shard-glow pulse |
+| Pale Choir | Bell-ringing; name each other into the Book of Dusk |
+| Tide-Callers | Drowning-and-breathing ritual; share breath underwater |
+| Mournstride | Blood-oath and saga verse |
+| Frayedge | Quiet hand-fasting in the sanctuary |
+
+**Breaking a Union.** Union ceremonies create public memory tags. Breaking a union has social consequences: NPCs may gossip; faction leaders may comment; in some cultures, divorce requires a formal rite.
+
+### 5.11 Romance in the 8-Chapter Campaign
+
+**Romance Gates Per Chapter**
+
+| Chapter | Romance Milestone |
+|---|---|
+| 0–1 | Flirtation unlocked; first impressions |
+| 2 | Courtship can begin for early companions |
+| 3 | First personal quests available |
+| 4 | Lira/Sera romance branches deepen |
+| 5 | Mira/child tragedy tests romances |
+| 6 | Political romances face trial pressure |
+| 7 | Romances demand commitment before the Hollow Door |
+| 8 | Final romance choice: who stands with you, who you say goodbye to |
+
+**Chapter-Specific Romance Tests**
+
+| Chapter | Test |
+|---|---|
+| **2** | Spirit choice — does your lover approve of how you treated the Briarwraith? |
+| **3** | Machine choice — did you enslave or free? |
+| **4** | Drowned city — respect or exploit? |
+| **5** | Erased village — did you save or sacrifice? |
+| **6** | Truth — did you publish or suppress? |
+| **7** | Sanctuary — did you protect or betray the vulnerable? |
+| **8** | Ending — do your lovers stand with you or against you? |
+
+**Romance-Locked Scenes**
+
+| Scene | Condition |
+|---|---|
+| Veyra's confession | Bond + Romance high in Chapter 4 |
+| Lira's cove night | Romance high in Chapter 4 |
+| Cael's sister rite | Bond high in Chapter 5; romance unlocks if present |
+| Nix's "are we family?" | Chapter 6 if adopted/romanced |
+| Sylvie's prophecy of your death | Romance high in Chapter 5 |
+| Spark Coil's "one good thing" | Romance high in Chapter 8 |
+| Mira's bell for you | Romance high + saved her |
+| Ilsa's lab breakdown | Romance high + stopped her atrocity |
+| Aldric's hidden tenderness | Only possible if you exposed/reformed him |
+| Vesryn's last prayer | Romance high in Chapter 7 |
+
+### 5.12 Romance and Endings
+
+**Ending Variants by Romance**
+
+| Romance | Ending Variant |
+|---|---|
+| **Veyra** | Co-author of the new history; or fugitive lovers if tyrant |
+| **Lira** | Free port founders; or Selenian heritage movement |
+| **Cael** | Court poet or final rite singer |
+| **Nix** | Found-family home; or tragic separation if tyrant |
+| **Sylvie** | Seer-companion in any ending |
+| **Spark Coil** | School of ethical craft founders |
+| **Mira** | Bell-ringers of the new age |
+| **Ilsa** | Technocratic power couple; or mutual destruction |
+| **Aldric** | Reformed Order leaders; or damned together |
+| **Vesryn** | Sacred union until death; he performs your rite |
+| **Breca** | Forge-queen and consort |
+| **Netta** | Pirate queen and consort |
+| **Kael** | Sanctuary founders |
+| **Cantor Veyle** | Sing the new world into being; may forget you |
+
+**Romance Tragedies** — some romances are structurally doomed based on your ending:
+
+| Romance + Ending | Tragedy |
+|---|---|
+| Solace + Ending_Exterminate | Solace leaves forever; romance Lost |
+| Cael + Ending_Exploit | He cannot love someone who desecrates the dead |
+| Ilsa + Ending_Sever | She cannot accept letting Selen go |
+| Aldric + Ending_Choir | Ideological enemies; he is executed or exiled |
+| Brine + Ending_Bind | The sea cannot rest while Selen is chained |
+| Veyra + Ending_Tyrant | She writes a book denouncing you |
+
+**Romance Sacrifices.** In the final chapter, some lovers can sacrifice themselves for you:
+
+| Lover | Sacrifice |
+|---|---|
+| **Veyra** | Takes a bullet of censorship for your truth |
+| **Lira** | Dives into the sea to cut a thread binding you |
+| **Cael** | Recites a verse that banishes a final Hollowed but fades |
+| **Nix** | Stabs a tyrant to save you, dying in the attempt |
+| **Spark Coil** | Overcharges a device to open the door, burning out |
+| **Solace** | Refuses to let you kill the helpless, dying in your place |
+| **Kael** | Holds the sanctuary door until it crushes him |
+
+### 5.13 Cross-Faction Romance Examples
+
+**Example 1: Chainwright Player + Mira Hollowbell (Pale Choir).** Initial attraction is difficult; Mira fears all Chainwrights. If player saves Threadhold village gently and records names, Mira becomes curious. If player publicly joins Chainwrights, Mira confronts them; romance enters Estranged. If player secretly supports Pale Choir rites while publicly Chainwright, double-agent tension rises. If player defects to Pale Choir or supports reformist Vigil, romance can recover. If player chooses Binding ending, Mira leaves unless player also chose Cure/Accept over Exterminate.
+
+**Example 2: Luminari Player + Aldric Vane (Chainwright).** Extremely forbidden; both factions despise it. Possible only if player maintains Chainwright cover, infiltrates the Order, and Aldric is isolated/exposed. Romance is secret, dangerous, and transactional at first. If player helps reform the Order (Argent Vigil path), Aldric becomes reachable. If player stays Luminari, Aldric eventually discovers and either kills them or is destroyed.
+
+**Example 3: Independent Player + Netta Blacktide (Blacktide Armada).** Natural alignment on freedom. Netta respects ruthlessness and sea-skill. Romance is transactional at first; becomes genuine through shared plunder and trust. If player starts working for the Chainwright navy, romance is Lost. If player becomes too lawful, Netta grows bored.
+
+**Example 4: Pale Choir Player + Ilsa Marche (Luminari).** Ilsa is fascinated by the player's fatalism but disgusted by passivity. Player must prove that remembrance is not surrender. Romance deepens if player stops Ilsa from sacrificing a village. If player lets Ilsa burn Mourncrown, romance is Lost. If player finds a third path (ethical tech), romance can reach Devoted.
+
+### 5.14 Technical Implementation
+
+**Romance Data Schema**
+
+```json
+{
+  "romance_profile": {
+    "npc_id": "mira_hollowbell",
+    "archetype": "tragic_beauty",
+    "orientation": "player_determined",
+    "polyamory_capable": false,
+    "jealousy_level": "high",
+    "forbidden_romance": false,
+    "starting_attraction_modifiers": {
+      "mourner_origin": 15,
+      "exorcist_origin": 10,
+      "chainwright_aligned": -20,
+      "luminari_aligned": -10,
+      "saved_child": 10,
+      "saved_village_with_her": 25
+    }
+  },
+  "romance_state": {
+    "romance_score": 55,
+    "attraction": 60,
+    "respect": 70,
+    "vulnerability": 40,
+    "fear": 15,
+    "hope": 50,
+    "status": "courtship",
+    "committed_at": null,
+    "estranged_reason": null,
+    "lost_reason": null,
+    "union_status": null
+  },
+  "romance_events": [
+    {
+      "event_id": "mira_ch5_village_saved",
+      "timestamp": 1718123456,
+      "rs_delta": 30,
+      "attraction_delta": 10,
+      "tags_added": ["Mira_Lovers_Bond"],
+      "scene_unlocked": "Mira_Bell_For_You"
+    }
+  ],
+  "confrontation_queue": [],
+  "scene_flags": {
+    "courtship_scene_1": true,
+    "intimacy_scene_1": false,
+    "sacrifice_offer_available": true
+  }
+}
+```
+
+**Flirtation Event**
+
+```json
+{
+  "event_type": "flirt",
+  "npc_id": "mira_hollowbell",
+  "flirt_type": "vulnerable",
+  "context": "after_comforting_dying",
+  "outcome": {
+    "rs_delta": 8,
+    "attraction_delta": 5,
+    "vulnerability_delta": 10,
+    "fear_delta": 2,
+    "response": "Mira looks at you for a long moment, then gently touches your hand."
+  },
+  "failure_condition": "flirt_count_this_hour > 3",
+  "failure_outcome": {
+    "rs_delta": -5,
+    "fear_delta": 15,
+    "response": "Mira withdraws. 'You speak too lightly of heavy things.'"
+  }
+}
+```
+
+**Betrayal Event**
+
+```json
+{
+  "event_type": "romance_betrayal",
+  "npc_id": "mira_hollowbell",
+  "betrayal_tag": "Sanctuary_Betrayed",
+  "severity": "unrecoverable",
+  "outcome": {
+    "status_change": "lost",
+    "lost_reason": "You handed the Moon-Touched to their killers.",
+    "bond_delta": -40,
+    "disgust_delta": 60,
+    "companion_leave": true,
+    "home_room": "sealed_memorial",
+    "epilogue_reference": "Mira never rang a bell for you."
+  }
+}
+```
+
+**Condition Evaluation.** Romance lines use the existing conditional grammar:
+
+```text
+ROMANCE('mira_hollowbell') >= 40
+AND HAS('Mira_Saved')
+AND DISGUST('mira_hollowbell') < 30
+AND FACTION('chainwright') < 20
+```
+
+**Integration with Existing Systems**
+
+| System | Integration |
+|---|---|
+| **Memory graph** | Romance tags are memory tags |
+| **Bond/Disgust/Trust** | Romance modifies and is modified by these |
+| **Faction system** | Cross-faction romances affect faction scores |
+| **Guild system** | Guild alignment can enable or complicate romances |
+| **Housing** | Romance rooms, visits, gifts |
+| **Ending engine** | Romance state contributes to ending variants |
+| **Companion AI** | Romanced companions have different combat/revive behavior |
+| **Dialogue system** | Flirtation tone and romance-conditional lines |
+
+> **Engineering note — what actually shipped, and where it differs from the schema above:** `packages/shared/src/lore/romance.ts` implements the Romance Score, the five sub-metrics, and (a simplified) 9-state status exactly as designed, but as an immutable-update module matching `memory.ts`'s own style (`withDelta`/`syncRomanceWithMemory` return new state rather than mutating), not the mutable JSON-event-log schema sketched above. Status is a *stored* field, not purely derived from score, specifically so Estranged/Lost/Betrayed can be "sticky" — a rupture has to be explicitly repaired (`attemptRepair`), not just outlasted by score drifting back up on its own. `syncRomanceWithMemory` reads the *existing* memory-tag system directly (the same tags `Room.handleDialogueChoice` was already writing for signature choices and death cascades) rather than a separate `romance_events` log — no new dialogue content needed for the six NPCs shipped so far, just new meaning read from choices already in the game. Flirting, gift-giving, and a repair action are real, working, server-validated messages (`flirt`/`giveGift`/`repairRomance` in `protocol.ts`, gated by the same proximity check `tryTalk` uses). Not shipped: starting attraction modifiers by origin/race/class (origins and the rest of the race roster don't have the hooks yet), jealousy/polyamory, intimacy scenes, faction/guild political consequences, Moon-Touched-path interaction, and campaign-chapter gating — all still target design only.
+
+### 5.15 Content Authoring Guidelines for Writers
+
+**Per NPC Romance Bible.** Every romanceable NPC needs: (1) Archetype (beloved leader, rival, inhuman, etc.); (2) Orientation (who they can be attracted to; usually "any"); (3) Starting modifiers (origin/race/faction preferences); (4) What attracts them (actions, values, dialogue tones); (5) What repels them (actions, values, betrayals); (6) Personal quest (required to reach Committed); (7) Courtship scenes (3–5 minimum); (8) Intimacy scenes (1–3, fade-to-black); (9) Rupture triggers (specific unforgivable actions); (10) Repair path (if any); (11) Ending variants (how romance affects finale); (12) Competing romances (who they are jealous of); (13) Unique gift preferences; (14) Public vs. secret romance preference.
+
+**Universal Gift System.** Every NPC has gift preferences:
+
+| Gift Category | Examples |
+|---|---|
+| **Food/drink** | Moon-apple pie, sea-wine, forge-stout |
+| **Books/lore** | Forbidden histories, poems, star-charts |
+| **Weapons/tools** | Custom-forged blade, artificer gadget, mourning bell |
+| **Cosmetics** | Dyes, perfumes, hair ornaments |
+| **Memorial items** | Names recovered, candles, flowers |
+| **Faction tokens** | Order seal, Luminari cog, Choir bell |
+| **Personal mementos** | Items from their past you recovered |
+
+Gifts are meaningful only if matched. A bottle of forge-stout to Breca is excellent. The same bottle to Mira is confusing.
+
+**Writing Romance Without Explicit Content.** Use metaphor and atmosphere (moonlight, storms, tides, bells, heat, silence); body language (hands, breath, proximity, eyes, trembling); emotional dialogue (fears, scars, hopes, what they have lost); fade-to-black before explicit content; afterglow scenes (waking, dressing, shared warmth, quiet jokes). Avoid explicit sexual descriptions, mechanical "sleep with NPC" options, and trophies or achievements for conquest.
+
+### 5.16 Summary Table: Romance by NPC Category
+
+| Category | Count | Depth | Example |
+|---|---|---|---|
+| Core companions (deep romance) | 6 | Full arc | Veyra, Lira, Cael, Nix, Sylvie, Spark Coil |
+| Core companions (platonic) | 6 | Deep bond | Thorn, Unit 7, Echo, Bran, Dren, Solace |
+| Tier 1 NPCs (60 core) | ~25–30 | Full/medium arc | Mira, Ilsa, Vesryn, Aldric, Breca, Kael, etc. |
+| Tier 2 NPCs (40) | ~15–20 | Medium/short arc | Coal-Heart Kessa, Mara, Grist, etc. |
+| Minor faction leaders (9) | 6–9 | Full arc | Cantor Veyle, etc. |
+| Procedural NPCs | Many | Short/fling | Refugees, merchants, soldiers |
+| Antagonists | ~5–8 | Full but toxic | Vex, Pyra, Thorne, Hollow-Singer, Netta |
+| Spirits/constructs | ~3–5 | Variable | Brine, Astrolabe, The Selenian |
+
+**Total romanceable NPCs at launch: 80–120 named characters**, plus procedural.
+
+### 5.17 Implementation Priority
+
+- **Phase 1: Core Companion Romances** — Veyra, Lira, Cael, Nix, Sylvie, Spark Coil full arcs.
+- **Phase 2: Major NPC Romances** — Mira, Ilsa, Vesryn, Aldric, Breca, Kael, Thorne, Netta, Vex, etc.
+- **Phase 3: Minor Faction Romances** — Cantor Veyle, Argent Vigil knight, Tide-Caller, etc.
+- **Phase 4: Expanded Roster** — Tier 2 NPCs, antagonists, spirits/constructs.
+- **Phase 5: Procedural** — Generated NPC romance framework.
+
+> **Note on names above:** this section's worked examples (Veyra, Lira, Cael, Nix, Sylvie, Spark Coil, Astrolabe, Rowan, and others) come from an earlier planning pass and don't all correspond to NPCs that exist in the shipped roster today — the real roster (`packages/shared/src/lore/npc.ts`) uses different names for its 60 core characters and 4 companions (Bran Fieldhand, Thorn Ash-Debt, Solace Stillwater, Nix Fray). The shipped romance slice (see the engineering note in 5.14) is grounded in real, existing NPCs and their real, existing signature-choice tags rather than these placeholder names — future phases should either reconcile this roster mismatch or treat these as aspirational character concepts still to be authored.
+
+The universal romance system makes *The Moon Above Our World* feel like a world where love is as dangerous and consequential as war. It rewards empathy, punishes betrayal, and ensures that no two players have the same emotional journey.
 
 ---
 
