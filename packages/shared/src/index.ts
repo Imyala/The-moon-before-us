@@ -1,6 +1,7 @@
 export * from "./vec.js";
 export * from "./types.js";
 export * from "./classes.js";
+export * from "./races.js";
 export * from "./abilities.js";
 export * from "./specializations.js";
 export * from "./subclasses.js";

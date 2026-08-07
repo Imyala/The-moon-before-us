@@ -1,4 +1,4 @@
-import type { ClientMessage, PlayerClassId, ServerMessage } from "@moon/shared";
+import type { ClientMessage, PlayerClassId, PlayerRaceId, ServerMessage } from "@moon/shared";
 
 export type ServerMessageHandler = (msg: ServerMessage) => void;
 
@@ -16,7 +16,7 @@ export class NetClient {
   status: "idle" | "connecting" | "open" | "closed" = "idle";
   onStatusChange: ((status: NetClient["status"]) => void) | null = null;
 
-  connect(join: { token: string; name: string; classId: PlayerClassId; room: string }) {
+  connect(join: { token: string; name: string; classId: PlayerClassId; raceId: PlayerRaceId; room: string }) {
     this.status = "connecting";
     this.onStatusChange?.(this.status);
     const ws = new WebSocket(serverUrl());
@@ -25,7 +25,7 @@ export class NetClient {
     ws.addEventListener("open", () => {
       this.status = "open";
       this.onStatusChange?.(this.status);
-      this.send({ t: "join", token: join.token, name: join.name, classId: join.classId, room: join.room as any });
+      this.send({ t: "join", token: join.token, name: join.name, classId: join.classId, raceId: join.raceId, room: join.room as any });
       for (const msg of this.queue) this.rawSend(msg);
       this.queue = [];
     });

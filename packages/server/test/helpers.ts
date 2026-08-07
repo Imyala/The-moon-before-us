@@ -38,6 +38,7 @@ export function makePlayer(opts: {
   factionLoyalty?: Record<string, number>;
   lunarResonance?: number;
   gold?: number;
+  raceId?: string;
 }): any {
   const id = opts.id ?? nextId("player");
   return {
@@ -51,6 +52,7 @@ export function makePlayer(opts: {
       level: opts.level ?? 1,
       zoneId: opts.zoneId ?? "threadhold",
       classId: opts.classId ?? "warden",
+      raceId: opts.raceId ?? "vaelari",
       specializationId: opts.specializationId ?? null,
       name: id,
       resource: opts.resource ?? 999,

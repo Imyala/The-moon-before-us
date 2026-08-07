@@ -4,9 +4,11 @@ import {
   DEFAULT_LOYALTY,
   ITEMS,
   START_ZONE_ID,
+  getRace,
   type CharacterState,
   type ItemStack,
   type PlayerClassId,
+  type PlayerRaceId,
   type StatBlock,
   maxHpForCharacter,
   maxResourceForCharacter,
@@ -25,7 +27,13 @@ const STARTER_ITEMS: ItemStack[] = [
  *  gathering or looting (see vendors.ts and inventory.ts's buyFromVendor). */
 export const STARTER_GOLD = 40;
 
-export function getOrCreateCharacter(token: string, name: string, classId: PlayerClassId): CharacterState {
+/** Falls back to the baseline generalist race for a missing or unrecognized raceId — the same
+ *  "safe default rather than reject the join" treatment START_ZONE_ID gets for a bad zoneId. */
+export function resolveRaceId(raceId: string | undefined): PlayerRaceId {
+  return getRace(raceId ?? "") ? (raceId as PlayerRaceId) : "vaelari";
+}
+
+export function getOrCreateCharacter(token: string, name: string, classId: PlayerClassId, raceId?: string): CharacterState {
   const existing = loadCharacter(token);
   if (existing) return existing;
 
@@ -38,6 +46,7 @@ export function getOrCreateCharacter(token: string, name: string, classId: Playe
     id: randomUUID(),
     name: sanitizeName(name),
     classId,
+    raceId: resolveRaceId(raceId),
     level: 1,
     xp: 0,
     hp: maxHp,
@@ -61,6 +70,12 @@ export function getOrCreateCharacter(token: string, name: string, classId: Playe
     companionIds: [],
     gold: STARTER_GOLD
   };
+  // Recomputed once up front so the starter weapon's statBonus and the racial passive are both
+  // reflected from the very first snapshot, rather than only appearing after the first equip or
+  // level-up happens to call computeEffectiveStats.
+  character.stats = computeEffectiveStats(character);
+  character.maxHp = maxHpForCharacter(1, character.stats.vitality);
+  character.hp = character.maxHp;
   saveCharacter(token, character);
   return character;
 }
@@ -73,6 +88,12 @@ export function sanitizeName(raw: string): string {
 export function computeEffectiveStats(character: CharacterState): StatBlock {
   const cls = CLASSES[character.classId];
   const stats: StatBlock = { ...BASE_STATS, ...cls.baseStats };
+  const race = getRace(character.raceId);
+  if (race) {
+    for (const [key, value] of Object.entries(race.passive)) {
+      (stats as any)[key] = ((stats as any)[key] ?? 0) + value!;
+    }
+  }
   for (const slot of Object.values(character.equipment)) {
     if (!slot) continue;
     const def = ITEMS.find((i) => i.id === slot.itemId);

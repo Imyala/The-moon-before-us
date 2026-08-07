@@ -1,4 +1,4 @@
-import type { CharacterState, EquipmentSlot, ItemRarity, PlayerClassId } from "./types.js";
+import type { CharacterState, EquipmentSlot, ItemRarity, PlayerClassId, PlayerRaceId } from "./types.js";
 import type { Vec3 } from "./vec.js";
 
 // ---------------- Client -> Server ----------------
@@ -8,6 +8,9 @@ export interface JoinMessage {
   token: string; // persistent per-browser identity (localStorage uuid)
   name: string;
   classId: PlayerClassId;
+  /** Only consulted the first time a token creates a character — see character.ts's
+   *  resolveRaceId, which falls back to "vaelari" for a missing/unrecognized value. */
+  raceId?: PlayerRaceId;
   room: "solo" | "new" | string; // "solo" = private instance, "new" = create shareable party, else join code
 }
 

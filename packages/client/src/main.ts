@@ -22,6 +22,7 @@ import {
   type NodeSnapshot,
   type NpcSnapshot,
   type PlayerClassId,
+  type PlayerRaceId,
   type PlayerSnapshot,
   type ServerMessage,
   type Vec3,
@@ -51,15 +52,19 @@ const token = getOrCreateToken();
 const saved = getSavedProfile();
 const audio = new AudioEngine();
 
-const landing = renderLanding(uiRoot, { name: saved?.name ?? "", classId: (saved?.classId as PlayerClassId) ?? "warden" }, (result) => {
-  audio.unlock(); // a real click — the one moment browsers allow audio to start
-  saveProfile({ name: result.name, classId: result.classId });
-  landing.setBusy(true);
-  landing.setStatus("");
-  connectAndPlay(result);
-});
+const landing = renderLanding(
+  uiRoot,
+  { name: saved?.name ?? "", classId: (saved?.classId as PlayerClassId) ?? "warden", raceId: (saved?.raceId as PlayerRaceId) ?? "vaelari" },
+  (result) => {
+    audio.unlock(); // a real click — the one moment browsers allow audio to start
+    saveProfile({ name: result.name, classId: result.classId, raceId: result.raceId });
+    landing.setBusy(true);
+    landing.setStatus("");
+    connectAndPlay(result);
+  }
+);
 
-function connectAndPlay(join: { name: string; classId: PlayerClassId; room: string }) {
+function connectAndPlay(join: { name: string; classId: PlayerClassId; raceId: PlayerRaceId; room: string }) {
   const net = new NetClient();
   let started = false;
 
@@ -83,7 +88,7 @@ function connectAndPlay(join: { name: string; classId: PlayerClassId; room: stri
     }
   };
 
-  net.connect({ token, name: join.name, classId: join.classId, room: join.room });
+  net.connect({ token, name: join.name, classId: join.classId, raceId: join.raceId, room: join.room });
 }
 
 // =====================================================================================

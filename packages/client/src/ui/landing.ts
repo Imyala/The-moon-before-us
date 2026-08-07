@@ -1,11 +1,18 @@
-import { listClasses } from "@moon/shared";
-import type { PlayerClassId } from "@moon/shared";
+import { listClasses, RACES } from "@moon/shared";
+import type { PlayerClassId, PlayerRaceId, RaceCategory } from "@moon/shared";
 
 export interface LandingResult {
   name: string;
   classId: PlayerClassId;
+  raceId: PlayerRaceId;
   room: "solo" | "new" | string;
 }
+
+const RACE_CATEGORY_COLOR: Record<RaceCategory, string> = {
+  aethonian: "#8fae6b",
+  "selenian-touched": "#b98fe0",
+  unbound: "#e0708f"
+};
 
 export interface LandingHandle {
   setStatus(message: string): void;
@@ -15,13 +22,14 @@ export interface LandingHandle {
 
 export function renderLanding(
   root: HTMLElement,
-  defaults: { name: string; classId: PlayerClassId },
+  defaults: { name: string; classId: PlayerClassId; raceId: PlayerRaceId },
   onStart: (result: LandingResult) => void
 ): LandingHandle {
   const wrap = document.createElement("div");
   wrap.className = "landing interactive";
 
   let selectedClass: PlayerClassId = defaults.classId;
+  let selectedRace: PlayerRaceId = defaults.raceId;
   let selectedMode: "solo" | "new" | "join" = "solo";
 
   const classCards = listClasses()
@@ -36,6 +44,15 @@ export function renderLanding(
     )
     .join("");
 
+  const raceCards = RACES.map(
+    (r) => `
+    <div class="class-card" data-race="${r.id}" style="--accent:${RACE_CATEGORY_COLOR[r.category]}" title="${escapeAttr(r.identity)}">
+      <div class="swatch" style="background:${RACE_CATEGORY_COLOR[r.category]}"></div>
+      <h3>${r.name}</h3>
+      <p class="tagline">${r.passiveDescription}</p>
+    </div>`
+  ).join("");
+
   wrap.innerHTML = `
     <div class="landing-card">
       <h1 class="title-font">The Moon Before Us</h1>
@@ -43,6 +60,9 @@ export function renderLanding(
 
       <label for="nameInput">Your name</label>
       <input id="nameInput" type="text" maxlength="16" placeholder="Wanderer" value="${escapeAttr(defaults.name)}" />
+
+      <label>Choose your race</label>
+      <div class="class-grid race-grid">${raceCards}</div>
 
       <label>Choose your path</label>
       <div class="class-grid">${classCards}</div>
@@ -70,8 +90,11 @@ export function renderLanding(
   const statusEl = wrap.querySelector<HTMLDivElement>("#statusEl")!;
 
   function refreshSelection() {
-    wrap.querySelectorAll<HTMLDivElement>(".class-card").forEach((el) => {
+    wrap.querySelectorAll<HTMLDivElement>(".class-card[data-class]").forEach((el) => {
       el.classList.toggle("selected", el.dataset.class === selectedClass);
+    });
+    wrap.querySelectorAll<HTMLDivElement>(".class-card[data-race]").forEach((el) => {
+      el.classList.toggle("selected", el.dataset.race === selectedRace);
     });
     wrap.querySelectorAll<HTMLDivElement>(".mode-card").forEach((el) => {
       el.classList.toggle("selected", el.dataset.mode === selectedMode);
@@ -79,9 +102,15 @@ export function renderLanding(
     codeRow.style.display = selectedMode === "join" ? "flex" : "none";
   }
 
-  wrap.querySelectorAll<HTMLDivElement>(".class-card").forEach((el) => {
+  wrap.querySelectorAll<HTMLDivElement>(".class-card[data-class]").forEach((el) => {
     el.addEventListener("click", () => {
       selectedClass = el.dataset.class as PlayerClassId;
+      refreshSelection();
+    });
+  });
+  wrap.querySelectorAll<HTMLDivElement>(".class-card[data-race]").forEach((el) => {
+    el.addEventListener("click", () => {
+      selectedRace = el.dataset.race as PlayerRaceId;
       refreshSelection();
     });
   });
@@ -105,7 +134,7 @@ export function renderLanding(
       }
       room = code;
     }
-    onStart({ name, classId: selectedClass, room });
+    onStart({ name, classId: selectedClass, raceId: selectedRace, room });
   });
 
   return {

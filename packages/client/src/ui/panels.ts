@@ -10,6 +10,7 @@ import {
   dominantFaction,
   getItem,
   getNpc,
+  getRace,
   getSubclass,
   keyFateEpilogue,
   loyaltyState,
@@ -225,6 +226,7 @@ export class Panels {
   }
 
   private renderCharacter(c: CharacterState) {
+    const race = getRace(c.raceId);
     const s = c.stats;
     const statChips = [
       ["Power", Math.round(s.power)],
@@ -297,7 +299,8 @@ export class Panels {
     this.panel.innerHTML = `
       <button class="close-btn">✕</button>
       <h2 class="title-font">${c.name}</h2>
-      <p style="color:#9aa3c9;font-size:12.5px">Level ${c.level} · ${c.xp} XP</p>
+      <p style="color:#9aa3c9;font-size:12.5px">Level ${c.level} · ${c.xp} XP${race ? ` · ${race.name}` : ""}</p>
+      ${race ? `<p style="color:#9aa3c9;font-size:11.5px;margin-top:-6px">${race.passiveDescription}</p>` : ""}
       <div class="stat-grid">${statChips}</div>
       <h3 style="margin-top:20px;font-size:15px">Abilities</h3>
       <div class="skill-list">${skillCards}</div>

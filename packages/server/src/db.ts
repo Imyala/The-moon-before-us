@@ -1,7 +1,7 @@
 import Database from "better-sqlite3";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { DEFAULT_LOYALTY, START_ZONE_ID, type CharacterState, type ItemRarity } from "@moon/shared";
+import { DEFAULT_LOYALTY, START_ZONE_ID, getRace, type CharacterState, type ItemRarity, type PlayerRaceId } from "@moon/shared";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dbPath = process.env.MOON_DB_PATH ?? path.join(__dirname, "..", "moon.sqlite");
@@ -35,6 +35,7 @@ db.exec(`
     companionIdsJson TEXT,
     endingId TEXT,
     gold REAL,
+    raceId TEXT,
     updatedAt INTEGER NOT NULL
   );
 `);
@@ -46,7 +47,8 @@ for (const migration of [
   "ALTER TABLE characters ADD COLUMN companionId TEXT", // superseded by companionIdsJson (multi-companion); kept for old rows
   "ALTER TABLE characters ADD COLUMN companionIdsJson TEXT",
   "ALTER TABLE characters ADD COLUMN endingId TEXT",
-  "ALTER TABLE characters ADD COLUMN gold REAL"
+  "ALTER TABLE characters ADD COLUMN gold REAL",
+  "ALTER TABLE characters ADD COLUMN raceId TEXT"
 ]) {
   try {
     db.exec(migration);
@@ -74,8 +76,8 @@ db.exec(`
 
 const getStmt = db.prepare("SELECT * FROM characters WHERE token = ?");
 const upsertStmt = db.prepare(`
-  INSERT INTO characters (token, id, name, classId, level, xp, hp, maxHp, resource, maxResource, statsJson, skillPoints, abilityRanksJson, inventoryJson, equipmentJson, positionJson, zoneId, factionLoyaltyJson, npcMemoryJson, lunarResonance, companionIdsJson, endingId, gold, updatedAt)
-  VALUES (@token, @id, @name, @classId, @level, @xp, @hp, @maxHp, @resource, @maxResource, @statsJson, @skillPoints, @abilityRanksJson, @inventoryJson, @equipmentJson, @positionJson, @zoneId, @factionLoyaltyJson, @npcMemoryJson, @lunarResonance, @companionIdsJson, @endingId, @gold, @updatedAt)
+  INSERT INTO characters (token, id, name, classId, level, xp, hp, maxHp, resource, maxResource, statsJson, skillPoints, abilityRanksJson, inventoryJson, equipmentJson, positionJson, zoneId, factionLoyaltyJson, npcMemoryJson, lunarResonance, companionIdsJson, endingId, gold, raceId, updatedAt)
+  VALUES (@token, @id, @name, @classId, @level, @xp, @hp, @maxHp, @resource, @maxResource, @statsJson, @skillPoints, @abilityRanksJson, @inventoryJson, @equipmentJson, @positionJson, @zoneId, @factionLoyaltyJson, @npcMemoryJson, @lunarResonance, @companionIdsJson, @endingId, @gold, @raceId, @updatedAt)
   ON CONFLICT(token) DO UPDATE SET
     name=excluded.name, classId=excluded.classId, level=excluded.level, xp=excluded.xp,
     hp=excluded.hp, maxHp=excluded.maxHp, resource=excluded.resource, maxResource=excluded.maxResource,
@@ -83,7 +85,7 @@ const upsertStmt = db.prepare(`
     inventoryJson=excluded.inventoryJson, equipmentJson=excluded.equipmentJson, positionJson=excluded.positionJson,
     zoneId=excluded.zoneId, factionLoyaltyJson=excluded.factionLoyaltyJson, npcMemoryJson=excluded.npcMemoryJson,
     lunarResonance=excluded.lunarResonance, companionIdsJson=excluded.companionIdsJson, endingId=excluded.endingId,
-    gold=excluded.gold, updatedAt=excluded.updatedAt;
+    gold=excluded.gold, raceId=excluded.raceId, updatedAt=excluded.updatedAt;
 `);
 
 interface Row {
@@ -111,6 +113,7 @@ interface Row {
   companionIdsJson: string | null;
   endingId: string | null;
   gold: number | null;
+  raceId: string | null;
   updatedAt: number;
 }
 
@@ -143,7 +146,10 @@ export function loadCharacter(token: string): CharacterState | null {
     endingId: row.endingId ?? undefined,
     // Characters saved before vendors existed default to 0, not STARTER_GOLD — that starting purse
     // is only for brand-new characters (see character.ts's getOrCreateCharacter).
-    gold: row.gold ?? 0
+    gold: row.gold ?? 0,
+    // Characters saved before races existed fall back to the baseline generalist race, the same
+    // default character.ts's resolveRaceId gives a missing/unrecognized raceId at creation time.
+    raceId: (getRace(row.raceId ?? "") ? row.raceId : "vaelari") as PlayerRaceId
   };
 }
 
@@ -172,6 +178,7 @@ export function saveCharacter(token: string, c: CharacterState): void {
     companionIdsJson: JSON.stringify(c.companionIds ?? []),
     endingId: c.endingId ?? null,
     gold: c.gold ?? 0,
+    raceId: c.raceId ?? "vaelari",
     updatedAt: Date.now()
   });
 }

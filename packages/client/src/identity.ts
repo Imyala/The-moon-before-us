@@ -13,6 +13,7 @@ export function getOrCreateToken(): string {
 export interface SavedProfile {
   name: string;
   classId: string;
+  raceId?: string;
 }
 
 export function getSavedProfile(): SavedProfile | null {

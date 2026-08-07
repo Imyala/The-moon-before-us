@@ -45,6 +45,11 @@ body {
 .landing input[type="text"]:focus { outline: none; border-color: #8f9fff; }
 
 .class-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.race-grid { grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); max-height: 220px; overflow-y: auto; padding-right: 4px; }
+.race-grid .class-card { padding: 10px; }
+.race-grid .swatch { width: 18px; height: 18px; margin-bottom: 6px; }
+.race-grid h3 { font-size: 13px; }
+.race-grid .tagline { font-size: 10.5px; margin: 0; }
 .class-card {
   border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 14px;
   cursor: pointer; background: rgba(255,255,255,0.03); transition: all 0.15s ease;

@@ -75,7 +75,7 @@ function handleJoin(ws: WebSocket, msg: JoinMessage, setConn: (c: Connection) =>
     }
   }
 
-  const character = getOrCreateCharacter(msg.token, sanitizeName(msg.name), msg.classId);
+  const character = getOrCreateCharacter(msg.token, sanitizeName(msg.name), msg.classId, msg.raceId);
   const player = room.addPlayer(ws, msg.token, character);
   setConn({ room, playerId: player.id });
 }

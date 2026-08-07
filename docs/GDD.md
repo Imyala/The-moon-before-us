@@ -58,6 +58,16 @@ A `Room` now keeps exactly one **roaming rare spawn** alive at a time — **The 
 
 Verified directly against the live `Room` code: forcing a spawn creates exactly one `isWorldEvent`-flagged enemy in an eligible zone and broadcasts the "sighted" chat line to every connected player; killing it removes it immediately (rather than leaving it to respawn on the normal 20-second timer) and broadcasts a "slain" line; a second spawn attempt is correctly refused until the 3-minute cooldown elapses, then succeeds; and a spawn left alive past its 6-minute window is removed and broadcasts a "faded, unclaimed" line instead of lingering forever. A normal enemy's death was checked against the same code path to confirm it's unaffected — it still respawns on its own timer exactly as before.
 
+### Races
+
+The first shipped piece of the design expansion (`docs/DESIGN_EXPANSION.md`): 15 playable races (Vaelari, Khurruk, Sylphra, Duskwight, Khenu, Brakkan, Fennori, Lyranni, Lumineth, Threadborn, Ashren, Golemkin, Voidtouched, Riftborn, The Bound — `packages/shared/src/races.ts`), chosen alongside class on the landing screen. Race is orthogonal to class the same way subclasses already are: it changes flavor and one small passive stat bonus, never which abilities you have or how hard they hit relative to another race, by design — a Khurruk Warden and a Vaelari Warden play identically except for a handful of stat points, matching the design doc's "no direct combat power gap" rule. Each race's passive is a `Partial<StatBlock>` in the same magnitude as a common-rarity item's `statBonus` (e.g. Khurruk: +6 vitality; The Bound: +4 power; Sylphra: +1 power, +2% crit chance), applied in `computeEffectiveStats` (`packages/server/src/character.ts`) alongside class base stats and equipment — the exact same layering equipment bonuses already use, just one more source added to the stack.
+
+A missing or unrecognized `raceId` — an old save from before races existed, a malformed join message — resolves to Vaelari, the baseline generalist, rather than being rejected; `character.ts`'s `resolveRaceId` and `db.ts`'s `loadCharacter` both apply this fallback independently (client-sent input and a stored row are different trust boundaries, so both need their own defense). `CharacterState.raceId` persists through the same `characters` table every other field does, migrated in with a plain `ALTER TABLE ... ADD COLUMN raceId TEXT` alongside `gold`'s.
+
+**What this doesn't include yet**, and why: the client's avatars are stylized low-poly toon-shaded humanoids built procedurally with zero hand-authored art assets — a core pillar of this project. Giving 15 races genuinely distinct silhouettes (tusks, gill-slits, floating sigils) is real new per-race geometry work, not a reskin, and is intentionally out of scope for this pass; every race shares the same avatar body today. Racial utility skills (one per race, e.g. Khenu night-vision, Brakkan ore-sense), the 8 unlockable post-launch races, NPC race reactions, and romance racial preferences are all designed in `docs/DESIGN_EXPANSION.md` but not built.
+
+Verified against the real `character`/`db` code (`packages/server/test/races.test.ts`): a missing or unrecognized raceId resolves to Vaelari both at character creation and on load; a freshly created character's stats include its racial passive from the very first snapshot (not just after a later equip/level-up recomputes it); two identically classed and equipped characters of different races differ in power by exactly their passives' difference, and recomputing stats doesn't double-apply or drift the bonus; and raceId survives a save/load round trip, including for a simulated pre-race legacy row with no raceId column value at all. Also verified live over the WebSocket wire: joining as a Khurruk Warden produces exactly the expected vitality (class base 16 + the Khurruk passive's +6 = 22) in the real `welcome` message.
+
 ### Classes & combat
 
 Four archetypes, each layered the way the best MMO class systems are — base class, weapon-driven kit, and a chosen specialization — so "class" means more than a name and a weapon icon:
@@ -279,7 +289,28 @@ Verified directly against the real `Room.handleDialogueChoice` path (not just th
 
 Being explicit about scope, because it matters: the original narrative design for this game specifies a roster of **60+ named recurring characters** across seven planned regions, a full NPC relationship web, an 8-chapter story, and a much richer ending system with secret endings and NPC-survival variants beyond the single scripted choice built here. All seven regions — the six standard zones plus the Moonthread endgame — are real, working zones today, and all 60 named characters from the "immediate roster" are wired end-to-end, including a formalized relationship graph (rivalries, alliances, and seven working death cascades — see above), two-companion support with a dismiss/swap panel, companion damage and death, and a scripted finale that actually locks an ending instead of just previewing one. Still unbuilt, and out of scope for this pass: the full 8-chapter story structure (today's finale is a single climactic choice, not a multi-chapter branching campaign); secret/hidden endings and NPC-survival ending variants beyond the nine major endings; and the four separate pre-existing roadmap items below (a fourth class, dungeons, player trading, and mounts), plus audio, none of which this pass touched. Building further roster depth beyond the 60 is now genuinely just content authoring against systems already proven twice over (33 characters, then 27 more) — the relationship-graph, companion, zone-gating, and finale-locking engineering is done.
 
-A handful of the original brief's "immediate decisions" are also still genuinely open and worth answering: how many playable origins (all Moon-Touched the same way, vs. class-based, vs. region/race-based, vs. player-authored background); whether more than three factions should exist or players can belong to more than one at once; overall tone (hopeful-gothic vs. cosmic horror vs. high fantasy adventure); whether the moon's true nature is revealed at launch or stays ambiguous for years; how deep companion romance/loyalty arcs should go versus staying functional; and voice acting scope (full, partial, or text+whisper-audio only).
+A handful of the original brief's "immediate decisions" were open as of this section's writing (how many playable origins, whether more than three factions should exist, overall tone, and so on) — **those are now answered.** See "Design Expansion" immediately below.
+
+## Design Expansion: races, minor factions, origins, romance, guilds, grimdark tone
+
+**[`docs/DESIGN_EXPANSION.md`](DESIGN_EXPANSION.md)** is the full target design for a major scope expansion: 16 playable races (+8 unlockable) on top of the existing classes, 9 new minor factions alongside the 3 majors, a 30×30×10 mixable origin system, universal romance with a fragile loss/repair state machine, cross-faction guilds with double-agent mechanics, and a "Warhammer 40K meets paintings of the Moon" grimdark tonal revision threaded through an 8-chapter campaign rewrite. It answers the open tone/scope/origin/faction/romance questions the previous section used to list.
+
+**This is a target, not a build log.** Unlike every other section of this document, it describes work that doesn't exist yet. The core architecture it builds on — the Moon-Touched condition, the three ending axes, the memory/relationship graph, the companion system, per-Room world simulation — is unchanged and load-bearing; what changes is content and mechanical breadth on top of it. As pieces below actually ship, they move out of this status table and into the rest of the document with the same "verified against the real code" rigor everything else here gets.
+
+**Implementation status** (updated as work lands; see `docs/DESIGN_EXPANSION.md` for full detail on each):
+
+| Piece | Status |
+|---|---|
+| **Race system** (15 core playable races, mechanical passives, character creation) | ✅ Built — see "Races" above |
+| Race visual identity (distinct low-poly silhouettes per race) | Not started — every race shares the current avatar body |
+| Racial utility skills (one per race) | Not started |
+| Unlockable races (8), NPC races, monster/enemy race redesign | Not started |
+| Minor factions (9) + 12-track reputation | Not started — requires rewriting the hardcoded 4-key `LoyaltyScores`/`LoyaltyDelta` machinery in `factions.ts` to be table-driven first; touches all 60+ existing NPC signature choices |
+| 30-origin mixable system | Not started |
+| Universal romance (romance score, 8-state machine, loss/repair) | Not started |
+| Cross-faction guilds, double-agent questlines, guild PvP | Not started — no guild or PvP system of any kind exists today |
+| Grimdark tonal/visual revision | Not started |
+| 8-chapter campaign rewrite threading all of the above | Not started — blocked on the systems above existing first |
 
 ## Architecture notes (for whoever picks this up next)
 

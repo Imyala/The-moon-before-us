@@ -4,6 +4,28 @@ import type { NpcMemoryState } from "./lore/memory.js";
 
 export type PlayerClassId = "warden" | "ranger" | "mystic" | "duskblade";
 
+/**
+ * Playable races (see docs/DESIGN_EXPANSION.md's "Races of Aethon, Selen, and the Void" and
+ * races.ts). Orthogonal to class the same way subclasses are — a Vaelari Warden and a Khurruk
+ * Warden play identically except for a small racial passive, no combat-power gap by design.
+ */
+export type PlayerRaceId =
+  | "vaelari"
+  | "khurruk"
+  | "sylphra"
+  | "duskwight"
+  | "khenu"
+  | "brakkan"
+  | "fennori"
+  | "lyranni"
+  | "lumineth"
+  | "threadborn"
+  | "ashren"
+  | "golemkin"
+  | "voidtouched"
+  | "riftborn"
+  | "the_bound";
+
 /** How many companions a character can have active at once (see CharacterState.companionIds). */
 export const MAX_COMPANIONS = 2;
 
@@ -184,6 +206,8 @@ export interface CharacterSummary {
 }
 
 export interface CharacterState extends CharacterSummary {
+  /** See races.ts's RACES — a small, flavorful passive stat bonus, no combat-power gap by design. */
+  raceId: PlayerRaceId;
   hp: number;
   maxHp: number;
   resource: number;
