@@ -409,6 +409,8 @@ export function rarityColor(rarity: string): string {
       return "#5c9dff";
     case "epic":
       return "#c76bff";
+    case "legendary":
+      return "#ffb347";
     default:
       return "#9aa3c9";
   }

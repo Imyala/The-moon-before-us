@@ -3,6 +3,7 @@ import {
   CLASSES,
   DEFAULT_LOYALTY,
   ITEMS,
+  RARITY_MULTIPLIER,
   START_ZONE_ID,
   getRace,
   type CharacterState,
@@ -99,7 +100,7 @@ export function computeEffectiveStats(character: CharacterState): StatBlock {
     if (!slot) continue;
     const def = ITEMS.find((i) => i.id === slot.itemId);
     if (!def?.statBonus) continue;
-    const mult = rarityMultiplier(slot.rarity);
+    const mult = RARITY_MULTIPLIER[slot.rarity];
     for (const [key, value] of Object.entries(def.statBonus)) {
       (stats as any)[key] = ((stats as any)[key] ?? 0) + value! * mult;
     }
@@ -108,19 +109,6 @@ export function computeEffectiveStats(character: CharacterState): StatBlock {
   stats.power += (character.level - 1) * 1.4;
   stats.vitality += (character.level - 1) * 1.1;
   return stats;
-}
-
-function rarityMultiplier(rarity: ItemStack["rarity"]): number {
-  switch (rarity) {
-    case "common":
-      return 1;
-    case "uncommon":
-      return 1.35;
-    case "rare":
-      return 1.8;
-    case "epic":
-      return 2.4;
-  }
 }
 
 /** Applies xp, handles (possibly multiple) level ups in place. Returns levels gained. */

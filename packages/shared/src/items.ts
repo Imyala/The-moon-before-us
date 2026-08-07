@@ -248,6 +248,58 @@ export const ITEMS: ItemDef[] = [
     statBonus: { power: 20, critChance: 0.05 }
   },
 
+  // ---- legendary (the rarest tier, one per class, dropped only by the Unburied Queen — the
+  // toughest boss in the game today — and built on each class's *second* weapon kit rather than
+  // duplicating the existing epic set above, so chasing one is also a real playstyle choice) ----
+  {
+    id: "weapon_gravequeens_reaver",
+    name: "Grave-Queen's Reaver",
+    kind: "weapon",
+    slot: "weapon",
+    classId: "warden",
+    weaponType: "warden_greataxe",
+    rarity: "legendary",
+    icon: "sword",
+    description: "Buried with her so no living hand would ever swing it again. One did.",
+    statBonus: { power: 26, vitality: 6 }
+  },
+  {
+    id: "weapon_cairns_judgment",
+    name: "The Cairn's Judgment",
+    kind: "weapon",
+    slot: "weapon",
+    classId: "ranger",
+    weaponType: "ranger_pistols",
+    rarity: "legendary",
+    icon: "bow",
+    description: "A matched pair pried from the hands of her final honor guard.",
+    statBonus: { power: 25, critChance: 0.06 }
+  },
+  {
+    id: "weapon_unburied_scythe",
+    name: "The Unburied Scythe",
+    kind: "weapon",
+    slot: "weapon",
+    classId: "mystic",
+    weaponType: "mystic_scythe",
+    rarity: "legendary",
+    icon: "orb",
+    description: "It kept reaping centuries after she stopped needing it to.",
+    statBonus: { power: 27 }
+  },
+  {
+    id: "weapon_queens_last_rite",
+    name: "The Queen's Last Rite",
+    kind: "weapon",
+    slot: "weapon",
+    classId: "duskblade",
+    weaponType: "duskblade_glaive",
+    rarity: "legendary",
+    icon: "dagger",
+    description: "The blade she meant to use on herself, if the Order ever came for her twice.",
+    statBonus: { power: 25, critChance: 0.06 }
+  },
+
   // ---- armor (single "armor" slot for simplicity) ----
   {
     id: "armor_travelers_garb",

@@ -1,6 +1,6 @@
 # The Moon Above Our World — Design Expansion
 
-**Status: target design, not yet built.** This document is the forward-looking design spec for a major scope expansion — races, an expanded faction system (3 major + 9 minor), 30 mixable origins, universal romance, cross-faction guilds, a grimdark tonal revision, and an 8-chapter campaign rewrite that threads all of it together. It supersedes the earlier, narrower assumptions (few races, limited romance) referenced elsewhere.
+**Status: target design, not yet built.** This document is the forward-looking design spec for a major scope expansion — races, an expanded faction system (3 major + 9 minor), 30 mixable origins, universal romance, cross-faction guilds, a grimdark tonal revision, an 8-chapter campaign rewrite, and (§15) a far larger combat/progression system of 18 classes, levels to 255, structured PvP, and 16–24 player raids, that together thread through the whole game. It supersedes the earlier, narrower assumptions (few races, limited romance, 4 classes with no PvP) referenced elsewhere.
 
 It does **not** replace `docs/GDD.md`. The GDD documents what's actually built and verified in this codebase today — the core architecture it describes (the Moon-Touched condition, the three ending axes, the NPC memory/relationship graph, the companion system, per-Room world simulation) remains the foundation this expansion builds on. This document is the target; the GDD is the record of what's shipped. As pieces of this expansion are actually implemented, they should move into the GDD the same way every other feature in this project has: built, tested, verified, then documented there with the same rigor.
 
@@ -1852,3 +1852,189 @@ For each minor faction, content authors must produce: philosophy and history; or
 ---
 
 The nine minor factions make the world feel **lived-in, morally complex, and full of smaller loyalties** that complicate the three-way war. They also provide the perfect infrastructure for cross-faction guilds, double-agent roleplay, and universal romance conflict.
+
+---
+
+## 15. Expanded Combat & Progression System (Classes, Levels, Gear, PvP, Raids)
+
+**This section describes a much larger game than the one built so far** — 18 classes instead of 4, a level cap of 255 instead of an effectively-unbounded curve gated by 3 dungeons, structured PvP where today there is none, and 16–24 player raids where today the largest group content is a 3-boss dungeon rotation. It's captured here in full because it's the target, exactly like the rest of this document — see the engineering note at the end of this section for what a first real slice of it actually looks like against the current codebase.
+
+### 15.1 Two Combat Modes
+
+Players choose between **Action Mode** and **Sim Mode** at any time out of combat — both valid, balanced differently, never one strictly stronger:
+
+| Feature | Action Mode | Sim Mode |
+|---|---|---|
+| Quickbars | 1 bar, 10 slots | Up to 4 bars, 10 slots each (40 total) |
+| Active combat skills | 10 | 20–35 possible |
+| Passive skills equipped | 5 | 10–15 |
+| Movement while casting | Most abilities usable on the move | Many abilities require standing/casting |
+| Targeting | Skill shots + soft-lock | Tab-target + ground-target + soft-lock |
+| Rotation complexity | Low-medium | High |
+| Best for | Action MMO players, controller users | Old-school MMO players, min-maxers |
+| PvP normalization | Standard | Cooldowns/burst adjusted for parity |
+
+### 15.2 Active Passive Skills
+
+Passives stop being pure stat bonuses and become **equippable abilities** — conditional, toggled, stacking, reactive, synergy, or transformation effects (e.g. *Last Stand*: below 25% HP, gain a shield worth 50% max HP once per combat; *Momentum*: each hit stacks +2% attack speed up to 10 stacks, resets on miss; *Hollowed Skin*: on the Hollowed path, +20% condition damage but −10% healing received). Action Mode carries 5 passive slots, Sim Mode 10 — earned through leveling, subclass unlocks, achievements, and legendary gear, with +2 more at the level-150 capstone.
+
+### 15.3 Level System: 1–255
+
+Five eras, each with a distinct progression reward type:
+
+| Era | Levels | Theme | Rewards per level | Time (casual) |
+|---|---|---|---|---|
+| Awakening | 1–80 | Learn class, origin, world | Skills, stats, story, gear access | 2–4 weeks |
+| Champion | 81–150 | Refine build, unlock subclass | Passive points, mastery points, subclass skills | 3–6 weeks |
+| Paragon | 151–210 | Master path, elite specs | Paragon points, legendary access, elite unlocks | 6–10 weeks |
+| Ascended | 211–255 | Prestige, horizontal depth | Ascension tokens, cosmetics, titles | 10–16 weeks |
+
+**Power curve control:** stats from levels cap at 150 (151+ gives fractional gains only); Paragon/Ascension points are capped per category; total power difference between level 80 and 255 is only ~25–30%, so a skilled level 80 can compete with a level 255 in most content; structured PvP normalizes everyone level 80+.
+
+### 15.4 The 18 Classes + 54 Subclasses
+
+Every class has a core role (DPS/Tank/Heal/Support), a unique mechanic, multiple weapon options, and 3 subclasses unlocked at level 80.
+
+**Tank (4):**
+
+| Class | Mechanic | Weapons | Subclasses |
+|---|---|---|---|
+| **Threadward** | Ward Stance — channel a damage-reduction field for allies | Sword+shield, greatshield, spear, warhammer | Bulwark (pure mitigation), Vanguard (mobile charge), Inquisitor (anti-lunar suppression) |
+| **Colossus** | Iron Fortitude — damage taken builds Resolve, spent on heals/heavy attacks | Greatsword, maul, tower gauntlets, war-pick | Juggernaut (CC-immune charge), Behemoth (massive HP), Titan (damage reflect) |
+| **Aegis** | Arcane Aegis — magical barriers, redirectable to allies | Spellshield, runeblade, focus-staff, crystal orb | Arcaneguard (pure absorption), Rune Knight (melee+barrier), Spellshield (ally barriers) |
+| **Warden** (new, distinct from the shipped weapon-class of the same name) | Spiritbond — bond with an animal/nature spirit that shares damage | Staff, vine-whip, totem, club | Wildguard (beast bond), Spiritbond (ancestor spirit), Earthshaper (terrain control) |
+
+**Healer (4):**
+
+| Class | Mechanic | Weapons | Subclasses |
+|---|---|---|---|
+| **Rimed Tongue** | Verses — charge verses, spend on heal/cleanse/banish | Chime-staff, recitation bell, runeblade | Exorcist (anti-spirit), Bard (song healing), Versewarden (shield+heal) |
+| **Tidecaller** (new, distinct from the shipped minor-faction NPC role of the same name) | Tide Meter — high tide heals, low tide controls | Trident, tidal staff, water-orb, harpoon | Deepsinger (drowned synergy), Stormcaller (heal+lightning), Currentweaver (pull/push) |
+| **Mourner** | Grief Pool — gather grief from deaths, spend on echoes/heal/curse | Bell-staff, scythe, funeral blade, urn | Dirgesinger (song healing), Necromancer (spectral minions), Plaguebringer (disease hybrid) |
+| **Lifeweaver** | Biotic Weave — healing threads that trigger over time or on damage | Biostaff, synth-claws, energy-focus, med-kit | Biomancer (nature magic), Primalist (spirit totems), Synthweaver (tech shields/drones) |
+
+**Support (4):**
+
+| Class | Mechanic | Weapons | Subclasses |
+|---|---|---|---|
+| **Artificer** | Invention — turrets, drones, traps, overclock for burst | Wrench-mace, pistol, rifle, tool-staff | Engineer (turrets/drones), Demolitionist (traps/bombs), Golemancer (golem companions) |
+| **Binder** | Binding Chains — build chains, spend to root/silence/pull/execute | Chain-flail, manacle-gauntlets, binding staff | Chainwarden (defensive), Executioner (offensive/execute), Voidbinder (anti-aberration) |
+| **Shardsinger** (new, distinct from the shipped minor faction of the same name) | Harmonic Resonance — buff/debuff fields, combo finishers | Chime-staff, crystal lyre, tuning-fork blade, shard-bow | Harmonist (pure buff/debuff), Resonance-Shaper (damage/control fields), Echo-Caller (duplicate abilities) |
+| **Envoy** | Banner Auras — place banners, command allies in range | Banner-spear, warhorn, command sword, signal pistol | Banneret (defensive auras), Tactician (marking/burst windows), Luminary (offensive/heal hybrid) |
+
+**DPS (6):**
+
+| Class | Mechanic | Weapons | Subclasses |
+|---|---|---|---|
+| **Ashforged** (new, distinct from the shipped minor faction of the same name) | Siege Rage — build rage, spend on heavy strikes | Greatsword, maul, gauntlets, war-pick | Berserker (glass cannon), Siegebreaker (anti-structure), Warmaster (melee buffs) |
+| **Resonant** | Resonance Matrix — attune to lunar elements, abilities change | Staff, scepter+focus, crystal orb | Elementalist (fire/ice/lightning), Voidcaller (erasure/life-steal), Crystalweaver (terrain/defense) |
+| **Nightblade** | Shadow Momentum — stealth + combo points, single-target burst | Daggers, twin blades, shadow-claws, shortbow | Assassin (burst/stealth), Shadowdancer (evasion DPS), Phantom (teleport/illusion) |
+| **Hexer** | Hex Stack — stacking curses, DOT and explode-at-threshold | Hex-staff, curse orb, ritual dagger, bone-wand | Curseweaver (multi-target), Hemomancer (blood magic), Doomsayer (long-cast curses) |
+| **Marksman** | Precision Focus — build focus, spend on precision attacks | Longbow, rifle, dual pistols, harpoon gun | Sniper (extreme range), Ranger (pet+ranged, distinct from the shipped Ranger class), Saboteur (traps/area denial) |
+| **Reaper** | Soul Harvest — harvest souls, spend on heal/burst/minions | Scythe, soul-blade, chain-sickle, grave wand | Bloodreaver (life-steal/bleed), Soulreaper (spectral weapons), Lichborne (life/death balance) |
+
+**Summary:**
+
+| # | Class | Role | Mechanic | Subclasses |
+|---|---|---|---|---|
+| 1 | Threadward | Tank | Ward Stance | Bulwark, Vanguard, Inquisitor |
+| 2 | Colossus | Tank | Iron Fortitude | Juggernaut, Behemoth, Titan |
+| 3 | Aegis | Tank | Arcane Aegis | Arcaneguard, Rune Knight, Spellshield |
+| 4 | Warden | Tank | Spiritbond | Wildguard, Spiritbond, Earthshaper |
+| 5 | Rimed Tongue | Heal | Verses | Exorcist, Bard, Versewarden |
+| 6 | Tidecaller | Heal | Tide Meter | Deepsinger, Stormcaller, Currentweaver |
+| 7 | Mourner | Heal | Grief Pool | Dirgesinger, Necromancer, Plaguebringer |
+| 8 | Lifeweaver | Heal | Biotic Weave | Biomancer, Primalist, Synthweaver |
+| 9 | Artificer | Support | Invention | Engineer, Demolitionist, Golemancer |
+| 10 | Binder | Support | Binding Chains | Chainwarden, Executioner, Voidbinder |
+| 11 | Shardsinger | Support | Harmonic Resonance | Harmonist, Resonance-Shaper, Echo-Caller |
+| 12 | Envoy | Support | Banner Auras | Banneret, Tactician, Luminary |
+| 13 | Ashforged | DPS | Siege Rage | Berserker, Siegebreaker, Warmaster |
+| 14 | Resonant | DPS | Resonance Matrix | Elementalist, Voidcaller, Crystalweaver |
+| 15 | Nightblade | DPS | Shadow Momentum | Assassin, Shadowdancer, Phantom |
+| 16 | Hexer | DPS | Hex Stack | Curseweaver, Hemomancer, Doomsayer |
+| 17 | Marksman | DPS | Precision Focus | Sniper, Ranger, Saboteur |
+| 18 | Reaper | DPS | Soul Harvest | Bloodreaver, Soulreaper, Lichborne |
+
+### 15.5 Skill, Quickbar, and Passive Systems
+
+Quickbar modes range from Action Minimal (1 bar, 10 slots) to Sim Maximum (4 bars, 40 slots); skill slot types cover auto-attack, weapon skills, class skills, utility skills, an elite skill, a healing skill, a movement skill, passive-active skills, and item/mount/emote slots.
+
+**Revised skill unlock curve — core skills complete by level 100:** 1–20 gets the auto-attack, first weapon set, and movement skill; 21–40 the full first weapon set, heal skill, and first utility slot; 41–60 the second weapon set and two more utility slots; 61–80 the elite skill, first passive slots, and subclass selection; 81–100 every remaining class skill, all utility options, and all passive slots. By 100 a player has every weapon skill, class skill, utility option, the elite skill, full passives, subclass skills, and core Moon-Touched path abilities — mechanically complete for all core content.
+
+**Levels 101–255 are prestige, not new baseline power:** 101–150 gives skill variants, prestige passives, and a second subclass's skills; 151–200 gives elite specialization skills and advanced passive tiers; 201–255 gives capstone abilities and legendary skill augments. Prestige types include Skill Variants (a Fireball becomes a Frost Nova or Void Orb), Prestige Passives (+5% damage above 80% HP, stacking with existing passives), a Second Subclass at 150, Elite Spec Skills, Capstone Abilities (a permanent companion, a permanent aura), and Legendary Augments that modify a legendary weapon's effect.
+
+Passive categories: Always-On, Conditional, Toggle, Stacking, Cooldown, Synergy, and Path-Bound (requires a specific Moon-Touched path). Slot counts: 5 in Action Mode, 10 in Sim Mode, +2 at the level-150 capstone, more from legendary gear or subclass choices.
+
+### 15.6 Expanded Gear Tiers (Revised)
+
+| Tier | Color | Level Range | Source | Binding | Tradeable? |
+|---|---|---|---|---|---|
+| Common | White | 1–255 | Drops, vendors | None | Yes |
+| Uncommon | Green | 1–80 | Drops, crafting | None | Yes |
+| Fine | Light Blue | 10–100 | Drops, crafting | None | Yes |
+| Masterwork | Blue | 30–120 | Drops, crafting, events | None | Yes |
+| Rare | Purple | 60–150 | Dungeons, crafting | None | Yes |
+| Epic | Orange-Gold | 80–180 | Strikes, crafting | None | Yes |
+| Exotic | Gold | 100–255 | Dungeons, strikes, crafting, events | Bind on Equip | Yes, until equipped |
+| **Ascended** | Cyan | 150–255 | **Crafting only** | Account-Bound on Equip | Yes, until equipped |
+| **Legendary** | Prismatic | 200–255 | **Crafting only** | Account-Bound on Equip | Yes, until equipped |
+| **Mythic** | Crimson | 210–255 | **Crafting only** | Account-Bound on Equip | Yes, until equipped |
+| **Relic** | Ancient Gold | 230–255 | **Crafting only** | Account-Bound on Equip | Yes, until equipped |
+| **Artifact** | Rainbow | 240–255 | **Crafting only** | Account-Bound on Equip | Yes, until equipped |
+
+Ascended-and-above tiers are deliberately craft-only and Account-Bound-on-Equip (revising the initial pass, which allowed direct drops): it protects the economy from top-tier gear being farmed and dumped, makes endgame crafting disciplines essential rather than optional, still lets a player sell a crafted piece before wearing it, lets alts inherit account-bound gear without re-grinding, and prevents simply buying best-in-slot to skip commitment. Common through Epic stay Bind-on-Equip and freely tradeable up to that point. Gear power roughly follows tier (+5% Uncommon up to a +70% hard cap at Artifact), with the gap between Exotic and Artifact deliberately only ~20% to preserve horizontal balance while still giving players something to chase. Ascended+ gear can be salvaged back into a mix of account-bound and tradeable materials, keeping the economy moving without flooding it.
+
+### 15.7 PvP System Expansion
+
+| Mode | Team Size | Description |
+|---|---|---|
+| Duel | 1v1 | Structured arena, honor duels, ranked |
+| Arena | 2v2/3v3/5v5 | Small-team ranked seasons |
+| Battleground | 10v10 | Objective-based (capture points, relic assault) |
+| **Alliance War** | **16v16** | Large battleground: 3 capture points, 1 central relic, siege-able mini-forts, dynamic lunar events, wave respawns, faction war marks/league points/unique cosmetics |
+| WvR Borderlands | Faction vs. faction | Open-world territory control and siege |
+| Guild Shadow War | Variable | Guild-declared war: hall raids, bounties, espionage |
+| Battle Royale/Survival | Solo/duo/squad | Seasonal last-faction-standing in an anomaly zone |
+
+Structured PvP (Arena, Alliance War) normalizes gear to Exotic-level templates and levels 80+, and balances Action Mode against Sim Mode; WvR and Guild Wars let gear matter but downscale it so higher gear gives an edge, not a one-shot advantage.
+
+### 15.8 Strike and Raid Size Expansion
+
+| Format | Players | Content |
+|---|---|---|
+| Solo/Party Strike | 1–5 | Story strikes, daily challenges |
+| Squad Strike | 10 | Mid-tier bosses |
+| Legion Strike | 16 | Large-scale, world-boss-tier |
+| Squad Raid | 10 | Tight-knit raid content |
+| Legion Raid | 16 | Standard large raid |
+| Grand Raid | 24 | Epic multi-boss raids |
+
+Boss HP/adds/mechanic complexity scale with group size (5 → 1x HP, simplified; 10 → 2.5x, standard; 16 → 4x, full mechanics; 24 → 6x, full mechanics plus extra phases), and loot scales similarly (16-player adds +1 drop per threshold with a higher Epic/Mythic chance; 24-player adds +2 with a higher Relic/Artifact chance).
+
+### 15.9 Subclass, Elite Spec, and Multi-Classing Progression
+
+Subclass chosen at level 80 (respec-able later for a cost); an Elite Specialization unlocks per subclass at level 150, adding a new weapon option, elite skill, trait line, and mechanic layer (e.g. Resonant's Elementalist subclass gets Selenian Pyromancer, Voidcaller gets Name-Eater, Crystalweaver gets Geomancer of the Thread). At level 200 (post-launch), players can begin **multi-classing**: one secondary-class weapon equippable, 1–2 secondary utility skills, one secondary passive slot, but never the secondary class's elite skill or full subclass — deep build variety without breaking class identity.
+
+### 15.10 Combo Fields and Moon-Touched Path Combat
+
+With 18 classes the combo-field roster expands to Fire, Water, Ice, Lightning, Dark, Lunar, Void, Binding, Healing Tide, Grief, Harmonic, and Forge fields, combined with Blast/Leap/Projectile/Whirl/Physical finishers across the whole roster. Each Moon-Touched path gets a full combat role, signature active, and signature passive: Warden path (anti-lunar tank/suppress — *Silence the Whisper* / *Anchor Stance*), Vessel (lunar caster — *Selen's Grief* / *Borrowed Memory*), Bridge (hybrid support — *Harmonic Link* / *Threshold Walk*), Hollowed (DOT/sustain — *Devour Name* / *Spread the Hollow*), Weaver (utility/miracle — *What If?* / *Unwritten End*).
+
+### 15.11 Endgame Progression Loop
+
+```
+Level 1–100:  Learn class, unlock all core skills, choose subclass — mechanically complete
+Level 101–150: Prestige passives, skill variants, second subclass
+Level 151–210: Elite specializations, Ascended+ crafting, mastery progression
+Level 211–255: Capstones, Artifact chase, seasonal prestige
+```
+
+A level-100 player has every tool needed for raids, PvP, and seasonal content; 101–255 is horizontal depth and prestige, not required power.
+
+### 15.12 Implementation Notes (Target)
+
+Balancing 54 subclasses relies on a role baseline (all DPS subclasses within 5% of each other in ideal conditions), situational dominance per subclass, separate PvP tuning, live telemetry with monthly balance patches, and a public test realm for major changes. UI needs per-class/subclass/PvE/PvP saved quickbar layouts, automatic Action/Sim swapping on entering PvP, full controller support, customizable cooldown tracking, and drag-and-drop passive management. Server load assumptions: tick rate held at 30–60 Hz, stricter interest management/culling for 16/24-player groups, server-side validation of Sim Mode's longer cast windows, and combo fields tracked as synced server objects.
+
+**Engineering note — what's actually shipped vs. this target:** almost none of this exists yet, and what does was already built independently of this document, for a much smaller game than the one described here. The live game has **4 classes** (`packages/shared/src/classes.ts`: Warden, Ranger, Mystic, Duskblade — unrelated to and pre-dating several of the class names reused above, e.g. this section's "Warden," "Tidecaller," "Shardsinger," and "Ashforged" classes are new concepts distinct from the shipped weapon-class, minor-faction NPC role, and minor faction of the same names), each with 3 specializations (`packages/shared/src/specializations.ts`, 2 base + 1 elite = 12 total, not 54), a single fixed quickbar (no Sim Mode, no multiple bars, no equippable/toggleable passive skill system — specializations already have one signature mechanic each, e.g. Warden Sentinel's Ward stacks, which is the closest existing analog to "active passives" but isn't a separate slotted system), an effectively unbounded level curve with no era structure, stat cap, or PvP normalization (`xpForLevel` in `types.ts`; content gating tops out at the Sundered Cairn's level-16 requirement), and **no PvP of any kind** — no duels, arenas, battlegrounds, or the 16v16 Alliance War this section specifies, no combat-between-players model at all. The largest existing group content is a 3-boss dungeon rotation (5-player party cap, no 10/16/24-player strike or raid formats, no group-size HP/loot scaling).
+
+What did ship, as a first real step toward §15.6's gear-tier ladder: a fifth item rarity, **legendary**, sitting above the existing common/uncommon/rare/epic four (`ItemRarity` in `packages/shared/src/types.ts`), with its own `RARITY_MULTIPLIER` (3.2x, continuing the existing tier's ~1.33x-per-step progression) and four new legendary weapons — one per existing class, built on each class's *second* weapon kit (`packages/shared/src/items.ts`) so chasing one is also a genuine playstyle choice, not just a stat upgrade. They drop only from the Unburied Queen, the toughest existing boss, at a 3% chance each — rarer than the Sleeping Selenian's existing 5%-chance epic weapons. Everything else in this section — Sim Mode, active passive skills, 18 classes, 54 subclasses, levels past whatever the content naturally supports, PvP of any kind, strikes/raids beyond the existing 5-player dungeons, multi-classing, and the Ascended/Mythic/Relic/Artifact tiers above Legendary — remains entirely unbuilt.

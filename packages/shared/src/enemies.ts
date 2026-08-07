@@ -233,7 +233,13 @@ export const ENEMIES: EnemyDef[] = [
       { itemId: "armor_cairnbound_shroud", chance: 0.35, minQty: 1, maxQty: 1 },
       { itemId: "trinket_queens_seal", chance: 0.35, minQty: 1, maxQty: 1 },
       { itemId: "mat_starlight_essence", chance: 0.9, minQty: 4, maxQty: 6 },
-      { itemId: "mat_silver_ore", chance: 0.6, minQty: 3, maxQty: 6 }
+      { itemId: "mat_silver_ore", chance: 0.6, minQty: 3, maxQty: 6 },
+      // The game's only legendary-tier drops (see items.ts) — rarer than any of the Sleeping
+      // Selenian's 5%-chance epic weapons above, and only from the toughest boss that exists.
+      { itemId: "weapon_gravequeens_reaver", chance: 0.03, minQty: 1, maxQty: 1 },
+      { itemId: "weapon_cairns_judgment", chance: 0.03, minQty: 1, maxQty: 1 },
+      { itemId: "weapon_unburied_scythe", chance: 0.03, minQty: 1, maxQty: 1 },
+      { itemId: "weapon_queens_last_rite", chance: 0.03, minQty: 1, maxQty: 1 }
     ],
     scale: 2.8,
     color: "#4a2f5c"

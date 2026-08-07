@@ -122,8 +122,18 @@ Combat itself is real-time and positional, not tab-target: abilities have range,
 
 - Standard XP-to-level curve; leveling raises max HP/resource and grants a **skill point**.
 - Skill points upgrade individual abilities (rank 1 → 3, including elites), each rank adding ~18% power and trimming cooldown — meaningful build choices without a sprawling talent tree to parse.
-- Gear: a weapon (class- and kit-restricted), armor, and trinket slot, each with rarity tiers (common → epic) that scale stat bonuses.
+- Gear: a weapon (class- and kit-restricted), armor, and trinket slot, each with rarity tiers (common → legendary) that scale stat bonuses — see "Gear tiers" below.
 - **Subclasses** are a fourth, orthogonal layer — a Log-Horizon-style non-combat trade, chosen (and freely changed) from the crafting panel, independent of combat class or specialization: **Smith** (cheaper crafting, exclusive plate armor), **Alchemist** (bonus potion yield, exclusive elixir), **Naturalist** (bonus gather yield, exclusive trinket).
+
+### Gear tiers
+
+Five rarity tiers (`ItemRarity` in `packages/shared/src/types.ts`), each with a `RARITY_MULTIPLIER` that scales an equipped item's `statBonus`: common (1x), uncommon (1.35x), rare (1.8x), epic (2.4x), and **legendary** (3.2x) — a fifth tier added as the first shipped piece of a much larger target combat/gear expansion (`docs/DESIGN_EXPANSION.md` §15, "Expanded Combat & Progression System"). The multiplier is applied once, uniformly, in `computeEffectiveStats` (`packages/server/src/character.ts`) — a duplicated copy of this same multiplier table that used to live in `character.ts` was removed in favor of importing the one shared definition, so the two can no longer drift out of sync.
+
+Legendary is the rarest tier in the game: four weapons, one per class, each built on that class's *second* weapon kit (e.g. the Warden's greataxe rather than its starting sword-and-board) so chasing one is also a real build choice, not just a bigger number — Grave-Queen's Reaver, The Cairn's Judgment, The Unburied Scythe, and The Queen's Last Rite (`packages/shared/src/items.ts`). All four drop only from The Unburied Queen, the toughest boss in the game (see "Dungeons" above), at a 3% chance each — rarer than the Sleeping Selenian's existing 5%-chance epic weapon drops. A granted legendary drop always resolves to its item definition's fixed `rarity` (the same "no explicit rarity on a loot grant defaults to the item's own rarity" rule every other tiered drop already follows), so there's no separate roll needed for a boss's unique-named rewards.
+
+**What this doesn't include yet**, and it's nearly everything in `DESIGN_EXPANSION.md` §15: Ascended/Mythic/Relic/Artifact — the four tiers the target design stacks above Legendary, deliberately craft-only and account-bound-on-equip to protect the economy — don't exist, since there's no crafting-only gear pathway or account-wide binding concept at all today (every item, including the new legendary ones, is freely tradeable exactly like every other tier already is). Also unbuilt: the 18-class/54-subclass system (today's 4 classes × 3 specializations is the entire roster); Sim Mode and the equippable active-passive-skill system (specializations already have one signature stack-based mechanic each, which is the closest existing analog); the 1–255 level curve with its five eras and PvP-normalized stat cap (leveling today is unbounded, gated only by the three dungeons' level requirements); and all PvP, strikes, and raids beyond the existing 5-player, 3-boss dungeon rotation — there is no combat-between-players model, and no 10/16/24-player group content of any kind.
+
+Verified with 6 new automated tests: 4 unit tests against the pure item/enemy data (`packages/shared/test/gearTiers.test.ts` — `RARITY_MULTIPLIER` increases monotonically with legendary highest at 3.2x, all four legendaries are one-per-class weapons with a real stat bonus on a valid `weaponType`, a legendary item sells for more than the epic it supersedes, and the Unburied Queen's loot table is the only place any of the four appear, at a sub-5% chance) and 2 integration tests against the real `character`/`inventory` code (`packages/server/test/gearTiers.test.ts` — equipping a legendary weapon replaces the starter weapon's stat contribution with the legendary tier's exact 3.2x-scaled bonus while the displaced starter weapon returns to inventory rather than vanishing, and a legendary weapon is refused for the wrong class the same as any other class-restricted item).
 
 ### Crafting
 
@@ -331,6 +341,7 @@ A handful of the original brief's "immediate decisions" were open as of this sec
 | Cross-faction guilds, double-agent questlines, guild PvP | ✅ Built — creation/membership/ranks/treasury only, 5 of 14 target alignments (`packages/server/src/guilds.ts`); no halls, missions, espionage, wars, or PvP of any kind yet — see "Guilds" above |
 | Grimdark tonal/visual revision | Not started |
 | 8-chapter campaign rewrite threading all of the above | Not started — blocked on the systems above existing first |
+| 18 classes/54 subclasses, Sim Mode, active passive skills, levels to 255, PvP, 16-24 player raids (§15) | Not started, except the Legendary gear tier — ✅ Built (`packages/shared/src/items.ts`); see "Gear tiers" above. Everything else in §15 — the other 14 classes, Sim Mode, PvP of any kind, and group content beyond the existing 5-player dungeons — doesn't exist |
 
 ## Architecture notes (for whoever picks this up next)
 

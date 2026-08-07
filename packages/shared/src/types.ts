@@ -65,13 +65,14 @@ export type WeaponType =
   | "duskblade_daggers"
   | "duskblade_glaive";
 
-export type ItemRarity = "common" | "uncommon" | "rare" | "epic";
+export type ItemRarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
 
 export const RARITY_MULTIPLIER: Record<ItemRarity, number> = {
   common: 1,
   uncommon: 1.35,
   rare: 1.8,
-  epic: 2.4
+  epic: 2.4,
+  legendary: 3.2
 };
 
 export type ItemKind = "weapon" | "armor" | "trinket" | "material" | "consumable";
