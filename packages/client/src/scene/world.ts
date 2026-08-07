@@ -166,7 +166,10 @@ const THEME_VISUALS: Record<ZoneDef["theme"], ThemeVisuals> = {
   // The Hollow Vault: sealed stonework reclaimed by whatever the Hollowed leave growing in the dark.
   hollow: { deadTrees: true, treeCount: 0, rockCount: 120, moteCount: 55, moteColor: "#8fd67a", moteName: "spore-glow", moteHeight: 2.8 },
   // The Drowned City: no trees survived the tide, just flooded ruin and bioluminescent drift.
-  drowned: { deadTrees: true, treeCount: 0, rockCount: 100, moteCount: 80, moteColor: "#5ad1c9", moteName: "bioluminescence", moteHeight: 3.4 }
+  drowned: { deadTrees: true, treeCount: 0, rockCount: 100, moteCount: 80, moteColor: "#5ad1c9", moteName: "bioluminescence", moteHeight: 3.4 },
+  // The Sundered Cairn: collapsed burial stonework, no trees, and the pale grave-light of
+  // whatever the Order's massacre left unburied.
+  cairn: { deadTrees: true, treeCount: 0, rockCount: 140, moteCount: 60, moteColor: "#c9a8ff", moteName: "grave-light", moteHeight: 3.0 }
 };
 
 function scatterScenery(target: THREE.Group, zone: ZoneDef) {

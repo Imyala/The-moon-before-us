@@ -19,7 +19,7 @@ export interface TravelPoint {
   requiresLevel?: number;
 }
 
-export type ZoneTheme = "verdant" | "ashen" | "coastal" | "highland" | "arcane" | "fractured" | "lunar" | "hollow" | "drowned";
+export type ZoneTheme = "verdant" | "ashen" | "coastal" | "highland" | "arcane" | "fractured" | "lunar" | "hollow" | "drowned" | "cairn";
 
 export interface ZoneDef {
   id: string;
@@ -226,6 +226,41 @@ export const ZONES: Record<string, ZoneDef> = {
         toZoneId: "threadhold",
         toPos: { x: -50, y: 0, z: 0 },
         label: "Threadhold"
+      },
+      // The Sundered Cairn: the third dungeon, gated higher than the Drowned City — a party
+      // reaching it has cleared even more of the standard zones than the second dungeon assumes.
+      {
+        id: "mourncrown_to_sundered_cairn",
+        pos: { x: -40, y: 0, z: 20 },
+        radius: 3,
+        toZoneId: "sundered_cairn",
+        toPos: { x: 0, y: 0, z: 26 },
+        label: "The Sundered Cairn",
+        requiresLevel: 16
+      }
+    ]
+  },
+  sundered_cairn: {
+    id: "sundered_cairn",
+    name: "The Sundered Cairn",
+    radius: 34,
+    spawnPoint: { x: 0, y: 0, z: 26 },
+    theme: "cairn",
+    groundColor: "#241f2c",
+    groundHighlight: "#3d3348",
+    fogColor: "#0a0710",
+    backgroundColor: "#05040a",
+    isDungeon: true,
+    travelPoints: [
+      // Set back from the spawn point on purpose, same as the other two dungeons' exits — walking
+      // in and heading toward the boss chamber (decreasing z) moves away from this immediately.
+      {
+        id: "sundered_cairn_to_mourncrown",
+        pos: { x: 0, y: 0, z: 32 },
+        radius: 3,
+        toZoneId: "mourncrown",
+        toPos: { x: -36, y: 0, z: 26 },
+        label: "Mourncrown"
       }
     ]
   },

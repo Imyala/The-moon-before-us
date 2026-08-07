@@ -211,6 +211,32 @@ export const ENEMIES: EnemyDef[] = [
     ],
     scale: 2.7,
     color: "#3a7a82"
+  },
+  // The Sundered Cairn's boss (see docs/GDD.md's "Dungeons" section): the third dungeon, gated
+  // higher than the Drowned City. A pre-Binding matriarch who never stopped fighting the Order's
+  // massacre centuries after her own death — tougher than either prior dungeon boss.
+  {
+    id: "unburied_queen",
+    name: "The Unburied Queen",
+    tier: "boss",
+    maxHp: 2000,
+    power: 38,
+    moveSpeed: 2.5,
+    aggroRadius: 19,
+    attackRange: 6,
+    attackDamage: 46,
+    attackCooldownMs: 2200,
+    attackTelegraphMs: 800,
+    xpReward: 650,
+    respawnMs: 600000,
+    loot: [
+      { itemId: "armor_cairnbound_shroud", chance: 0.35, minQty: 1, maxQty: 1 },
+      { itemId: "trinket_queens_seal", chance: 0.35, minQty: 1, maxQty: 1 },
+      { itemId: "mat_starlight_essence", chance: 0.9, minQty: 4, maxQty: 6 },
+      { itemId: "mat_silver_ore", chance: 0.6, minQty: 3, maxQty: 6 }
+    ],
+    scale: 2.8,
+    color: "#4a2f5c"
   }
 ];
 

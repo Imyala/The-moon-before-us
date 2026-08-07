@@ -181,6 +181,19 @@ export const ZONE_ENEMY_SPAWNS: Record<string, EnemySpawnPoint[]> = {
     { defId: "husk", pos: { x: 6, y: 0, z: -12 }, patrolRadius: 4 },
     { defId: "stone_sentinel", pos: { x: -6, y: 0, z: -14 }, patrolRadius: 3 },
     { defId: "sleeping_selenian", pos: { x: 0, y: 0, z: -24 }, patrolRadius: 2 }
+  ],
+  // The Sundered Cairn (see docs/GDD.md's "Dungeons" section): entering at the south end (z=32),
+  // wraiths and stone guardians thicken through the collapsed burial galleries toward the deepest
+  // chamber at the north end, where the Unburied Queen still holds court.
+  sundered_cairn: [
+    { defId: "wane_wraith", pos: { x: 8, y: 0, z: 22 }, patrolRadius: 3 },
+    { defId: "wane_wraith", pos: { x: -8, y: 0, z: 16 }, patrolRadius: 3 },
+    { defId: "stone_sentinel", pos: { x: 10, y: 0, z: 8 }, patrolRadius: 4 },
+    { defId: "husk", pos: { x: -10, y: 0, z: 6 }, patrolRadius: 4 },
+    { defId: "stone_sentinel", pos: { x: 0, y: 0, z: -4 }, patrolRadius: 4 },
+    { defId: "wane_wraith", pos: { x: 7, y: 0, z: -14 }, patrolRadius: 3 },
+    { defId: "husk", pos: { x: -7, y: 0, z: -16 }, patrolRadius: 4 },
+    { defId: "unburied_queen", pos: { x: 0, y: 0, z: -26 }, patrolRadius: 2 }
   ]
 };
 
@@ -272,6 +285,11 @@ export const ZONE_NODE_SPAWNS: Record<string, NodeSpawnPoint[]> = {
   drowned_city: [
     { defId: "node_crystal", pos: { x: 11, y: 0, z: 14 } },
     { defId: "node_crystal", pos: { x: -11, y: 0, z: 9 } }
+  ],
+  // Grave-goods left with the dead, and the crystal the Order's own records call "corpse-light."
+  sundered_cairn: [
+    { defId: "node_ore_vein", pos: { x: 10, y: 0, z: 12 } },
+    { defId: "node_crystal", pos: { x: -10, y: 0, z: 10 } }
   ]
 };
 

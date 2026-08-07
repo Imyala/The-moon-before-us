@@ -25,7 +25,8 @@ const THEME_AMBIENCE: Record<ZoneTheme, ThemeAmbience> = {
   fractured: { baseFreq: 61, filterFreq: 380, detune: 26, type: "sawtooth" },
   lunar: { baseFreq: 82, filterFreq: 1600, detune: 4, type: "sine" },
   hollow: { baseFreq: 55, filterFreq: 320, detune: 20, type: "triangle" },
-  drowned: { baseFreq: 68, filterFreq: 550, detune: 16, type: "sine" }
+  drowned: { baseFreq: 68, filterFreq: 550, detune: 16, type: "sine" },
+  cairn: { baseFreq: 50, filterFreq: 280, detune: 22, type: "sawtooth" }
 };
 
 export class AudioEngine {

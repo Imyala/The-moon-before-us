@@ -49,6 +49,24 @@ test("the Drowned City's entrance denies below level 12 and admits at level 12",
   room.shutdown();
 });
 
+test("the Sundered Cairn's entrance denies below level 16 and admits at level 16", () => {
+  const room = makeRoom();
+  const now = Date.now();
+
+  const tooLow = makePlayer({ id: "low", zoneId: "mourncrown", level: 15, position: { x: -40, y: 0, z: 20 } });
+  room.players.set(tooLow.id, tooLow);
+  (room as any).tryTravel(tooLow, now);
+  assert.equal(tooLow.character.zoneId, "mourncrown", "below the level gate, travel is denied");
+  assert.ok(tooLow.ws.sent.some((m: any) => m.t === "error" && m.message.includes("requires level 16")), "the player is told why");
+
+  const highEnough = makePlayer({ id: "high", zoneId: "mourncrown", level: 16, position: { x: -40, y: 0, z: 20 } });
+  room.players.set(highEnough.id, highEnough);
+  (room as any).tryTravel(highEnough, now);
+  assert.equal(highEnough.character.zoneId, "sundered_cairn", "at the level gate, travel succeeds");
+
+  room.shutdown();
+});
+
 test("killing the Vault Warden sets a 10-minute respawn lockout, not the standard 20-second timer", () => {
   const room = makeRoom();
   const now = Date.now();
@@ -76,6 +94,24 @@ test("killing the Sleeping Selenian sets the same 10-minute respawn lockout", ()
 
   const boss = [...(room as any).enemies.values()].find((e: any) => e.defId === "sleeping_selenian");
   assert.ok(boss, "the Sleeping Selenian is seeded into the Drowned City");
+  (room as any).damageEnemy(boss, 99999, attacker, now);
+
+  assert.ok(boss.respawnAt! >= now + 599000 && boss.respawnAt! <= now + 601000, "respawn is locked out for ~10 minutes");
+
+  (room as any).tickEnemy(boss, 0.016, now + 23000);
+  assert.equal(boss.state, "dead", "the boss has not respawned within the normal window");
+
+  room.shutdown();
+});
+
+test("killing the Unburied Queen sets the same 10-minute respawn lockout", () => {
+  const room = makeRoom();
+  const now = Date.now();
+  const attacker = makePlayer({ id: "attacker", zoneId: "sundered_cairn" });
+  room.players.set(attacker.id, attacker);
+
+  const boss = [...(room as any).enemies.values()].find((e: any) => e.defId === "unburied_queen");
+  assert.ok(boss, "the Unburied Queen is seeded into the Sundered Cairn");
   (room as any).damageEnemy(boss, 99999, attacker, now);
 
   assert.ok(boss.respawnAt! >= now + 599000 && boss.respawnAt! <= now + 601000, "respawn is locked out for ~10 minutes");

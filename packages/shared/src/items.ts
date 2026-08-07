@@ -309,6 +309,16 @@ export const ITEMS: ItemDef[] = [
     description: "Fused from the Drowned City's own windows. Never cracks, never dries.",
     statBonus: { vitality: 18, power: 6, haste: 0.02 }
   },
+  {
+    id: "armor_cairnbound_shroud",
+    name: "Cairnbound Shroud",
+    kind: "armor",
+    slot: "armor",
+    rarity: "epic",
+    icon: "armor",
+    description: "Grave-wrappings worn by a queen who refused to stay buried.",
+    statBonus: { vitality: 20, power: 7, haste: 0.02 }
+  },
 
   // ---- trinkets ----
   {
@@ -360,6 +370,16 @@ export const ITEMS: ItemDef[] = [
     icon: "charm",
     description: "A ring of office from a city that never surfaced. It still remembers being worn.",
     statBonus: { power: 7, critChance: 0.05, haste: 0.04 }
+  },
+  {
+    id: "trinket_queens_seal",
+    name: "The Queen's Seal",
+    kind: "trinket",
+    slot: "trinket",
+    rarity: "epic",
+    icon: "charm",
+    description: "Older than the Binding itself. It still hums with whatever she was before the Order buried her.",
+    statBonus: { power: 8, critChance: 0.06, haste: 0.04 }
   },
 
   // ---- materials ----
