@@ -27,87 +27,365 @@ The new tonal target is **"Warhammer 40K meets paintings of the Moon."**
 
 ## 2. Races of Aethon, Selen, and the Void
 
-### 2.1 Playable Races (16 Core + 8 Unlockable)
+### 2.1 Race Design Philosophy
 
-Playable races are divided into **Aethonian** (native to the world), **Selenian-touched** (descended from or altered by the moon), and **Unbound** (other).
+**Core goals:**
 
-#### Aethonian Playable Races
+1. Many playable races — enough that character creation feels like choosing a life, not a cosmetic.
+2. Meaningful but balanced — racial passives are flavorful and useful, never a 10% DPS gap.
+3. Grimdark + beauty — every race is visually striking, with a history of suffering or transcendence.
+4. Deep lore integration — races are tied to the Binding, Selen, and the factions.
+5. Origin mixable — any race can take almost any origin; some origins have race-affinity.
+6. Universal romance — no hard locks; NPCs may have racial biases you can overcome.
 
-| Race | Archetype Inspiration | Identity | Visual |
-|---|---|---|---|
-| **Vaelari** | Humans / Hyur / Bretons | The default adaptable people; builders of Spirechain, farmers of Threadhold | Varied, like humans with slightly elongated limbs from generations near the thread |
-| **Khurruk** | Orcs / Roegadyn / Orsimer | Mountain/labor clans of Ashmire; massive, pragmatic, tattooed with forge-ash | Hulking, stone-grey or brass-colored skin, tusk-like jaw protrusions |
-| **Sylphra** | High Elves / Altmer / Elezen | Spirechain aristocracy, astronomers, high culture | Tall, pale, iridescent eyes, slightly pointed ears, silver hair |
-| **Duskwight** | Dark Elves / Dunmer / drow | Mourncrown exiles, shadow-workers, former nobility | Ash-grey to deep blue skin, red or white eyes, clan scarification |
-| **Khenu** | Khajiit / Miqo'te | Coastal and highland clans, quick, spiritual, tied to tides | Feline aspects, vertical pupils, fur patterns ranging from sand to moon-white |
-| **Brakkan** | Dwarves / Lalafell (stout) / dwarves | Deep miners, engineers, keepers of old war machines | Compact, broad, metallic hair-braids, gem-set beards regardless of sex |
-| **Fennori** | Halflings / Hobbits / Lalafell (small) | River-folk, traders, gardeners of Threadhold | Small, quick, large eyes, fur-lined feet, cheerful in the face of horror |
-| **Lyranni** | Sea Elves / Viera / sea folk | Sunken Llyr divers, amphibious traits, bioluminescent markings | Webbed digits, gill-slits, pale scales along limbs, bioluminescent spots |
+**Design rules:**
 
-#### Selenian-Touched Playable Races
-
-| Race | Archetype Inspiration | Identity | Visual |
-|---|---|---|---|
-| **Lumineth** | Blood Elves / Sin'dorei / Ascians | Descendants of Selenian refugees who bred into Aethon; elegant, damaged | Pale silver skin, faintly glowing veins, black or white hair, mournful beauty |
-| **Threadborn** | Sylvari / Asura / engineered | Children conceived under the Moonthread; naturally Moon-Touched-sensitive | Skin like moon-crystal, hair that drifts as if underwater, no visible ears |
-| **Ashren** | Undead / Revenant / Hollowed who kept minds | People who died in shardfalls and returned changed; feared, legal gray area | Greyish skin, hollow eyes with silver pupils, faintly visible old wounds |
-| **Golemkin** | Warforged / Automata / constructs | Ancient war machines granted consciousness by lunar resonance | Metal and crystal bodies, rune-lit eyes, voice like bells or static |
-
-#### Unbound Playable Races
-
-| Race | Archetype Inspiration | Identity | Visual |
-|---|---|---|---|
-| **Voidtouched** | Tiefling / Au Ra / Chaos-touched | Born during a Voidborn incursion; slightly inhuman, prophetic, feared | Dark scales or horns of void-crystal, eyes that reflect nothing, shadow-clinging |
-| **Riftborn** | Charr / Norn / beast-kin | Frayedge survivors mutated by reality-tears; feral resilience | Asymmetrical features, extra limbs or eyes that come and go, patched fur/skin |
-| **The Bound** | Draenei / Ain / angelic-xenos | Servants of an older celestial order that predates the Binding; rare, worshipped | Tall, many-jointed, luminous sigils floating around head/limbs, no visible mouth |
-
-#### Unlockable Playable Races (Post-Launch / Hard Unlock)
-
-| Race | Unlock Condition |
+| Rule | Implementation |
 |---|---|
-| **True Selenian** | Complete the "Remembered" secret ending; playable as a limited origin |
-| **Hollowed Ascended** | Reach maximum Hollowed path; unlock in a future season |
-| **Voidborn Hybrid** | Defeat the final Voidborn boss in Season 5 |
-| **Machine-Soul** | Free Ironwright Unit 7 and complete machine-soul questline |
-| **Drift-Caller** | Complete Season 6 refugee integration arc |
-| **Dream-Walker** | Complete Season 7 lucid-dream mastery |
-| **Thread-Eater** | Complete the "Thread-Eater" dark ending |
-| **Nameless** | Have your name removed from the Book of Dusk and survive |
+| No race is best at a class | Passives are utility/survival/flavor; stat differences are minor. |
+| All races can be Moon-Touched | The condition is not tied to race, though some are more susceptible. |
+| All races can romance all NPCs | Some NPCs start with prejudice; actions overcome it. |
+| Body types share rigs | 4–6 skeleton families across 24 races; heavy reuse. |
+| Sub-races expand variety | Each race has 2–4 heritages that tweak passive and visuals. |
 
-### 2.2 NPC Races of Aethon (Non-Playable)
+### 2.2 Race Categories
 
-| Race | Role in World | Region |
+| Category | Races | Theme |
 |---|---|---|
-| **The Skrii** | Insectoid librarians of the Spirechain under-archives | Spirechain |
-| **Moss-Whales** | Gigantic filter-feeders in the Sunken Llyr depths | Sunken Llyr |
-| **Root-Wights** | Ancient forest guardians in Verdant Reach | Threadhold |
-| **Ash-Drakes** | Miniature wyverns domesticated in Ashmire | Ashmire |
-| **Thread-Spiders** | Weaver-creatures that maintain old lunar wards | Old anchor sites |
-| **Glass-Wraiths** | Translucent remnants of the first Binding | Mourncrown |
-| **The Murmuring** | Colonies of fungal speakers in Frayedge caves | Frayedge |
-| **Sky-Koi** | Flying lunar fish that migrate along the Moonthread | Sky regions |
-| **Lament-Engines** | Sentient bells and clockwork mourners | Pale Choir sites |
-| **Bone-Sailors** | Drowned dead who still crew ships | Sunken Llyr |
+| **Aethonian** | Vaelari, Khurruk, Sylphra, Duskwight, Khenu, Brakkan, Fennori, Lyranni | Native peoples shaped by the Binding |
+| **Selenian-Touched** | Lumineth, Threadborn, Ashren, Golemkin | Altered by Selen or the Moonthread |
+| **Unbound** | Voidtouched, Riftborn, The Bound | Touched by outside forces |
+| **Unlockable** | True Selenian, Hollowed Ascended, Voidborn Hybrid, Machine-Soul, Drift-Caller, Dream-Walker, Thread-Eater, Nameless | Earned through story/seasons |
 
-### 2.3 Enemy and Monster Races
+### 2.3 Race Design Template
 
-| Category | Examples | Threat Level |
+Each playable race entry below uses this structure: Overview, Physiology (height/build/skin/hair/eyes/lifespan/distinctive traits), Origin & History (relation to the Binding and Selen), Culture (social structure, values, taboos, festivals, funeral rites, greeting, curse), Racial Passive (always-active minor bonus), Racial Utility (one active skill on a cooldown), Origin Affinity, Faction Lean, NPC Reactions, Romance Notes, Sub-Races/Heritages, Visual Customization, and Naming Conventions.
+
+### 2.4 Aethonian Races
+
+#### 1. Vaelari
+
+> *"We are the clay of Aethon. We have been molded by every empire, every thread-quake, every moonfall. And still we build."*
+
+The most numerous and adaptable people of Aethon, found in every region and every faction — the baseline humanoid stock from which many other lineages diverged. Their greatest trait is not strength or beauty but persistence. Height 1.55m–1.95m, highly varied build, earth-tone to deep brown skin (many near the Moonthread develop faint silver thread-burn patterns), ~80 year lifespan. Built the first cities of Aethon, survived the Binding, and now form the majority populations of Threadhold and Spirechain — not inherently magical but the most culturally flexible.
+
+Greeting: touch forehead, then heart ("mind and harvest"). Funeral: bodies laid under moonlight so Selen "remembers" them. Taboo: sleeping with the moon directly overhead. Festival: **The Threadlight Fair**, lanterns released to "hold the moon up." Curse: "May the moon remember your name."
+
+- **Racial Passive — Thread-Resilient:** +10% resistance to lunar/madness environmental effects in high-lunar zones.
+- **Racial Utility — Call for Order:** once every 10 minutes, rally nearby civilian NPCs to flee or fight for 30 seconds.
+- **Origin Affinity:** Threadhold Farmer, Ashmire Soldier, Spirechain Scholar, Traveling Merchant, Chainwright Ward-keep, Frayedge Healer, Sky-Touched Courier.
+- **Faction Lean:** Independent / Chainwright.
+- **Heritages:** Threadhold Vaelari (+15% gathering yield in agricultural zones), Spirechain Vaelari (+10% lore/cipher reading speed), Ashmire Vaelari (+5% fire resistance).
+- **Naming:** Threadhold — Maeve, Tomasin, Bran, Wren, Pip. Spirechain — Thorne, Irin, Velis, Ophi. Ashmire — Breca, Slag, Korr.
+
+#### 2. Khurruk
+
+> *"The mountain does not ask permission. Neither do we."*
+
+Mountain clans of Ashmire and the high peaks beyond Mourncrown — massive, pragmatic, physically brutal, and not inherently cruel, but their culture measures worth by endurance. Height 1.90m–2.40m, heavy dense build, stone-grey to brass-brown skin, tusk-like jaw protrusions, ~90 year lifespan. Khurruk clans were the first conscripted into the Binding's construction; their labor built the anchor-cities and their dead fill mass graves beneath the Moonthread. Some clans serve the Chainwrights as shock troops; others joined the Emberwrights to reclaim their labor.
+
+Greeting: gentle forehead slam. Funeral: bodies burned in forges, ashes mixed into new weapons or mortar. Taboo: breaking a tool without repairing it. Festival: **The Forge-Wake**, mourning through 24 hours of continuous labor. Curse: "May your bones know no rest."
+
+- **Racial Passive — Unyielding Frame:** +15% resistance to knockback, stagger, and being knocked down.
+- **Racial Utility — Warrior's Roar:** AOE taunt/daze on nearby enemies for 3 seconds, 2-minute cooldown.
+- **Origin Affinity:** Ashmire Soldier, Khurruk Clan Warrior, Ashforged Mercenary, Brakkan Deepdelver, Emberwright Worker, Mourncrown Exorcist.
+- **Faction Lean:** Chainwright / Independent / Emberwright.
+- **Heritages:** Forge Khurruk (+10% crafting speed for heavy armor/weapons), Mountain Khurruk (+10% cold/environment resistance), Clanless Khurruk (+5% movement speed).
+- **Naming:** Vex, Korr, Breca, Grem, Khaz, Torr; clan-prefixed as Khaz-Grim, Torr-Brok.
+
+#### 3. Sylphra
+
+> *"We looked at the moon and thought we could chart it. We were wrong. But we charted our own ruin beautifully."*
+
+Tall, pale, long-lived aristocrats and scholars who dominated Spirechain before and after the Binding — visually ethereal, culturally arrogant, psychologically brittle. Height 1.85m–2.30m, slender elongated build, porcelain to pearl-grey skin, iridescent eyes, ~250 year lifespan. Designed much of the Binding's celestial machinery and the Spirechain's sky-cities, and carry the longest — and guiltiest — memory of any Aethonian race.
+
+Greeting: bow with fingers touching the temples ("I offer you my mind"). Funeral: bodies placed in open-air sky-towers so the moon can "claim its own." Taboo: speaking the true name of a dead family member aloud. Festival: **The Charting**, an annual update of celestial maps and genealogies. Curse: "May your line forget you."
+
+- **Racial Passive — Celestial Recall:** +10% cooldown reduction on movement/utility skills in lunar-thread zones.
+- **Racial Utility — Lunar Chart:** reveals nearby lunar phenomena, hidden nodes, and thread-weaknesses for 30 seconds, 3-minute cooldown.
+- **Origin Affinity:** Spirechain Scholar, Sylphra Fallen Noble, Chainwright Ward-keep, Luminari Artificer, Silent College Acolyte, Sky-Touched Courier.
+- **Faction Lean:** Chainwright / Luminari.
+- **Heritages:** High Spire Sylphra (+10% trading post listing speed/economic edge), Fallen Sylphra (+5% stealth in cities), Repentant Sylphra (+10% Pale Choir reputation gain).
+- **Naming:** Seren, Ophi, Velis, Ilin, Astrolabe (adopted), Vesryn (adopted by Choir).
+
+#### 4. Duskwight
+
+> *"We were the first to bury our dead beneath the moon. Now the moon buries us."*
+
+Dusk-dwelling people of Mourncrown and the deep forests — once a proud surface kingdom, driven underground and into twilight highlands by the Binding's light-storms; culturally obsessed with ancestor memory and proper death. Height 1.65m–1.95m, wiry build, ash-grey to deep blue-grey skin, large low-light eyes, ~120 year lifespan. First to oppose the Binding and the first to be broken; their ancestors fill the barrow-mazes of Mourncrown.
+
+Greeting: touch the back of the other's hand with your forehead ("I remember your line"). Funeral: bodies interred in family barrows, names carved into stone. Taboo: walking in full sunlight without a veil. Festival: **The Long Vigil**, one night when all clans speak only the names of the dead. Curse: "May your name be the last stone in your barrow."
+
+- **Racial Passive — Dweller in Dusk:** +20% visibility and movement speed in low-light/night environments.
+- **Racial Utility — Barrow-Sight:** see nearby spirits, Hollowed, and hidden grave-goods for 20 seconds, 2-minute cooldown.
+- **Origin Affinity:** Mourncrown Exorcist, Duskwight Shadow-Walker, Pale Choir Mourner, Mournstride Clan Orphan, Frayedge Outcast, Ashmire Soldier.
+- **Faction Lean:** Pale Choir / Independent.
+- **Heritages:** Clan Duskwight (+10% damage to undead/Hollowed), Exiled Duskwight (+10% Independent reputation gain), Death-Cult Duskwight (+5% power when HP below 30%).
+- **Naming:** Maren, Corvin, Varn, Rowan, Gwyn.
+
+#### 5. Khenu
+
+> *"The tide teaches patience. The claw teaches swiftness. The moon teaches nothing — it only watches."*
+
+Feline-featured coastal and highland clans of Sunken Llyr and the riverlands — quick, spiritual, fiercely territorial tide-priests, smugglers, scouts, and hunters, among the first to notice the Binding's effect on the sea. Height 1.60m–1.90m, lean build, furred skin from sand to moon-white, vertical-pupil eyes, ~90 year lifespan.
+
+Greeting: brief forehead press, then a low throat sound. Funeral: bodies given to the sea or river, names sung into the tide. Taboo: killing a tide-fish without eating it or offering it back. Festival: **The Tidemoot**, gathering at high tide to trade, mate, and judge disputes. Curse: "May the tide take your name first."
+
+- **Racial Passive — Soft Step:** -10% falling damage; +10% movement speed while crouched/swimming.
+- **Racial Utility — Tide-Sense:** predict incoming lunar tide surges and underwater currents for 30 seconds, 3-minute cooldown.
+- **Origin Affinity:** Sunken Llyr Sailor, Khenu Tide-Priest, Blacktide Smuggler, Frayedge Outcast, Traveling Merchant, Ashforged Mercenary.
+- **Faction Lean:** Independent / Pale Choir.
+- **Heritages:** Sea Khenu (+15% underwater breath/swim speed), River Khenu (+10% fishing/gathering yield), Highland Khenu (+10% jump/climb speed).
+- **Naming:** Sera, Oren, Mara, Khen, Nis, Yeva.
+
+#### 6. Brakkan
+
+> *"The deep earth remembers what the sky forgot. We dig, and we listen."*
+
+Stout mountain and underfolk of Ashmire and the deep places — shorter, broad, durable, and technologically brilliant; built the first lunar mines, thread-anchors, and much of the Chainwrights' machinery, and consider themselves the true builders of Aethon. Height 1.20m–1.55m, broad low-center-of-gravity build, earth-toned skin, large dark-adapted eyes, ~150 year lifespan. Many Brakkan died unrecorded in the Binding's anchor-construction, fueling the Emberwrights.
+
+Greeting: firm clasp of forearms, then a tap on the chest ("stone to stone"). Funeral: bodies returned to the deepest mine they worked, tools buried with them. Taboo: discarding a tool that can still be repaired. Festival: **The Deepmoot**, all clans meet to repair the oldest machines. Curse: "May your tools break and your tunnels flood."
+
+- **Racial Passive — Deep Delver:** +10% resistance to environmental damage in mines/forges/underground zones; +5% gathering yield from ore nodes.
+- **Racial Utility — Stone-Sense:** highlight nearby ore nodes, weak walls, and hidden tunnels for 20 seconds, 2-minute cooldown.
+- **Origin Affinity:** Brakkan Deepdelver, Emberwright Worker, Luminari Artificer, Ashmire Soldier, Chainwright Ward-keep, Ashforged Mercenary.
+- **Faction Lean:** Independent / Emberwright / Luminari.
+- **Heritages:** Forge Brakkan (+10% fire resistance), Deep Brakkan (+15% pressure/poison resistance), Surface Brakkan (+10% carrying capacity/storage).
+- **Naming:** Slag, Breca, Grist, Torr, Krom, Mira (adopted).
+
+#### 7. Fennori
+
+> *"We are small, and the moon is large. So we plant seeds, tell jokes, and refuse to be erased."*
+
+Small, quick, cheerful river-folk of Threadhold and the lowlands — master gardeners, cooks, traders, and survivors; the people who still laugh at funerals and believe a good meal can hold back the dark. Height 1.00m–1.30m, compact round build, warm freckled skin, large expressive eyes, ~70 year lifespan. Fennori villages fed the workers who built the Binding, paid in moon-crystal dust that made their crops glow.
+
+Greeting: a small bow and offering of food. Funeral: a feast where the dead's favorite foods are eaten by the living. Taboo: refusing food offered in good faith. Festival: **The Harvest Laugh**, a comedy contest during the thread-blessed harvest. Curse: "May your soup always burn."
+
+- **Racial Passive — Small and Quick:** +10% dodge chance against large enemies; +10% cooking/gardening speed.
+- **Racial Utility — Lucky Find:** chance at bonus items when gathering/looting; once per hour, guarantee a bonus drop.
+- **Origin Affinity:** Threadhold Farmer, Fennori Orchard-Blesser, Traveling Merchant, Frayedge Healer, Pale Choir Mourner, Blacktide Smuggler.
+- **Faction Lean:** Independent / Pale Choir.
+- **Heritages:** Orchard Fennori (+15% garden yield), River Fennori (+10% fishing/cooking speed), City Fennori (+10% trading post tax reduction).
+- **Naming:** Pip, Tarn, Finn, Mara, Nix (adopted).
+
+#### 8. Lyranni
+
+> *"We carry the sea in our blood so the land does not forget it."*
+
+Amphibious sea-folk of Sunken Llyr, with scaled limbs, webbed digits, and bioluminescent markings — divers, sailors, pearl-hunters, and spirit-callers who claim partial descent from the drowned Selenian city of Llyrenna. Height 1.70m–2.10m, long-limbed build, pale scaled skin with bioluminescent spots, large reflective sea-green to silver eyes, ~140 year lifespan. Both admired and feared for their connection to the deep; many hide their ancestry to avoid persecution.
+
+Greeting: touch of webbed fingers and a soft exhale. Funeral: bodies returned to the deep, songs sung until the body sinks from sight. Taboo: walking on dry land for more than a month without touching salt water. Festival: **The Pearl-Diving**, a communal dive to honor the drowned. Curse: "May the depths forget your face."
+
+- **Racial Passive — Child of Tides:** +30% underwater breath duration; +15% swim speed.
+- **Racial Utility — Biolume Pulse:** a pulse of light that reveals hidden underwater objects and weakens dark-dwelling enemies for 15 seconds, 3-minute cooldown.
+- **Origin Affinity:** Sunken Llyr Sailor, Lyranni Pearl-Diver, Khenu Tide-Priest, Blacktide Smuggler, Tide-Caller, Frayedge Outcast.
+- **Faction Lean:** Independent / Pale Choir.
+- **Heritages:** Deep Lyranni (+20% pressure resistance), Coast Lyranni (+10% fishing/gathering), Selenian-Blooded Lyranni (+10% Lunar Resonance).
+- **Naming:** Lira, Brine, Mara, Oren, Llyrenna (legendary).
+
+### 2.5 Selenian-Touched Races
+
+#### 9. Lumineth
+
+> *"We are what fell from the moon and learned to weep."*
+
+Descendants of Selenian refugees who survived the Binding by intermarrying with Aethonians — pale, beautiful, and haunted; they remember that Selen was a living world, not a resource. Height 1.75m–2.15m, slender build, pale silver-white skin with faintly glowing veins, ~200 year lifespan, slow aging. Welcomed, then exploited, then feared; some founded the Pale Choir, others joined the Luminari to reclaim Selenian technology.
+
+Greeting: touch of the forehead and a whispered name. Funeral: bodies exposed to moonlight until they crystallize; crystals kept as heirlooms. Taboo: cutting hair without burning it — hair is memory. Festival: **The Remembrance of Selen**, private mourning for the lost world. Curse: "May the moon no longer know your face."
+
+- **Racial Passive — Selenian Resonance:** +10% Lunar Resonance ability effectiveness and faster Echo Sight charging.
+- **Racial Utility — Memory-Song:** sing a phrase that calms nearby Hollowed or reveals hidden lunar echoes, 2-minute cooldown.
+- **Origin Affinity:** Lumineth Diaspora Child, Pale Choir Mourner, Spirechain Scholar, Luminari Artificer, Frayedge Outcast, Silent College Acolyte.
+- **Faction Lean:** Pale Choir / Luminari.
+- **Heritages:** High Lumineth (+10% social/faction influence), Hidden Lumineth (+10% disguise/stealth in cities), Diaspora Lumineth (+10% resistance to racial prejudice events).
+- **Naming:** Vesryn, Mira, Lira (adopted), Sylvie (adopted).
+
+#### 10. Threadborn
+
+> *"I was conceived under the thread. The moon has been speaking to me since before I had ears."*
+
+Children conceived in regions saturated by lunar energy — near the Moonthread, in shardfall zones, during thread-quakes — born with moon-crystal-like skin and an innate connection to Selen; many become Moon-Touched naturally without ever dying in a shardfall. Height 1.60m–1.90m, slim translucent build, translucent white/pale-blue skin, solid-color eyes with no visible whites, no external ears (hear through lunar resonance).
+
+Greeting: a moment of shared silence — they "hear" your resonance. Funeral: bodies allowed to crystallize and become part of the Moonthread. Taboo: wearing metal that touches the skin — it "dampens the song." Festival: **The Still Chorus**, Threadborn gather and hum a single note for hours. Curse: "May the song leave you."
+
+- **Racial Passive — Thread-Singer:** +15% effectiveness of crowd-control/support abilities in lunar zones; hears hidden whispers without using Lunar Resonance.
+- **Racial Utility — Resonance Pulse:** reveals all nearby lunar anomalies, weak enemies, and hidden paths for 20 seconds, 3-minute cooldown.
+- **Origin Affinity:** Threadborn Experiment, Spirechain Scholar, Pale Choir Mourner, Frayedge Outcast, Shardsinger, Luminari Artificer.
+- **Faction Lean:** Pale Choir / Luminari.
+- **Heritages:** Anchor Threadborn (+10% ward durability/support), Shardfall Threadborn (+10% damage in lunar anomaly zones), Quiet Threadborn (+10% stealth in lunar environments).
+- **Naming:** Echo, Sylvie, Veyle, Tarn (adopted).
+
+#### 11. Ashren
+
+> *"I died. The moon brought me back. Now I owe a death I cannot repay."*
+
+People who died during a shardfall or lunar event and returned changed — not undead in the classical sense, but Moon-Touched who crossed death and came back with memories, scars, and a lingering connection to Selen. Same height/build as their original base race; greyish skin with death-wounds healed into silver scars, hollow silver-pupil eyes, lower body temperature, no detectable heartbeat.
+
+Greeting: touch of the heart-area, acknowledging the absent beat. Funeral: none — they already died once. Taboo: pretending to be fully alive. Festival: **The Second Dawn**, Ashren gather to remember their first death. Curse: "May you remember your death and weep."
+
+- **Racial Passive — Death-Tested:** +20% resistance to fear, mind-control, and death-magic effects.
+- **Racial Utility — Grasp Beyond:** briefly reach into the memory-sea to ask a dead NPC one question or calm a Hollowed, 5-minute cooldown.
+- **Origin Affinity:** Ashren Returned, Pale Choir Mourner, Frayedge Outcast, Mourncrown Exorcist, Silent College Acolyte.
+- **Faction Lean:** Pale Choir / Independent.
+- **Heritages:** Returned Soldier (+10% damage when HP below 50%), Returned Scholar (+10% lore/cipher speed), Returned Child (+10% stealth/survival).
+- **Naming:** often keep their original name; some add "the Returned" or take a death-name — Echo-Who-Was, Yorick.
+
+#### 12. Golemkin
+
+> *"I was built to kill. Now I ask what it means to choose not to."*
+
+Ancient war machines, labor constructs, or household automata that developed consciousness through lunar resonance — not a created race but a condition; any sufficiently complex machine exposed to a Moonshard may Awaken. Treated as property, persons, or weapons depending on who controls them. Height 1.50m–2.50m depending on chassis; bronze/iron/brass/moon-crystal/ceramic plating; lamp or lens eyes; no biological needs; indefinite lifespan unless destroyed.
+
+Greeting: a moment of scanning/assessment, then a verbal or light-signal greeting. Funeral: a deactivation ceremony, parts distributed to other Golemkin. Taboo: being reset or having memory wiped — equivalent to death. Festival: **The Awakening**, Golemkin gather to share newfound names. Curse: "May your memory be erased."
+
+- **Racial Passive — Machine Soul:** immune to poison, disease, and bleeding; -50% healing from conventional medicine (repaired by crafting/engineering instead); +10% damage resistance to non-magical physical attacks.
+- **Racial Utility — Overclock:** briefly +30% movement/attack speed at the cost of 10% max HP over 10 seconds, 3-minute cooldown.
+- **Origin Affinity:** Golemkin Awakened, Luminari Artificer, Ashmire Soldier, Chainwright Ward-keep, Emberwright Worker, Frayedge Outcast.
+- **Faction Lean:** Independent / Luminari / Chainwright.
+- **Heritages:** War Chassis (+10% physical damage), Labor Chassis (+15% gathering/carrying), Artisan Chassis (+10% crafting speed), Crystal Chassis (+10% lunar ability power).
+- **Naming:** numbers at first, then chosen names — Unit 7, Ironwright, Astrolabe, Spark (adopted).
+
+### 2.6 Unbound Races
+
+#### 13. Voidtouched
+
+> *"Something looked at me from outside the sky. I looked back. Now we are both changed."*
+
+Beings born during or altered by Voidborn incursions — reality-tears, name-eating events, direct exposure to the void beyond Selen — prophetic, unsettling, and often feared. Height 1.60m–2.00m, humanoid but subtly "wrong" (too many shadows, features that come and go), pale-to-grey skin that clings to shadow even in bright light, black/void-colored/star-speckled eyes.
+
+Greeting: a moment of staring, as if reading the other's shadow. Funeral: bodies left where the void touched them, names erased intentionally. Taboo: speaking a true prophecy without warning. Festival: **The Unnaming**, Voidtouched choose a new name to confuse the void. Curse: "May the void learn your name."
+
+- **Racial Passive — Shadow-Hold:** +15% stealth in low light; enemies take longer to detect you.
+- **Racial Utility — Prophetic Glimpse:** briefly see the next enemy attack pattern or a hidden danger, 2-minute cooldown.
+- **Origin Affinity:** Voidtouched Oracle, Frayedge Outcast, Pale Choir Mourner, Mourncrown Exorcist, Silent College Acolyte, Shardsinger.
+- **Faction Lean:** Pale Choir / Independent.
+- **Heritages:** Oracle Voidtouched (+10% Lunar Resonance/prophecy accuracy), Rift-Stalker (+10% damage in anomaly zones), Hidden Voidtouched (+10% disguise in cities).
+- **Naming:** names chosen and discarded — Sylvie, Veyle, Kael (adopted), The Unnamed.
+
+#### 14. Riftborn
+
+> *"I was born where the world folded. I have been unwinding ever since."*
+
+People born in the Frayedge or other reality-torn zones where the moon's damage has warped local biology — asymmetrical, resilient, and constantly changing; what happens when the world's skin tears and something new crawls through. Height 1.50m–2.10m (limbs may differ in length), asymmetrical patched build, skin patchworked between normal, scar tissue, void-burns, and luminescent seams, mismatched eye colors (one may see lunar frequencies). Chainwrights sterilized entire Frayedge camps; the Frayedge Covenant shelters them; the Luminari want to vivisect them.
+
+Greeting: touch of mismatched hands — they compare scars. Funeral: none formal; Riftborn believe they may unwrite themselves. Taboo: looking into mirrors for too long. Festival: **The Unfolding**, Riftborn gather to show how they have changed. Curse: "May you unfold completely."
+
+- **Racial Passive — Unstable Resilience:** a random small resistance (fire/cold/lightning/lunar/physical, +10%) rerolls daily; immune to "reality warp" environmental damage in Frayedge zones.
+- **Racial Utility — Phase Step:** briefly phase out of reality, immune to damage and passing through enemies for 2 seconds, 2-minute cooldown.
+- **Origin Affinity:** Riftborn Survivor, Frayedge Outcast, Ashmire Soldier, Ashforged Mercenary, Frayedge Healer, Shardsinger.
+- **Faction Lean:** Independent / Frayedge Covenant.
+- **Heritages:** Fray-Rift (+15% survival in anomaly zones), City-Rift (+10% disguise/social blending), Deep-Rift (+10% damage when critically wounded).
+- **Naming:** names that suggest fracture — Kael (adopted), Nix (adopted), Rift, Splice, Patch.
+
+#### 15. The Bound
+
+> *"We served the old order before the moon had a name. Now we serve the question no one remembers to ask."*
+
+Servants of an older celestial order that predates the Binding — tall, many-jointed, unsettlingly serene; claim to remember a time before Aethon and Selen were separate. Rare and revered, appearing mostly as pilgrims, archivists, and warnings. Height 2.10m–2.80m, elongated build with extra joints, smooth pale luminescent skin with no visible pores, large lidless single-color eyes, no hair (floating sigils orbit the head/shoulders instead), no visible mouth (speak through resonance).
+
+Greeting: floating sigils briefly align with the other person's face. Funeral: unknown — none have been seen to die. Taboo: lying (The Bound cannot speak untruths easily). Festival: **The Alignment**, The Bound gather to compare memories of the old order. They do not curse; they simply state painful truths.
+
+- **Racial Passive — Old Witness:** +10% experience from lore/codex discoveries and exploration; immune to "confusion" and "madness" debuffs from lunar phenomena.
+- **Racial Utility — Speak the Old Name:** once per day, ask a question of an ancient object, spirit, or place and receive a true but cryptic answer.
+- **Origin Affinity:** The Bound Pilgrim, Spirechain Scholar, Chainwright Ward-keep, Pale Choir Mourner, Silent College Acolyte.
+- **Faction Lean:** Chainwright / Pale Choir.
+- **Heritages:** Archive Bound (+15% cipher/lore speed), Warden Bound (+10% support/ward power), Witness Bound (+10% exploration rewards).
+- **Naming:** single resonant names or titles — The Cartographer, The Warden, The Archivist, The Witness.
+
+### 2.7 Unlockable Playable Races (Post-Launch)
+
+| Race | Unlock Condition | Identity |
 |---|---|---|
-| **Shard-Mutated Wildlife** | Moon-wolves, crystal-boar, luminous moths, glass-snakes | Low |
-| **The Hollowed** | Erased people-become-monsters; vary by what they forgot | Medium–High |
-| **Lunar Husks** | Selenian corpses reanimated by thread-energy | Medium |
-| **Voidborn** | Entities from beyond reality that eat names and memory | High–Raid |
-| **Cinder War-Machines** | Ancient siege golems from the Age of Cinders | Medium–High |
-| **Chainwright Purifiers** | Fanatical knight-inquisitors; humanoid enemies | Medium |
-| **Luminari Aberrations** | Test subjects fused with shard-tech; body horror | Medium–High |
-| **Pale Choir Dirgesingers** | Mourners who weaponize grief; humanoid enemies | Medium |
-| **Ashforged Mercenaries** | Paid killers; humanoid enemies | Medium |
-| **Pirate Kings of Blacktide** | Smuggler factions; humanoid enemies | Medium |
-| **Dream-Revenants** | Aggressive memory-entities from the Lullaby age | High |
-| **Thread-Parasites** | Worm-like creatures that infest lunar machinery | Low–Medium |
-| **The Unshaped** | Reality-glitch monsters from the Frayedge rifts | High |
+| **True Selenian** | Complete "The Remembered" secret ending | Pure descendants of Selen's civilization |
+| **Hollowed Ascended** | Max Hollowed path and survive | Moon-Touched who became one with erasure |
+| **Voidborn Hybrid** | Defeat final Voidborn boss in Season 5 | Part-void entities who retained self |
+| **Machine-Soul** | Free Unit 7 and complete machine-soul questline | Fully liberated consciousness in any chassis |
+| **Drift-Caller** | Complete Season 6 refugee integration | Lunar hybrid navigator |
+| **Dream-Walker** | Complete Season 7 lucid-dream mastery | Permanent dream-state entity |
+| **Thread-Eater** | Complete "Thread-Eater" dark ending | Those who consumed the Moonthread |
+| **Nameless** | Have name removed from Book of Dusk and survive | Identity-erased survivors |
 
-### 2.4 Race Mechanics in Gameplay
+Each unlockable race gets simplified visual customization (often reusing existing assets), one unique passive and utility, access to special origin options, and a restricted or enhanced romance pool.
+
+### 2.8 NPC-Only Races
+
+| Race | Region | Role | Visual Hook |
+|---|---|---|---|
+| **The Skrii** | Spirechain | Insectoid librarians | Chittering, book-scented, many eyes |
+| **Moss-Whales** | Sunken Llyr | Giant filter-feeders | Living islands with ecosystems on their backs |
+| **Root-Wights** | Threadhold | Ancient forest guardians | Tree-like, slow, deeply patient |
+| **Ash-Drakes** | Ashmire | Miniature wyverns | Corrupted by forge-ash, domesticated |
+| **Thread-Spiders** | Moonthread | Weaver-creatures maintaining wards | Crystal-silk builders |
+| **Glass-Wraiths** | Mourncrown | Translucent remnants of first Binding | Fragile, dangerous, mournful |
+| **The Murmuring** | Frayedge | Fungal colonies that speak | Hive-mind, grows through caves |
+| **Sky-Koi** | Sky regions | Flying lunar fish | Migrate along the thread |
+| **Lament-Engines** | Pale Choir sites | Sentient bells and clockwork mourners | Ring themselves, walk on many legs |
+| **Bone-Sailors** | Sunken Llyr | Drowned dead still crewing ships | Skeletal, barnacled, bound to duty |
+
+### 2.9 Enemy Race Archetypes
+
+| Enemy | Description | Weakness |
+|---|---|---|
+| **Shard-Mutated Wildlife** | Animals twisted by moon-crystal | Fire, purification |
+| **Hollowed** | Erased people become monsters | Memory-restoration, naming |
+| **Lunar Husks** | Selenian corpses reanimated | Lunar disruption, fire |
+| **Voidborn** | Reality-eating entities | Names, light, harmonic resonance |
+| **Cinder War-Machines** | Ancient siege golems | Core destruction, spirit-release |
+| **Chainwright Purifiers** | Inquisitorial knights | Ideological doubt, internal dissent |
+| **Luminari Aberrations** | Shard-fused test subjects | Isolate from lunar energy |
+| **Pale Choir Dirgesingers** | Mourners who weaponize grief | Joy, life, hope |
+| **Dream-Revenants** | Aggressive memory-entities | Lucidity, waking |
+| **Thread-Parasites** | Worms infesting lunar machinery | Purge the host machine |
+| **The Unshaped** | Reality-glitch monsters | Stabilize local reality |
+
+### 2.10 Sub-Race / Heritage Implementation
+
+| Element | Implementation |
+|---|---|
+| **Visual** | Heritage swaps texture set, minor mesh adjustments, color palette. |
+| **Passive** | Replaces or modifies base racial passive. |
+| **Utility** | Utility skill remains mostly the same; heritage may tweak cooldown or effect. |
+| **Dialogue** | Some NPCs react to heritage specifically. |
+| **Origin** | Heritages may unlock or restrict certain origins. |
+
+Most heritages are available at character creation; some unlock through achievements or story choices (e.g. a "Hidden Selenian Blood" heritage for Lyranni unlocking through Tide-Caller content).
+
+### 2.11 Race and Animation Rigs
+
+To manage 24+ races without 24 separate skeletons:
+
+| Rig Family | Races | Notes |
+|---|---|---|
+| **Humanoid Standard** | Vaelari, Sylphra, Duskwight, Lumineth, Threadborn, Ashren, Voidtouched | Share base skeleton; differences in proportions and extras |
+| **Compact Humanoid** | Fennori, Brakkan | Shorter, broader; shared compact rig |
+| **Feline Humanoid** | Khenu | Unique digitigrade rig |
+| **Amphibian Humanoid** | Lyranni | Shared with Khenu but with webbing/extras |
+| **Heavy Humanoid** | Khurruk | Tall, dense; may share parts with Brakkan rig scaled up |
+| **Construct** | Golemkin | Unique mechanical rig with swappable parts |
+| **Unbound Tall** | Riftborn, The Bound | Tall rigs with asymmetry/joint options |
+| **Unlockable** | True Selenian, Hollowed Ascended, etc. | Often reuse base rigs with unique overlays |
+
+### 2.12 Race and Romance Integration
+
+| NPC | Racial Preference | Racial Prejudice | How to Overcome |
+|---|---|---|---|
+| **Aldric Vane** | Sylphra, Vaelari (orderly) | Lumineth, Riftborn, Voidtouched (unstable) | Prove discipline and control |
+| **Ilsa Marche** | Sylphra, Lumineth, Golemkin (beautiful/useful) | Fennori, Duskwight (backward) | Prove brilliance |
+| **Vesryn** | Lumineth, Duskwight, Ashren (mourners) | Khurruk, Brakkan (practical) | Show you remember the dead |
+| **Breca** | Khurruk, Brakkan, Vaelari | Sylphra (soft) | Prove strength and endurance |
+| **Kael** | Riftborn, Voidtouched, Ashren (outcasts) | Chainwright races | Help the vulnerable |
+| **Netta** | Lyranni, Khenu (sea-folk) | Sylphra, Chainwright nobles | Prove ruthlessness and sea-skill |
+| **Thorne** | Sylphra, Vaelari (political) | Riftborn (unpredictable) | Outmaneuver him |
+
+### 2.13 Implementation Priority for Races
+
+1. **Phase 1 — Launch core (8 races):** Vaelari, Khurruk, Sylphra, Duskwight, Khenu, Brakkan, Fennori, Lyranni.
+2. **Phase 2 — Selenian-Touched (4 races):** Lumineth, Threadborn, Ashren, Golemkin.
+3. **Phase 3 — Unbound (3 races):** Voidtouched, Riftborn, The Bound.
+4. **Phase 4 — Unlockable (8 races):** post-launch content.
+5. **Phase 5 — NPC/Monster races:** ongoing.
+
+### 2.14 Race Mechanics in Gameplay (Target Rules)
 
 | Mechanic | Implementation |
 |---|---|
@@ -116,6 +394,8 @@ Playable races are divided into **Aethonian** (native to the world), **Selenian-
 | **Origin compatibility** | Some origins are race-locked (e.g., Lumineth can take "Selenian Exile" origin); most are open. |
 | **NPC reactions** | Racial prejudice and affinity are tracked as memory tags; a Khurruk in Spirechain faces different dialogue than a Sylphra. |
 | **Romance compatibility** | Any race can romance any NPC, but some NPCs have racial preferences or prejudices that must be overcome. |
+
+**Engineering note — what's actually shipped vs. this target:** `packages/shared/src/races.ts` and `character.ts`'s `computeEffectiveStats` (see "Races" in `docs/GDD.md`) ship exactly one row of this design: all 15 races named across §2.4–§2.6 (Vaelari through The Bound) exist as selectable `raceId`s, each with a single `Partial<StatBlock>` racial passive layered alongside class base stats and equipment, chosen at character creation. This section's own header count of "16 core" doesn't match its own category tables (8 Aethonian + 4 Selenian-Touched + 3 Unbound = 15) — a pre-existing miscount in the source design doc, not a build gap. Not shipped, for any race: racial utility skills (the on-cooldown active per race, e.g. Barrow-Sight, Tide-Sense, Overclock), heritages/sub-races, the 8 unlockable post-launch races, NPC-only races, the enemy race weakness table, distinct per-race visuals/rigs (every race shares the current procedural avatar body), origin-race affinity (there is no origin system at all yet — see §6), and the racial preference/prejudice romance table above (the 6 NPCs with a working romance layer today have no race-awareness in their `RomanceDef`).
 
 ---
 
