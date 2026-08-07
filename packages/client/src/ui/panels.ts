@@ -44,6 +44,10 @@ export class Panels {
   private panel: HTMLDivElement;
   private open: PanelKind = null;
 
+  /** The Auction House lives in its own panel class (like Trade/Shop) since it needs
+   *  network-pushed listing state, not just the character object — this button just delegates. */
+  onOpenAuction: (() => void) | null = null;
+
   constructor(
     private root: HTMLElement,
     private net: NetClient,
@@ -67,9 +71,13 @@ export class Panels {
       <button data-panel="crafting">🛠️ Crafting (R)</button>
       <button data-panel="character">📜 Character (C)</button>
       <button data-panel="companions">🐾 Companions (P)</button>
+      <button data-panel="auction">🏛️ Auction (H)</button>
     `;
     toggles.querySelectorAll<HTMLButtonElement>("button").forEach((btn) => {
-      btn.addEventListener("click", () => this.toggle(btn.dataset.panel as PanelKind));
+      btn.addEventListener("click", () => {
+        if (btn.dataset.panel === "auction") this.onOpenAuction?.();
+        else this.toggle(btn.dataset.panel as PanelKind);
+      });
     });
     root.appendChild(toggles);
   }

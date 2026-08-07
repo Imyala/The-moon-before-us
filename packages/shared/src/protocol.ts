@@ -152,6 +152,35 @@ export interface SellItemMessage {
   quantity: number;
 }
 
+/** Lists an inventory stack on the auction house for `price` gold total, minus the flat
+ *  AUCTION_LISTING_FEE charged immediately (see Room.tryListAuction). Accessible from anywhere —
+ *  unlike vendors, the auction house isn't tied to a physical location. */
+export interface ListAuctionMessage {
+  t: "listAuction";
+  itemId: string;
+  rarity: ItemRarity;
+  quantity: number;
+  price: number;
+}
+
+/** Pulls back your own unsold listing — the item returns to your inventory, the listing fee is not refunded. */
+export interface CancelAuctionMessage {
+  t: "cancelAuction";
+  listingId: string;
+}
+
+/** Buys someone else's listing outright at its listed price. */
+export interface BuyAuctionMessage {
+  t: "buyAuction";
+  listingId: string;
+}
+
+/** Asks for the current full listing board (see Room.sendAuctionListings) — listings aren't part
+ *  of the per-tick zone snapshot since the auction house is global, not zone- or room-scoped. */
+export interface RequestAuctionsMessage {
+  t: "requestAuctions";
+}
+
 export type ClientMessage =
   | JoinMessage
   | InputMessage
@@ -177,7 +206,11 @@ export type ClientMessage =
   | CancelTradeMessage
   | ToggleMountMessage
   | BuyItemMessage
-  | SellItemMessage;
+  | SellItemMessage
+  | ListAuctionMessage
+  | CancelAuctionMessage
+  | BuyAuctionMessage
+  | RequestAuctionsMessage;
 
 // ---------------- Server -> Client ----------------
 
@@ -359,6 +392,25 @@ export interface TradeClosedMessage {
   reason: "completed" | "cancelled" | "declined";
 }
 
+/** One live auction house listing, as seen by a specific recipient — `isMine` is computed
+ *  server-side per request rather than exposing the seller's token to any client (see
+ *  Room.sendAuctionListings). */
+export interface AuctionListing {
+  id: string;
+  sellerName: string;
+  itemId: string;
+  rarity: ItemRarity;
+  quantity: number;
+  price: number;
+  listedAt: number;
+  isMine: boolean;
+}
+
+export interface AuctionListingsMessage {
+  t: "auctionListings";
+  listings: AuctionListing[];
+}
+
 export type ServerMessage =
   | SnapshotMessage
   | WelcomeMessage
@@ -369,4 +421,5 @@ export type ServerMessage =
   | NpcDialogueMessage
   | TradeRequestMessage
   | TradeStateMessage
-  | TradeClosedMessage;
+  | TradeClosedMessage
+  | AuctionListingsMessage;

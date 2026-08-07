@@ -1,7 +1,7 @@
 import Database from "better-sqlite3";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { DEFAULT_LOYALTY, START_ZONE_ID, type CharacterState } from "@moon/shared";
+import { DEFAULT_LOYALTY, START_ZONE_ID, type CharacterState, type ItemRarity } from "@moon/shared";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const dbPath = process.env.MOON_DB_PATH ?? path.join(__dirname, "..", "moon.sqlite");
@@ -54,6 +54,23 @@ for (const migration of [
     // column already exists on databases created before this migration was added
   }
 }
+
+// The auction house (see docs/GDD.md's "Auction house" section) — global and cross-room, unlike
+// a Room's in-memory state, since a listing must outlive the seller's session and be visible to
+// buyers in any other room. Kept in its own table rather than folded into `characters` because a
+// listing's lifecycle (created, bought, cancelled) is independent of any one character row.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS auctions (
+    id TEXT PRIMARY KEY,
+    sellerToken TEXT NOT NULL,
+    sellerName TEXT NOT NULL,
+    itemId TEXT NOT NULL,
+    rarity TEXT NOT NULL,
+    quantity INTEGER NOT NULL,
+    price INTEGER NOT NULL,
+    listedAt INTEGER NOT NULL
+  );
+`);
 
 const getStmt = db.prepare("SELECT * FROM characters WHERE token = ?");
 const upsertStmt = db.prepare(`
@@ -157,4 +174,59 @@ export function saveCharacter(token: string, c: CharacterState): void {
     gold: c.gold ?? 0,
     updatedAt: Date.now()
   });
+}
+
+export interface AuctionRow {
+  id: string;
+  sellerToken: string;
+  sellerName: string;
+  itemId: string;
+  rarity: ItemRarity;
+  quantity: number;
+  price: number;
+  listedAt: number;
+}
+
+const insertAuctionStmt = db.prepare(`
+  INSERT INTO auctions (id, sellerToken, sellerName, itemId, rarity, quantity, price, listedAt)
+  VALUES (@id, @sellerToken, @sellerName, @itemId, @rarity, @quantity, @price, @listedAt)
+`);
+const getAuctionStmt = db.prepare("SELECT * FROM auctions WHERE id = ?");
+const deleteAuctionStmt = db.prepare("DELETE FROM auctions WHERE id = ?");
+const listAuctionsStmt = db.prepare("SELECT * FROM auctions ORDER BY listedAt DESC");
+const countAuctionsBySellerStmt = db.prepare("SELECT COUNT(*) AS n FROM auctions WHERE sellerToken = ?");
+
+export function insertAuction(row: AuctionRow): void {
+  insertAuctionStmt.run(row);
+}
+
+export function getAuction(id: string): AuctionRow | null {
+  return (getAuctionStmt.get(id) as AuctionRow | undefined) ?? null;
+}
+
+/** Synchronous and called with no `await` between the read and the delete anywhere in this
+ *  codebase's call sites — with better-sqlite3's synchronous driver and Node's single-threaded
+ *  event loop, that's enough to guarantee two simultaneous buy attempts on the same listing can't
+ *  both succeed; the second always finds it already gone. */
+export function deleteAuction(id: string): void {
+  deleteAuctionStmt.run(id);
+}
+
+export function listAuctions(): AuctionRow[] {
+  return listAuctionsStmt.all() as AuctionRow[];
+}
+
+export function countAuctionsBySeller(sellerToken: string): number {
+  return (countAuctionsBySellerStmt.get(sellerToken) as { n: number }).n;
+}
+
+/** Credits gold straight to a character's saved row — used only when the seller isn't currently
+ *  connected anywhere (see presence.ts's creditGold). Never called for an online seller: their
+ *  live in-memory character is the source of truth while connected, and this read-modify-write
+ *  would otherwise race the periodic autosave and silently lose the credit. */
+export function creditGoldOffline(token: string, amount: number): void {
+  const character = loadCharacter(token);
+  if (!character) return;
+  character.gold += amount;
+  saveCharacter(token, character);
 }

@@ -7,6 +7,11 @@ export type PlayerClassId = "warden" | "ranger" | "mystic" | "duskblade";
 /** How many companions a character can have active at once (see CharacterState.companionIds). */
 export const MAX_COMPANIONS = 2;
 
+/** The auction house (see docs/GDD.md's "Auction house" section): a flat, non-refundable gold
+ *  cost to list an item, and a cap on how many listings one seller can have live at once. */
+export const AUCTION_LISTING_FEE = 2;
+export const AUCTION_MAX_LISTINGS_PER_PLAYER = 10;
+
 export type ResourceType = "resolve" | "focus" | "aether" | "umbra";
 
 export interface StatBlock {

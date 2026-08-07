@@ -40,6 +40,7 @@ import { NameplateManager } from "./ui/nameplates.js";
 import { DialoguePanel } from "./ui/dialogue.js";
 import { TradePanel } from "./ui/trade.js";
 import { ShopPanel } from "./ui/shop.js";
+import { AuctionPanel } from "./ui/auction.js";
 import { renderLanding } from "./ui/landing.js";
 import { AudioEngine } from "./audio.js";
 import { getOrCreateToken, getSavedProfile, saveProfile } from "./identity.js";
@@ -148,6 +149,8 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
   const dialogue = new DialoguePanel(uiRoot);
   const trade = new TradePanel(uiRoot, net, () => character);
   const shop = new ShopPanel(uiRoot, net, () => character);
+  const auction = new AuctionPanel(uiRoot, net, () => character);
+  panels.onOpenAuction = () => auction.toggle();
   const dmgContainer = uiRoot;
 
   dialogue.onChoose = (npcId, optionId) => net.send({ t: "chooseDialogueOption", npcId, optionId });
@@ -170,6 +173,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
   controller.onToggleCharacter = () => panels.toggle("character");
   controller.onToggleCompanions = () => panels.toggle("companions");
   controller.onToggleMount = () => toggleMount();
+  controller.onToggleAuction = () => auction.toggle();
 
   let character: CharacterState = initialCharacter;
   let selfPos: Vec3 = { ...initialCharacter.position };
@@ -235,6 +239,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
         character = msg.character;
         panels.refresh();
         shop.refresh();
+        auction.refresh();
         break;
       case "partyRoster":
         latestRoster = msg.members;
@@ -260,6 +265,9 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
         trade.handleClosed(msg);
         if (msg.reason === "completed") hud.pushToast("Trade completed.", "loot");
         else if (msg.reason === "declined") hud.pushToast("Trade declined.", "info");
+        break;
+      case "auctionListings":
+        auction.handleListings(msg.listings);
         break;
     }
   }
@@ -554,7 +562,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
   // ---------------- Input handling ----------------
 
   function useAbility(slot: number) {
-    if (panels.isOpen() || trade.isOpen() || shop.isOpen() || hud.isChatFocused()) return;
+    if (panels.isOpen() || trade.isOpen() || shop.isOpen() || auction.isOpen() || hud.isChatFocused()) return;
     const ability = activeAbilities(character).find((a) => a.slot === slot);
     if (!ability) return;
     const readyAt = cooldownReadyAt.get(ability.id) ?? 0;
@@ -586,12 +594,12 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
   }
 
   function toggleMount() {
-    if (panels.isOpen() || trade.isOpen() || shop.isOpen() || hud.isChatFocused()) return;
+    if (panels.isOpen() || trade.isOpen() || shop.isOpen() || auction.isOpen() || hud.isChatFocused()) return;
     net.send({ t: "toggleMount" });
   }
 
   function sendDodge() {
-    if (panels.isOpen() || trade.isOpen() || shop.isOpen() || hud.isChatFocused()) return;
+    if (panels.isOpen() || trade.isOpen() || shop.isOpen() || auction.isOpen() || hud.isChatFocused()) return;
     const intent = controller.getMoveIntent();
     let dir = { x: intent.x, y: 0, z: intent.z };
     if (dir.x === 0 && dir.z === 0) {
@@ -602,7 +610,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
   }
 
   function tryInteract() {
-    if (panels.isOpen() || trade.isOpen() || shop.isOpen() || hud.isChatFocused()) return;
+    if (panels.isOpen() || trade.isOpen() || shop.isOpen() || auction.isOpen() || hud.isChatFocused()) return;
 
     const npcDist = nearestNpcId ? Math.hypot(npcs.get(nearestNpcId)!.position.x - selfPos.x, npcs.get(nearestNpcId)!.position.z - selfPos.z) : Infinity;
     const nodeDist = nearestNodeId ? Math.hypot(nodes.get(nearestNodeId)!.mesh.position.x - selfPos.x, nodes.get(nearestNodeId)!.mesh.position.z - selfPos.z) : Infinity;
@@ -628,7 +636,7 @@ function runGame(net: NetClient, selfId: string, roomCode: string, initialCharac
   }
 
   function tryTargetClick() {
-    if (panels.isOpen() || trade.isOpen() || shop.isOpen() || hud.isChatFocused()) return;
+    if (panels.isOpen() || trade.isOpen() || shop.isOpen() || auction.isOpen() || hud.isChatFocused()) return;
     raycaster.setFromCamera(controller.mouseNdc, world.camera);
     const meshes: { id: string; obj: THREE.Object3D }[] = [];
     for (const [id, vis] of enemies) {

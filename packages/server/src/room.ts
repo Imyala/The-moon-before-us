@@ -46,6 +46,9 @@ import {
 } from "@moon/shared";
 import { randomUUID } from "node:crypto";
 import { grantXp } from "./character.js";
+import { buyAuction, cancelAuction, listAuction, auctionRowsForRecipient } from "./auctionHouse.js";
+import { listAuctions } from "./db.js";
+import { registerPresence, unregisterPresence } from "./presence.js";
 import {
   addItem,
   buyFromVendor,
@@ -399,6 +402,7 @@ export class Room {
       character.hp = character.maxHp;
     }
     this.players.set(entity.id, entity);
+    registerPresence(token, character, () => this.sendCharacterUpdate(entity));
     this.send(ws, { t: "welcome", selfId: entity.id, roomCode: this.code ?? "solo", character });
     this.broadcastRoster();
     return entity;
@@ -409,6 +413,7 @@ export class Room {
     if (!p) return;
     p.character.position = p.position;
     this.persist(p.token, p.character);
+    unregisterPresence(p.token, p.character);
     this.players.delete(playerId);
     for (const [id, companion] of this.companions) {
       if (companion.ownerId === playerId) this.companions.delete(id);
@@ -551,6 +556,22 @@ export class Room {
       }
       case "sellItem": {
         this.trySellItem(player, msg.vendorId, msg.itemId, msg.rarity, msg.quantity);
+        break;
+      }
+      case "listAuction": {
+        this.tryListAuction(player, msg.itemId, msg.rarity, msg.quantity, msg.price);
+        break;
+      }
+      case "cancelAuction": {
+        this.tryCancelAuction(player, msg.listingId);
+        break;
+      }
+      case "buyAuction": {
+        this.tryBuyAuction(player, msg.listingId);
+        break;
+      }
+      case "requestAuctions": {
+        this.sendAuctionListings(player);
         break;
       }
     }
@@ -1141,6 +1162,44 @@ export class Room {
     const result = sellToVendor(player.character, itemId, rarity, quantity);
     if (result.ok) this.sendCharacterUpdate(player);
     else this.send(player.ws, { t: "error", message: result.reason });
+  }
+
+  // ---------------- Auction house ----------------
+  // Global and cross-room, unlike vendors or trading — accessible from anywhere, not gated by
+  // proximity to any physical location or player. See auctionHouse.ts and presence.ts.
+
+  private tryListAuction(player: PlayerEntity, itemId: string, rarity: ItemRarity, quantity: number, price: number) {
+    const result = listAuction(player.character, player.token, player.character.name, itemId, rarity, quantity, price);
+    if (result.ok) {
+      this.sendCharacterUpdate(player);
+      this.sendAuctionListings(player);
+    } else {
+      this.send(player.ws, { t: "error", message: result.reason });
+    }
+  }
+
+  private tryCancelAuction(player: PlayerEntity, listingId: string) {
+    const result = cancelAuction(player.character, player.token, listingId);
+    if (result.ok) {
+      this.sendCharacterUpdate(player);
+      this.sendAuctionListings(player);
+    } else {
+      this.send(player.ws, { t: "error", message: result.reason });
+    }
+  }
+
+  private tryBuyAuction(player: PlayerEntity, listingId: string) {
+    const result = buyAuction(player.character, player.token, listingId);
+    if (result.ok) {
+      this.sendCharacterUpdate(player);
+      this.sendAuctionListings(player);
+    } else {
+      this.send(player.ws, { t: "error", message: result.reason });
+    }
+  }
+
+  private sendAuctionListings(player: PlayerEntity) {
+    this.send(player.ws, { t: "auctionListings", listings: auctionRowsForRecipient(listAuctions(), player.token) });
   }
 
   private handleDialogueChoice(player: PlayerEntity, npcId: string, optionId: string) {

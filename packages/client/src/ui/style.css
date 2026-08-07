@@ -206,6 +206,8 @@ body {
 .recipe-card button { background: #7c6bd6; border: none; color: #fff; border-radius: 8px; padding: 8px 12px; font-size: 12px; cursor: pointer; white-space: nowrap; }
 .recipe-card button:disabled { background: #44415e; cursor: not-allowed; }
 .recipe-card .rarity-tag { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 2px; }
+.ah-input { width: 52px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: #eef0fb; border-radius: 5px; padding: 2px 5px; font-size: 11px; margin: 0 8px 0 3px; }
+.ah-input:focus { outline: none; border-color: #8f9fff; }
 
 .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
 .stat-chip { background: rgba(255,255,255,0.04); border-radius: 8px; padding: 8px 12px; font-size: 12.5px; display: flex; justify-content: space-between; }

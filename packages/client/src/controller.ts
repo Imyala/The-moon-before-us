@@ -24,6 +24,7 @@ export class InputController {
   onToggleCharacter: (() => void) | null = null;
   onToggleCompanions: (() => void) | null = null;
   onToggleMount: (() => void) | null = null;
+  onToggleAuction: (() => void) | null = null;
 
   private inputLocked = false;
 
@@ -62,6 +63,7 @@ export class InputController {
     else if (e.code === "KeyR") this.onToggleCrafting?.();
     else if (e.code === "KeyP") this.onToggleCompanions?.();
     else if (e.code === "KeyM") this.onToggleMount?.();
+    else if (e.code === "KeyH") this.onToggleAuction?.();
   }
 
   private isTypingTarget(target: EventTarget | null) {
