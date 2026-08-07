@@ -1,5 +1,7 @@
 # The Moon Above Our World
 
+[![CI](https://github.com/Imyala/The-moon-before-us/actions/workflows/ci.yml/badge.svg)](https://github.com/Imyala/The-moon-before-us/actions/workflows/ci.yml)
+
 A drop-in, drop-out coop action-RPG with an MMO feel — inspired by SWTOR, Guild Wars 2, WoW, and Fellowship. Play solo or bring friends; jump in and out anytime, no commitment required.
 
 The moon **Selen** is chained to the world **Aethon** by a failing celestial engine called the **Moonthread**. Every character is **Moon-Touched** — able to hear the moon's memories — and three factions (the order-bound Chainwrights, the exploit-it Luminari, and the let-it-die Pale Choir) are fighting over what to do when the thread finally breaks.
