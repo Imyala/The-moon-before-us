@@ -181,6 +181,36 @@ export const ENEMIES: EnemyDef[] = [
     ],
     scale: 2.6,
     color: "#5c6b3a"
+  },
+  // The Drowned City's boss (see docs/GDD.md's "Dungeons" section): the second dungeon, gated
+  // higher than the Hollow Vault. A Selenian who sank with the city rather than one of the
+  // Order's own constructs — tougher than the Vault Warden, with the same real lockout.
+  {
+    id: "sleeping_selenian",
+    name: "The Sleeping Selenian",
+    tier: "boss",
+    maxHp: 1700,
+    power: 34,
+    moveSpeed: 2.3,
+    aggroRadius: 18,
+    attackRange: 5,
+    attackDamage: 42,
+    attackCooldownMs: 2300,
+    attackTelegraphMs: 850,
+    xpReward: 560,
+    respawnMs: 600000,
+    loot: [
+      { itemId: "armor_tideglass_ward", chance: 0.35, minQty: 1, maxQty: 1 },
+      { itemId: "trinket_selenian_signet", chance: 0.35, minQty: 1, maxQty: 1 },
+      { itemId: "weapon_selenian_tideblade", chance: 0.05, minQty: 1, maxQty: 1 },
+      { itemId: "weapon_depthsong_bow", chance: 0.05, minQty: 1, maxQty: 1 },
+      { itemId: "weapon_drowned_conduit", chance: 0.05, minQty: 1, maxQty: 1 },
+      { itemId: "weapon_abyssal_fangs", chance: 0.05, minQty: 1, maxQty: 1 },
+      { itemId: "mat_starlight_essence", chance: 0.85, minQty: 3, maxQty: 6 },
+      { itemId: "mat_silver_ore", chance: 0.6, minQty: 3, maxQty: 6 }
+    ],
+    scale: 2.7,
+    color: "#3a7a82"
   }
 ];
 

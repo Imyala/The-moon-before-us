@@ -32,6 +32,7 @@ export function makePlayer(opts: {
   maxHp?: number;
   resource?: number;
   power?: number;
+  level?: number;
   inventory?: any[];
   npcMemory?: Record<string, any>;
   factionLoyalty?: Record<string, number>;
@@ -46,6 +47,7 @@ export function makePlayer(opts: {
       id: `char-${id}`,
       hp: opts.hp ?? 100,
       maxHp: opts.maxHp ?? 100,
+      level: opts.level ?? 1,
       zoneId: opts.zoneId ?? "threadhold",
       classId: opts.classId ?? "warden",
       specializationId: opts.specializationId ?? null,

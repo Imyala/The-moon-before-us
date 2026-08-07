@@ -24,7 +24,8 @@ const THEME_AMBIENCE: Record<ZoneTheme, ThemeAmbience> = {
   arcane: { baseFreq: 110, filterFreq: 1400, detune: 18, type: "sine" },
   fractured: { baseFreq: 61, filterFreq: 380, detune: 26, type: "sawtooth" },
   lunar: { baseFreq: 82, filterFreq: 1600, detune: 4, type: "sine" },
-  hollow: { baseFreq: 55, filterFreq: 320, detune: 20, type: "triangle" }
+  hollow: { baseFreq: 55, filterFreq: 320, detune: 20, type: "triangle" },
+  drowned: { baseFreq: 68, filterFreq: 550, detune: 16, type: "sine" }
 };
 
 export class AudioEngine {

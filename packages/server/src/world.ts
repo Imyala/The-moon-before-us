@@ -156,6 +156,19 @@ export const ZONE_ENEMY_SPAWNS: Record<string, EnemySpawnPoint[]> = {
     { defId: "stone_sentinel", pos: { x: 0, y: 0, z: -4 }, patrolRadius: 3 },
     { defId: "husk", pos: { x: 5, y: 0, z: -10 }, patrolRadius: 4 },
     { defId: "vault_warden", pos: { x: 0, y: 0, z: -20 }, patrolRadius: 2 }
+  ],
+  // The Drowned City (see docs/GDD.md's "Dungeons" section): entering at the south end (z=30),
+  // kelp-tangled stalkers and drowned husks thin out through flooded plazas toward the sunken
+  // throne room at the north end, where the Sleeping Selenian still waits.
+  drowned_city: [
+    { defId: "bramble_stalker", pos: { x: 7, y: 0, z: 20 }, patrolRadius: 3 },
+    { defId: "bramble_stalker", pos: { x: -7, y: 0, z: 15 }, patrolRadius: 3 },
+    { defId: "husk", pos: { x: 9, y: 0, z: 7 }, patrolRadius: 4 },
+    { defId: "husk", pos: { x: -9, y: 0, z: 4 }, patrolRadius: 4 },
+    { defId: "stone_sentinel", pos: { x: 0, y: 0, z: -2 }, patrolRadius: 3 },
+    { defId: "husk", pos: { x: 6, y: 0, z: -12 }, patrolRadius: 4 },
+    { defId: "stone_sentinel", pos: { x: -6, y: 0, z: -14 }, patrolRadius: 3 },
+    { defId: "sleeping_selenian", pos: { x: 0, y: 0, z: -24 }, patrolRadius: 2 }
   ]
 };
 
@@ -241,6 +254,12 @@ export const ZONE_NODE_SPAWNS: Record<string, NodeSpawnPoint[]> = {
   hollow_vault: [
     { defId: "node_ore_vein", pos: { x: 10, y: 0, z: 16 } },
     { defId: "node_ore_vein", pos: { x: -10, y: 0, z: 10 } }
+  ],
+  // Crystal alone — the city sank because of the shard it was built to hold, and it's still
+  // shedding fragments of it.
+  drowned_city: [
+    { defId: "node_crystal", pos: { x: 11, y: 0, z: 14 } },
+    { defId: "node_crystal", pos: { x: -11, y: 0, z: 9 } }
   ]
 };
 

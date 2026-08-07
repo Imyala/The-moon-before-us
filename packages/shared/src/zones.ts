@@ -19,7 +19,7 @@ export interface TravelPoint {
   requiresLevel?: number;
 }
 
-export type ZoneTheme = "verdant" | "ashen" | "coastal" | "highland" | "arcane" | "fractured" | "lunar" | "hollow";
+export type ZoneTheme = "verdant" | "ashen" | "coastal" | "highland" | "arcane" | "fractured" | "lunar" | "hollow" | "drowned";
 
 export interface ZoneDef {
   id: string;
@@ -169,6 +169,42 @@ export const ZONES: Record<string, ZoneDef> = {
         toZoneId: "threadhold",
         toPos: { x: 50, y: 0, z: 0 },
         label: "Threadhold"
+      },
+      // The Drowned City: the rising Selenian ruin Tidecaller Oren agonizes over (see npc.ts's
+      // tidecaller_oren_choice) — a second dungeon, gated higher than the Hollow Vault since a
+      // party reaching it has already cleared most of the standard zones.
+      {
+        id: "sunken_llyr_to_drowned_city",
+        pos: { x: -34, y: 0, z: 34 },
+        radius: 3,
+        toZoneId: "drowned_city",
+        toPos: { x: 0, y: 0, z: 24 },
+        label: "The Drowned City",
+        requiresLevel: 12
+      }
+    ]
+  },
+  drowned_city: {
+    id: "drowned_city",
+    name: "The Drowned City",
+    radius: 32,
+    spawnPoint: { x: 0, y: 0, z: 24 },
+    theme: "drowned",
+    groundColor: "#132c30",
+    groundHighlight: "#1f4a4a",
+    fogColor: "#050f12",
+    backgroundColor: "#03080a",
+    isDungeon: true,
+    travelPoints: [
+      // Set back from the spawn point on purpose, same as the Hollow Vault's exit — walking in
+      // and heading toward the boss chamber (decreasing z) moves away from this immediately.
+      {
+        id: "drowned_city_to_sunken_llyr",
+        pos: { x: 0, y: 0, z: 30 },
+        radius: 3,
+        toZoneId: "sunken_llyr",
+        toPos: { x: -30, y: 0, z: 30 },
+        label: "Sunken Llyr"
       }
     ]
   },

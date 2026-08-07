@@ -164,7 +164,9 @@ const THEME_VISUALS: Record<ZoneDef["theme"], ThemeVisuals> = {
   // The Moonthread itself: no trees at all, just stone and the moon's own light given form.
   lunar: { deadTrees: true, treeCount: 0, rockCount: 90, moteCount: 90, moteColor: "#e8ecff", moteName: "moonlight", moteHeight: 5.5 },
   // The Hollow Vault: sealed stonework reclaimed by whatever the Hollowed leave growing in the dark.
-  hollow: { deadTrees: true, treeCount: 0, rockCount: 120, moteCount: 55, moteColor: "#8fd67a", moteName: "spore-glow", moteHeight: 2.8 }
+  hollow: { deadTrees: true, treeCount: 0, rockCount: 120, moteCount: 55, moteColor: "#8fd67a", moteName: "spore-glow", moteHeight: 2.8 },
+  // The Drowned City: no trees survived the tide, just flooded ruin and bioluminescent drift.
+  drowned: { deadTrees: true, treeCount: 0, rockCount: 100, moteCount: 80, moteColor: "#5ad1c9", moteName: "bioluminescence", moteHeight: 3.4 }
 };
 
 function scatterScenery(target: THREE.Group, zone: ZoneDef) {

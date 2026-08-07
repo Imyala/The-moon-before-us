@@ -198,6 +198,55 @@ export const ITEMS: ItemDef[] = [
     description: "Twin blades quenched in something that was never quite water.",
     statBonus: { power: 16, critChance: 0.04 }
   },
+  // ---- Drowned City epic weapons (drop-only, see docs/GDD.md's "Dungeons" section) ----
+  {
+    id: "weapon_selenian_tideblade",
+    name: "Selenian Tideblade",
+    kind: "weapon",
+    slot: "weapon",
+    classId: "warden",
+    weaponType: "warden_sword_board",
+    rarity: "epic",
+    icon: "sword",
+    description: "Drawn from the Sleeping Selenian's own hand. Still runs wet.",
+    statBonus: { power: 20, vitality: 5 }
+  },
+  {
+    id: "weapon_depthsong_bow",
+    name: "Depthsong Bow",
+    kind: "weapon",
+    slot: "weapon",
+    classId: "ranger",
+    weaponType: "ranger_bow",
+    rarity: "epic",
+    icon: "bow",
+    description: "Strung with something that was never quite sinew. Sings underwater.",
+    statBonus: { power: 21, critChance: 0.05 }
+  },
+  {
+    id: "weapon_drowned_conduit",
+    name: "Drowned Moon Conduit",
+    kind: "weapon",
+    slot: "weapon",
+    classId: "mystic",
+    weaponType: "mystic_focus",
+    rarity: "epic",
+    icon: "orb",
+    description: "A focus that sank with the city and never stopped channeling.",
+    statBonus: { power: 22 }
+  },
+  {
+    id: "weapon_abyssal_fangs",
+    name: "Abyssal Fangs",
+    kind: "weapon",
+    slot: "weapon",
+    classId: "duskblade",
+    weaponType: "duskblade_daggers",
+    rarity: "epic",
+    icon: "dagger",
+    description: "Twin blades that drink the dark the way the tide drank the city.",
+    statBonus: { power: 20, critChance: 0.05 }
+  },
 
   // ---- armor (single "armor" slot for simplicity) ----
   {
@@ -250,6 +299,16 @@ export const ITEMS: ItemDef[] = [
     description: "Order plate, sealed away when the Vault fell and never worn since.",
     statBonus: { vitality: 16, power: 6 }
   },
+  {
+    id: "armor_tideglass_ward",
+    name: "Tideglass Ward",
+    kind: "armor",
+    slot: "armor",
+    rarity: "epic",
+    icon: "armor",
+    description: "Fused from the Drowned City's own windows. Never cracks, never dries.",
+    statBonus: { vitality: 18, power: 6, haste: 0.02 }
+  },
 
   // ---- trinkets ----
   {
@@ -291,6 +350,16 @@ export const ITEMS: ItemDef[] = [
     icon: "charm",
     description: "The Vault Warden's own seal of office. Still humming, somehow.",
     statBonus: { power: 6, critChance: 0.05, haste: 0.03 }
+  },
+  {
+    id: "trinket_selenian_signet",
+    name: "Selenian Signet",
+    kind: "trinket",
+    slot: "trinket",
+    rarity: "epic",
+    icon: "charm",
+    description: "A ring of office from a city that never surfaced. It still remembers being worn.",
+    statBonus: { power: 7, critChance: 0.05, haste: 0.04 }
   },
 
   // ---- materials ----
